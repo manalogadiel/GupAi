@@ -1,106 +1,109 @@
 import './BarberMascot.css'
 
-export default function BarberMascot({
-  state = 'idle',
-  size = 120,
-}: {
-  state?: 'idle' | 'listening' | 'thinking' | 'happy'
-  size?: number
-}) {
+export type MascotState = 'idle' | 'listening' | 'thinking' | 'talking' | 'happy'
+const POSES: MascotState[] = ['idle', 'listening', 'thinking', 'talking', 'happy']
+
+const SKIN = '#C68A64', SKIN_SHADE = '#A8704F', INK = '#26241F', GREEN = '#2F5443', CREAM = '#FFFCF7', STEEL = '#B8B9AE'
+
+/** Kuya Gup, full body (head to knees): fade + quiff, barber apron with a comb in the pocket, scissors in hand. */
+export default function BarberMascot({ state = 'idle', size = 240, bust = false }: { state?: MascotState; size?: number; bust?: boolean }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 200 200" aria-hidden="true" focusable="false" className="bm-root">
-      <path fill="#F4D9C4" d="M24 119C17 86 35 49 67 41c31-9 48-2 66 6 31 13 49 37 47 68-2 37-30 67-77 68-43 1-71-22-79-64Z" />
-      {(['idle', 'listening', 'thinking', 'happy'] as const).map((pose) => (
+    <svg width={bust ? size : (size * 200) / 300} height={size} viewBox={bust ? '48 14 104 104' : '0 0 200 300'} aria-hidden="true" focusable="false" className={`bm-root${bust ? " bm-bust" : ""}`}>
+      <ellipse cx="100" cy="292" rx="58" ry="6" fill={INK} opacity=".12" />
+      {POSES.map(pose => (
         <g key={pose} className={`bm-pose bm-${pose}${state === pose ? ' bm-active' : ''}`}>
           <g className="bm-hop">
             <g className="bm-sway">
+              {/* legs */}
+              <path fill="#3A3A40" d="M70 228h28l-2 56H74Zm32 0h28l-4 56h-22Z" />
+              <path fill={INK} d="M70 282h28v6c0 3-2 5-5 5H68c-2 0-3-2-2-4Zm32 0h28l4 7c1 2 0 4-2 4h-25c-3 0-5-2-5-5Z" />
               <g className="bm-breathe">
-                <g className="bm-body">
-                  <path fill="#FFFCF7" d="M83 114h34c23 0 41 19 43 42l2 22H38l3-22c3-23 19-42 42-42Z" />
-                  <path fill="#C68A64" d="M87 104h26v21c-6 9-20 9-26 0Z" />
-                  <path fill="#A8704F" d="M87 108h26v9c-7 5-19 4-26-1Z" />
-                  <path fill="#2F5443" d="m83 116 17 13-12 11-13-19Zm34 0-17 13 12 11 13-19Z" />
-                  <path d="M100 139v39" stroke="#2F5443" strokeWidth="3" />
-                  <circle cx="106" cy="147" r="1.5" fill="#2F5443" />
-                  <circle cx="106" cy="158" r="1.5" fill="#2F5443" />
-                  <path d="M40 165h14m91 0h15" stroke="#2F5443" strokeWidth="4" />
-                  <g className="bm-pocket">
-                    <rect x="64" y="139" width="11" height="22" rx="2" fill="#26241F" transform="rotate(-9 69 150)" />
-                    <path d="m65 142 6 1m-6 3 6 1m-6 3 6 1m-6 3 6 1" stroke="#FFFCF7" strokeWidth="1.5" />
-                    <path fill="#FFFCF7" stroke="#2F5443" strokeWidth="2" d="M60 152h23v12c0 10-23 10-23 0Z" />
-                  </g>
+                {/* torso: shirt */}
+                <path fill={CREAM} d="M62 124c10-6 24-9 38-9s28 3 38 9c10 6 15 18 16 32l2 74H44l2-74c1-14 6-26 16-32Z" />
+                {/* apron */}
+                <path fill={GREEN} d="M66 150h68l4 88c0 4-3 7-7 7H69c-4 0-7-3-7-7Z" />
+                <path d="M74 150 88 120M126 150 112 120" stroke={GREEN} strokeWidth="5" strokeLinecap="round" />
+                <path d="M62 170h76" stroke="#264537" strokeWidth="2" />
+                <text x="100" y="230" textAnchor="middle" fontFamily="var(--font-display)" fontSize="15" fill={CREAM} opacity=".9">GupAi</text>
+                {/* pocket with comb */}
+                <g className="bm-pocket">
+                  <rect x="108" y="170" width="10" height="26" rx="2" fill={INK} transform="rotate(8 113 183)" />
+                  <path d="m110 174 6 1m-6 4 6 1m-6 4 6 1m-6 4 6 1" stroke={CREAM} strokeWidth="1.4" transform="rotate(8 113 183)" />
+                  <path fill="#264537" stroke={CREAM} strokeOpacity=".5" strokeWidth="1.5" d="M102 184h26v14c0 5-4 8-9 8h-8c-5 0-9-3-9-8Z" />
                 </g>
-                <g className="bm-head">
-                  <g className="bm-ears" fill="#C68A64">
-                    <ellipse cx="68" cy="86" rx="8" ry="10" />
-                    <ellipse cx="132" cy="86" rx="8" ry="10" />
-                  </g>
-                  <path fill="#C68A64" d="M67 66c0-23 66-23 66 0v21c0 23-15 34-33 34S67 110 67 87Z" />
-                  <path fill="#A8704F" d="M128 70v19c0 17-11 29-28 32 21 0 33-13 33-34V70Z" />
-                  <g className="bm-hair" fill="#26241F">
-                    <path d="M66 80V64c0-20 12-30 34-30 24 0 35 13 34 33v13l-6-10-3-13c-8 5-15 6-23 3-12 7-22 6-29 5l-2 12Z" />
-                    <path d="M67 70h5v16h-5Zm61 0h5v16h-5Z" />
-                    <path d="m111 41 7 15" stroke="#A8704F" strokeWidth="2.5" strokeLinecap="round" />
-                  </g>
-                  <g className="bm-brows" fill="none" stroke="#26241F" strokeWidth="2.5" strokeLinecap="round">
-                    <path d="M80 75q5-3 10-1M110 74q5-2 10 1" />
-                  </g>
-                  <g className="bm-eyes" fill="#26241F">
-                    {pose === 'happy' ? (
-                      <g fill="none" stroke="#26241F" strokeWidth="3" strokeLinecap="round">
-                        <path d="M80 85q5-7 10 0M110 85q5-7 10 0" />
-                      </g>
-                    ) : (
-                      <><circle cx="85" cy="84" r="3" /><circle cx="115" cy="84" r="3" /></>
-                    )}
-                  </g>
-                  <g className="bm-eyelids" fill="none" stroke="#26241F" strokeWidth="2" strokeLinecap="round">
-                    <path d="M81 85q4 2 8 0M111 85q4 2 8 0" />
-                  </g>
-                  <path d="M99 88v7h4" fill="none" stroke="#A8704F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                  <g className="bm-mouth">
-                    {pose === 'happy' ? (
-                      <g className="bm-mouth-happy">
-                        <path fill="#26241F" d="M87 100h26c-1 17-24 17-26 0Z" />
-                        <path fill="#FFFCF7" d="M90 101h20l-2 5H92Z" />
-                      </g>
-                    ) : (
-                      <g className="bm-mouth-small">
-                        <path d="M92 102q8 7 16 0" fill="none" stroke="#26241F" strokeWidth="2.5" strokeLinecap="round" />
-                      </g>
-                    )}
-                  </g>
+                {/* collar */}
+                <path fill={CREAM} stroke="#E3D9CB" strokeWidth="1.5" d="m84 118 16 14 16-14 6 10-22 12-22-12Z" />
+                {/* left arm, holding a comb */}
+                <g className="bm-arm-left">
+                  <path d="M58 134c-8 18-10 44-6 66" fill="none" stroke={CREAM} strokeWidth="20" strokeLinecap="round" />
+                  <circle cx="52" cy="206" r="9" fill={SKIN} />
+                  <path fill={INK} d="M37 203l22 5-1.6 6.8-22-5Z" /><path d="M36 210l-1.5 5.5m5.4-4.6-1.5 5.5m5.4-4.6-1.5 5.5m5.4-4.6-1.5 5.5m5.4-4.6-1.5 5.5" stroke={INK} strokeWidth="1.6" strokeLinecap="round" />
                 </g>
-                <g className="bm-arm">
-                  <path d="M144 136q6 16 17 17" fill="none" stroke="#FFFCF7" strokeWidth="17" strokeLinecap="round" />
-                  <path d="m153 148 5-9" stroke="#2F5443" strokeWidth="4" />
-                  <g className="bm-scissors" fill="none" stroke="#B8B9AE" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="164" cy="155" r="4" /><circle cx="174" cy="151" r="4" />
-                    <path d="m166 151 12-26m-6 22-9-20" />
-                    <circle cx="170" cy="142" r="2" fill="#26241F" stroke="none" />
-                  </g>
-                  <ellipse cx="160" cy="151" rx="5" ry="6" fill="#C68A64" />
-                  {pose === 'happy' && (
-                    <g className="bm-sparkle" fill="#2F5443">
-                      <path d="m184 120 2-5 2 5 5 2-5 2-2 5-2-5-5-2Z" />
-                    </g>
+              </g>
+              {/* neck + head */}
+              <g className="bm-head">
+                <path fill={SKIN} d="M88 98h24v22c-6 8-18 8-24 0Z" />
+                <path fill={SKIN_SHADE} d="M88 104h24v8c-7 5-17 4-24-1Z" />
+                <g fill={SKIN}><ellipse cx="66" cy="74" rx="8" ry="11" /><ellipse cx="134" cy="74" rx="8" ry="11" /></g>
+                <path fill={SKIN} d="M66 56c0-26 68-26 68 0v22c0 25-16 38-34 38S66 103 66 78Z" />
+                <path fill={SKIN_SHADE} d="M128 58v20c0 19-11 32-28 36 21 0 34-14 34-36V58Z" />
+                {/* hair: low fade sides, textured quiff on top */}
+                <g className="bm-hair">
+                  <path fill="#51483C" d="M65 72V58h6v18Zm70 0V58h-6v18Z" opacity=".7" />
+                  <path fill={INK} d="M64 62c-2-22 12-36 32-38 10-8 30-6 38 4 10 6 12 18 8 28l-6 8-4-12c-10 6-24 7-36 3-10 6-20 6-28 4l-2 9Z" />
+                  <path d="M92 26c8-6 22-6 30 2M100 36c8-4 18-4 26 2" fill="none" stroke="#51483C" strokeWidth="2.5" strokeLinecap="round" />
+                </g>
+                <g className="bm-brows" fill="none" stroke={INK} strokeWidth="3" strokeLinecap="round">
+                  <path d="M78 64q6-4 12-1M110 63q6-3 12 1" />
+                </g>
+                <g className="bm-eyes" fill={INK}>
+                  {pose === 'happy' ? (
+                    <g fill="none" stroke={INK} strokeWidth="3" strokeLinecap="round"><path d="M79 75q5-7 10 0M111 75q5-7 10 0" /></g>
+                  ) : (
+                    <><ellipse cx="84" cy="74" rx="3.2" ry="3.8" /><ellipse cx="116" cy="74" rx="3.2" ry="3.8" />
+                      <circle cx="85" cy="72.6" r="1" fill={CREAM} /><circle cx="117" cy="72.6" r="1" fill={CREAM} /></>
                   )}
                 </g>
+                <g className="bm-eyelids" fill="none" stroke={INK} strokeWidth="2" strokeLinecap="round"><path d="M80 75q4 2 8 0M112 75q4 2 8 0" /></g>
+                <path d="M99 78v8h4" fill="none" stroke={SKIN_SHADE} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                {/* moustache: a barber's trademark */}
+                <path fill={INK} d="M88 92c4-4 9-4 12-1 3-3 8-3 12 1-4 2-8 3-12 1-4 2-8 1-12-1Z" />
+                <g className="bm-mouth">
+                  {pose === 'happy' ? (
+                    <g><path fill={INK} d="M89 96h22c-1 13-21 13-22 0Z" /><path fill={CREAM} d="M92 97h16l-2 4H94Z" /></g>
+                  ) : pose === 'talking' ? (
+                    <ellipse className="bm-talk" cx="100" cy="99" rx="6" ry="4" fill={INK} />
+                  ) : (
+                    <path d="M93 98q7 5 14 0" fill="none" stroke={INK} strokeWidth="2.5" strokeLinecap="round" />
+                  )}
+                </g>
+              </g>
+              {/* right arm with scissors */}
+              <g className="bm-arm">
+                <path d="M142 134c10 14 14 30 12 46" fill="none" stroke={CREAM} strokeWidth="20" strokeLinecap="round" />
+                <path d="m148 170 12-4" stroke={GREEN} strokeWidth="3" />
+                <g className="bm-scissors" fill="none" stroke={STEEL} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="150" cy="198" r="5" /><circle cx="162" cy="196" r="5" />
+                  <path d="m153 193 15-30m-9 28-4-30" />
+                  <circle cx="157" cy="182" r="2" fill={INK} stroke="none" />
+                </g>
+                <circle cx="154" cy="190" r="8.5" fill={SKIN} />
+                {pose === 'happy' && <g className="bm-sparkle" fill={GREEN}><path d="m174 150 2-6 2 6 6 2-6 2-2 6-2-6-6-2Z" /></g>}
               </g>
             </g>
           </g>
           <g className="bm-extras">
             {pose === 'listening' && (
-              <g fill="none" stroke="#2F5443" strokeWidth="2.5" strokeLinecap="round">
-                <g className="bm-sound"><path d="M146 77q6 7 0 14" /></g>
-                <g className="bm-sound bm-sound-second"><path d="M154 72q10 12 0 24" /></g>
+              <g fill="none" stroke={GREEN} strokeWidth="2.5" strokeLinecap="round">
+                <g className="bm-sound"><path d="M148 64q7 9 0 18" /></g>
+                <g className="bm-sound bm-sound-second"><path d="M157 58q12 15 0 30" /></g>
               </g>
             )}
             {pose === 'thinking' && (
-              <g fill="#2F5443">
-                <g className="bm-dot"><circle cx="90" cy="21" r="3" /></g>
-                <g className="bm-dot bm-dot-second"><circle cx="101" cy="21" r="3" /></g>
-                <g className="bm-dot bm-dot-third"><circle cx="112" cy="21" r="3" /></g>
+              <g fill={GREEN}>
+                <g className="bm-dot"><circle cx="88" cy="12" r="3.5" /></g>
+                <g className="bm-dot bm-dot-second"><circle cx="100" cy="12" r="3.5" /></g>
+                <g className="bm-dot bm-dot-third"><circle cx="112" cy="12" r="3.5" /></g>
               </g>
             )}
           </g>

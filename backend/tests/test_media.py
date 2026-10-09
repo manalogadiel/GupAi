@@ -164,6 +164,13 @@ def test_audio_stays_on_disk_until_delete_helper_and_is_not_served_as_image(setu
     media.delete_media(result["id"])  # Job cleanup can run more than once.
 
 
+@pytest.mark.parametrize("brand", [b"iso5", b"iso8", b"mp4a", b"dash"])
+def test_mp4_audio_accepted_for_any_browser_brand(setup, brand):
+    # Safari's MediaRecorder brand varies by release; decoding validates the track later.
+    content = b"\0\0\0\x18ftyp" + brand + b"\0\0\0\0" + brand + b"isom"
+    assert upload(setup, content, "audio", None).status_code == 200
+
+
 @pytest.mark.parametrize("content", [b"<svg/>", b"RIFFxxxxAVI ", b"xxxxftypM4A ",
                                      b"OggS", b"\x1a\x45\xdf\xa3"])
 def test_unsupported_audio_rejected(setup, content):

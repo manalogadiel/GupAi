@@ -9,7 +9,11 @@
         .bm-thinking .bm-eyes { transform: translate(2px,-2px); }
         .bm-thinking .bm-brows { transform: translateY(-3px); }
         .bm-root .bm-arm { transform-origin: 12% 20%; }
-        .bm-happy .bm-arm { transform: rotate(-65deg); }
+        .bm-happy .bm-arm { transform: rotate(-40deg); }
+        .bm-root .bm-arm-left { transform-origin: 50% 5%; }
+        .bm-talking.bm-active .bm-talk { animation: bm-talk .28s ease-in-out infinite alternate; transform-origin: center; }
+        .bm-talking.bm-active .bm-head { animation: bm-nod 1.6s ease-in-out infinite; }
+        .bm-thinking .bm-arm-left { transform: rotate(8deg); }
         .bm-eyelids { opacity: 0; }
         .bm-idle.bm-active .bm-breathe { animation: bm-breathe 3.5s ease-in-out infinite; }
         .bm-idle.bm-active .bm-eyes { animation: bm-blink 4s linear infinite; }
@@ -22,6 +26,8 @@
         .bm-happy.bm-active .bm-hop { animation: bm-hop 480ms cubic-bezier(.23,1,.32,1) both; }
         .bm-happy.bm-active .bm-sway { animation: bm-sway 3s ease-in-out 480ms infinite; }
         .bm-happy.bm-active .bm-sparkle { animation: bm-sparkle 1.8s ease-in-out infinite; }
+        @keyframes bm-talk { from { transform: scaleY(.35); } to { transform: scaleY(1.1); } }
+        @keyframes bm-nod { 0%,100% { transform: rotate(0); } 50% { transform: rotate(-2deg); } }
         @keyframes bm-breathe { 0%,100% { transform: translateY(0); } 50% { transform: translateY(1.5px); } }
         @keyframes bm-blink { 0%,92%,100% { transform: scaleY(1); } 94%,96% { transform: scaleY(.05); } }
         @keyframes bm-lids { 0%,92%,98%,100% { opacity: 0; } 94%,96% { opacity: 1; } }
@@ -34,3 +40,4 @@
           .bm-root g { animation: none !important; }
           .bm-pose { transition: none; }
         }
+.bm-root.bm-bust { overflow: hidden; }

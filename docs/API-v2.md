@@ -107,3 +107,13 @@ Chat/propose input consumption uses a persisted private contribution row cursor,
 `chat` uses one streamed local JSON call for reply and preference updates. `suggest` receives all hard-eligible candidates, validates model-selected IDs and per-option evidence ranges, and retries malformed output once. No fixed face-shape ranking fallback is represented as AI choice.
 
 Jobs expose optional progress (queued/transcribing/composing/done/status, queued_ahead, first_token_ms) and whitelisted Ollama duration/token counters. Timing and partial text are process-local and disappear on restart. elapsed_s starts at inference, excluding queue wait. Queued-ahead counts are refreshed after insertion; immediate creation may show zero before the transaction is committed. No private prompt/audio is included in diagnostics.
+
+## v3 additions (Oct 10)
+- `DELETE /api/customers/{id}` (laptop only): erases the customer, every visit, consultation, agreement, contribution, job and saved photo. `404` if missing, `409 in_use` while the customer has an active consultation.
+- `GET /api/parts`: public sides/top catalog (`id, name, desc, maintenance, pros, cons`) for the "Tingnan lahat" list. `choose_part` accepts any catalog `option_id`, not only suggested ones.
+- `GET /api/jobs/{id}/stream`: server-sent events. `event: delta` carries `{text}` (new reply text); `event: done` carries the final job. Clients fall back to polling `GET /api/jobs/{id}`.
+- Job queue order: chat > transcribe > suggest > faceshape > vision, then FIFO.
+- `observe` also returns `hair` (`density, strand, texture, hairline, cowlick, uncertain`), stored as `state.hair_profile.suggested`. Barber contribution `{kind:"hair_profile", density, strand, texture, hairline}` sets `state.hair_profile.confirmed`.
+- `chat` with no new customer turns returns Kuya Gup's stage opener instantly (no model call). Replies follow the interview agenda problem → purpose → impression → routine → keep/avoid; a reply that repeats an earlier turn or re-asks an answered slot is replaced with the next agenda question.
+- `brief.problem_detail`: verbatim customer quote about the hair problem.
+- `suggest` pre-ranks options by face-shape, problem and hair fit and sends the top 6 to the model; each option adds `desc` and `reasons: [{label, text, fit}]`.

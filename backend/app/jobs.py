@@ -11,6 +11,7 @@ from typing import Literal
 from uuid import uuid4
 
 from fastapi import APIRouter, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict
 
 from . import ai, consult, db, faceshape, media, stt
@@ -25,6 +26,8 @@ _worker_lock = threading.Lock()
 # stream storage if clients must resume partial replies after a laptop restart.
 _transient: dict[str, dict] = {}  # job_id -> result fields never written to SQLite
 _TRANSIENT_KEYS = {"faceshape": ("outline",), "transcribe": ("text",)}
+# Conversation first: a customer waiting on Kuya Gup outranks background photo analysis.
+_PRIORITY = "CASE type WHEN 'chat' THEN 0 WHEN 'transcribe' THEN 1 WHEN 'suggest' THEN 2 WHEN 'faceshape' THEN 3 ELSE 4 END"
 
 
 class JobInput(BaseModel):
@@ -130,6 +133,28 @@ def get(job_id: str, request: Request):
     if row["status"] in ("queued", "running"):
         out["result"] = None  # result_json holds the media_id input until the job finishes
     return out
+
+
+@router.get("/api/jobs/{job_id}/stream")
+def stream(job_id: str, request: Request):
+    """Server-sent events: `delta` with new reply text, then `done` with the final job."""
+    _scoped_job(job_id, request)
+
+    def events():
+        sent, deadline = 0, time.monotonic() + 300
+        while True:
+            with db.connect() as conn:
+                row = conn.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()
+            text = _transient.get(job_id, {}).get("partial_text") or ""
+            if len(text) > sent:
+                yield "event: delta\ndata: " + json.dumps({"text": text[sent:]}) + "\n\n"
+                sent = len(text)
+            if row["status"] not in ("queued", "running") or time.monotonic() > deadline:
+                yield "event: done\ndata: " + json.dumps(job_dict(row)) + "\n\n"
+                return
+            time.sleep(0.08)
+
+    return StreamingResponse(events(), media_type="text/event-stream", headers={"Cache-Control": "no-store"})
 
 
 @router.delete("/api/jobs/{job_id}")
@@ -278,19 +303,24 @@ def warmup():
             print(f"[gupai] warm {name} failed: {exc!r}", flush=True)
 
 
+def _next_job(conn):
+    row = conn.execute(f"SELECT id FROM jobs WHERE status='queued' ORDER BY {_PRIORITY}, rowid LIMIT 1").fetchone()
+    return row["id"] if row else None
+
+
 def _loop():
     warmup()
     while True:
         with db.connect() as conn:
-            nxt = conn.execute("SELECT id FROM jobs WHERE status='queued' ORDER BY rowid LIMIT 1").fetchone()
+            nxt = _next_job(conn)
         if nxt is None:
             _wake.wait(timeout=5)
             _wake.clear()
             continue
         try:
-            _process(nxt["id"])
+            _process(nxt)
         except Exception as exc:  # DB hiccup: mark failed so the queue moves on
             print(f"[gupai] worker error: {exc!r}", flush=True)
             with db.connect() as conn:
                 conn.execute("UPDATE jobs SET status='failed', error_code='model_unavailable', finished_at=? "
-                             "WHERE id=? AND status IN ('queued','running')", (_now(), nxt["id"]))
+                             "WHERE id=? AND status IN ('queued','running')", (_now(), nxt))

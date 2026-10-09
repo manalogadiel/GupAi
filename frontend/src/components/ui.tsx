@@ -1,5 +1,7 @@
 import { motion } from 'motion/react'
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import Icon from './Icon'
+import Wordmark from './Wordmark'
 
 type Variant = 'primary' | 'secondary' | 'quiet'
 
@@ -30,7 +32,7 @@ export function Chip({ pressed, children, className = '', ...rest }: ButtonHTMLA
     >
       {pressed && (
         <motion.span aria-hidden initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 520, damping: 26 }}>
-          ✓
+          <Icon name="check" size={15} strokeWidth={2.6} />
         </motion.span>
       )}
       {children}
@@ -65,9 +67,7 @@ export function Header({ right, sub }: { right?: ReactNode; sub?: ReactNode }) {
   return (
     <header className="mx-auto flex w-full max-w-[1440px] flex-wrap items-center justify-between gap-3 px-4 pb-2 pt-4 sm:px-8">
       <div className="flex items-baseline gap-3">
-        <a href="/" className="font-display text-[28px] leading-none text-ink no-underline">
-          Gup<span className="text-voice">.</span>Ai
-        </a>
+        <a href="/" aria-label="GupAi home" className="self-center no-underline"><Wordmark height={32} /></a>
         {sub && <span className="text-[15px] text-ink-2">{sub}</span>}
       </div>
       <div className="flex items-center gap-2">{right}</div>
@@ -87,5 +87,5 @@ export function Pill({ children, tone = 'neutral' }: { children: ReactNode; tone
 
 export function ErrorLine({ message }: { message: string | null }) {
   if (!message) return null
-  return <p role="alert" className="text-[15px] text-error">⚠ {message}</p>
+  return <p role="alert" className="flex items-start gap-1.5 text-[15px] text-error"><Icon name="warning" size={18} className="mt-0.5" />{message}</p>
 }

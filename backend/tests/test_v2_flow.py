@@ -573,3 +573,28 @@ def test_migrated_v1_cutting_agreement_can_complete_only_with_unchanged_preferen
         assert result["visit_id"] and cleanup == []
         assert json.loads(conn.execute("SELECT plan_json FROM agreements WHERE id='agreement'").fetchone()[0]) == plan
         assert conn.execute("SELECT rating FROM visits WHERE id=?", (result["visit_id"],)).fetchone()[0] == 4
+
+
+def test_worker_runs_chat_before_queued_vision_jobs(barber):
+    current = create(barber)
+    mid = photo(current["id"])
+    observe = start_job(barber, current, "observe", media_id=mid)
+    suggest_job = start_job(barber, current, "suggest", part="sides")
+    chat = start_job(barber, current, "chat")
+    with db.connect() as conn:
+        order = []
+        while (nxt := jobs._next_job(conn)) is not None:
+            order.append(nxt)
+            conn.execute("UPDATE jobs SET status='done' WHERE id=?", (nxt,))
+    assert order == [chat["id"], suggest_job["id"], observe["id"]]
+
+
+def test_job_stream_emits_partial_text_then_final_job(barber):
+    current = create(barber)
+    chat = start_job(barber, current, "chat")
+    jobs._transient[chat["id"]] = {"partial_text": "Kumusta"}
+    with db.connect() as conn:
+        conn.execute("UPDATE jobs SET status='done', result_json=? WHERE id=?", (json.dumps({"reply": "Kumusta"}), chat["id"]))
+    body = barber.get(f'/api/jobs/{chat["id"]}/stream').text
+    assert 'event: delta\ndata: {"text": "Kumusta"}' in body
+    assert "event: done" in body and '"status": "done"' in body

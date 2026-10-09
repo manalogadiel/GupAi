@@ -51,11 +51,11 @@ def _audio_extension(content):
         return "ogg"
     if len(content) >= 12 and content[:4] == b"RIFF" and content[8:12] == b"WAVE":
         return "wav"
+    # Any ftyp brand: Safari's MediaRecorder brand varies by release; PyAV decoding validates the track.
     if (len(content) >= 16 and content[4:8] == b"ftyp"
-            and 16 <= int.from_bytes(content[:4], "big") <= len(content)
-            and content[8:12] in {b"M4A ", b"M4B ", b"isom", b"iso2", b"iso6",
-                                  b"mp41", b"mp42", b"qt  "}):
+            and 16 <= int.from_bytes(content[:4], "big") <= len(content)):
         return "mp4"
+    print("[gupai] rejected audio head", content[:16].hex(" "), flush=True)
     raise APIError("unsupported_media", "Upload WebM, OGG, WAV, or MP4 audio.")
 
 

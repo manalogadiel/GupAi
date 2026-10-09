@@ -1,7 +1,8 @@
 """Evidence-backed customer brief and JSON reply streaming; no network or database I/O."""
 import json
 
-FIELDS=('occasion','desired_impression','change_level','styling_minutes','maintenance_preference','dress_rules','inspiration')
+FIELDS=('problem_detail','occasion','desired_impression','change_level','styling_minutes','maintenance_preference','dress_rules','inspiration')
+VERBATIM=('problem_detail','dress_rules','maintenance_preference','inspiration')
 def brief_defaults():
     return {**{field:None for field in FIELDS},'desired_impression':[],'evidence':[]}
 
@@ -13,7 +14,7 @@ def validate_brief_updates(updates, source_turns):
                      quote.casefold() in t['text'].casefold()),None)
         if field not in FIELDS or source is None: continue
         value=update.get('value')
-        if field in ('dress_rules','maintenance_preference','inspiration') and (not isinstance(value,str) or value.strip().casefold() not in quote.casefold()): continue
+        if field in VERBATIM and (not isinstance(value,str) or value.strip().casefold() not in quote.casefold()): continue
         if field=='styling_minutes':
             try: value=int(value)
             except (ValueError,TypeError): continue
@@ -25,6 +26,14 @@ def validate_brief_updates(updates, source_turns):
         valid.append({'field':field,'value':value,'source_text':quote[:160],
                       'speaker':'customer','contribution_id':source.get('id')})
     return valid
+
+def next_slot(brief, problems):
+    """Kuya Gup's interview agenda: problem, purpose, impression, routine, then keep/avoid."""
+    if not problems and not brief.get('problem_detail'): return 'problem'
+    if not brief.get('occasion'): return 'occasion'
+    if not brief.get('desired_impression'): return 'desired_impression'
+    if brief.get('styling_minutes') is None: return 'styling_minutes'
+    return 'keep_avoid'
 
 def merge_brief(brief, updates):
     out={**brief_defaults(),**(brief or {})}
@@ -80,7 +89,7 @@ def explicit_brief_updates(turns):
             updates.append({'field':'occasion','value':match.group().casefold(),'source_text':match.group()})
         for match in re.finditer(r"\b(\d{1,2})\s*(?:minutes?|mins?|minuto)\b",text,re.I):
             updates.append({'field':'styling_minutes','value':int(match.group(1)),'source_text':match.group()})
-        match=re.search(r"(?:gusto ko|want(?: a)?)\s+([^.!?,]{1,60}?)\s+look\b",text,re.I)
+        match=re.search(r"(?:gusto ko|want(?: a)?)\s+(?:na\s+)?([^.!?,]{1,60}?)\s+(?:look|tingnan|dating)\b",text,re.I)
         if match: updates.append({'field':'desired_impression','value':match.group(1).strip(),'source_text':match.group()})
     latest={update['field']:update for update in updates}
     return validate_brief_updates(list(latest.values()),turns)

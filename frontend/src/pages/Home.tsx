@@ -1,3 +1,4 @@
+import Icon from '../components/Icon'
 import { motion } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { api, ApiError, type Health, type Stage } from '../api'
@@ -9,7 +10,7 @@ const STAGE_TL: Partial<Record<Stage, string>> = { photos: 'kumukuha ng photo', 
 const today = () => new Date().toLocaleDateString('fil-PH', { weekday: 'long', month: 'long', day: 'numeric' })
 
 function Readiness({ health, failed }: { health: Health | null; failed: boolean }) {
-  if (failed) return <Pill tone="error">⚠ Hindi maabot ang GupAi server sa laptop</Pill>
+  if (failed) return <Pill tone="error"><Icon name="warning" size={16} /> Hindi maabot ang GupAi server sa laptop</Pill>
   if (!health) return <Pill>Sinusuri ang local models…</Pill>
   const missing = [
     !health.ollama && 'Ollama',
@@ -19,7 +20,7 @@ function Readiness({ health, failed }: { health: Health | null; failed: boolean 
   ].filter(Boolean)
   return missing.length === 0
     ? <Pill tone="ok">Local AI handa<span className="hidden sm:inline"> · {health.vision_model}</span> · walang internet</Pill>
-    : <Pill tone="error">⚠ Hindi pa handa: {missing.join(', ')}. Gumagana pa rin ang pag-type.</Pill>
+    : <Pill tone="error"><Icon name="warning" size={16} /> Hindi pa handa: {missing.join(', ')}. Gumagana pa rin ang pag-type.</Pill>
 }
 
 function ActionCard({ title, body, onClick, primary, disabled }: { title: string; body: string; onClick: () => void; primary?: boolean; disabled?: boolean }) {
@@ -31,7 +32,7 @@ function ActionCard({ title, body, onClick, primary, disabled }: { title: string
         <span className="block text-lg font-semibold">{title}</span>
         <span className={`mt-0.5 block text-[15px] ${primary ? 'text-on-action/85' : 'text-ink-2'}`}>{body}</span>
       </span>
-      <span aria-hidden className={`grid size-11 shrink-0 place-items-center rounded-full text-xl transition-transform duration-200 ease-[var(--ease-out)] group-hover:translate-x-1 ${primary ? 'bg-white/15' : 'bg-subtle'}`}>→</span>
+      <span aria-hidden className={`grid size-11 shrink-0 place-items-center rounded-full text-xl transition-transform duration-200 ease-[var(--ease-out)] group-hover:translate-x-1 ${primary ? "bg-white/15" : "bg-subtle"}`}><Icon name="right" size={20} /></span>
     </motion.button>
   )
 }
@@ -99,7 +100,7 @@ export default function Home() {
                     <span className="block truncate font-medium">{ch.chair_label ?? 'Upuan'} · {ch.customer?.display_name ?? 'Temporary'}</span>
                     <span className="block text-[14px] capitalize text-ink-2">{STAGE_TL[ch.stage] ?? ch.stage}{ch.phone_paired ? ' · phone konektado' : ''}</span>
                   </span>
-                  <span aria-hidden className="text-ink-2">→</span>
+                  <Icon name="right" size={18} className="text-ink-2" />
                 </button>
               ))}
             </div>

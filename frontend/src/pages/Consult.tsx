@@ -3,7 +3,9 @@ import { useRef, useState } from 'react'
 import { api, ApiError, type Consultation, type Stage } from '../api'
 import { navigate } from '../App'
 import { BarberPanel, Scene, STEPS } from '../components/Scenes'
+import Icon from '../components/Icon'
 import { Button, ErrorLine } from '../components/ui'
+import Wordmark from '../components/Wordmark'
 import { flow } from '../flow'
 import { useConsultation } from '../useConsultation'
 
@@ -26,11 +28,11 @@ function PhoneLink({ c }: { c: Consultation }) {
   const [open, setOpen] = useState(false)
   const [qr, setQr] = useState<{ url: string; qr_png_data_url: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
-  if (c.phone_paired) return <span className="flex items-center gap-2 whitespace-nowrap text-[14px]"><span aria-hidden className="size-2.5 rounded-full bg-action" /> Phone konektado</span>
+  if (c.phone_paired) return <span className="flex items-center gap-2 whitespace-nowrap text-[14px]"><Icon name="phone" size={18} className="text-action" /> Phone konektado</span>
   return (
     <div className="relative">
       <Button variant="quiet" className="min-h-10 whitespace-nowrap rounded-full px-3 text-[15px]" aria-expanded={open}
-        onClick={() => { setOpen(o => !o); if (!qr) api.pair(c.id).then(setQr, e => setError(e.message)) }}>📱 I-connect ang phone</Button>
+        onClick={() => { setOpen(o => !o); if (!qr) api.pair(c.id).then(setQr, e => setError(e.message)) }}><Icon name="phone" size={18} /> I-connect ang phone</Button>
       <AnimatePresence>
         {open && (
           <motion.div initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6 }}
@@ -48,7 +50,6 @@ function PhoneLink({ c }: { c: Consultation }) {
 export default function Consult({ id }: { id: string }) {
   const h = useConsultation(id)
   const { c } = h
-  const [recording, setRecording] = useState(false)
   const [dir, setDir] = useState(1)
   const completion = useRef<{ payload: string; key: string } | null>(null)
 
@@ -70,8 +71,8 @@ export default function Consult({ id }: { id: string }) {
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
-      <header className="mx-auto flex w-full max-w-[1440px] items-center gap-4 px-6 pb-2 pt-4">
-        <a href="/" className="font-display text-[28px] leading-none text-ink no-underline">Gup<span className="text-voice">.</span>Ai</a>
+      <header className="mx-auto flex w-full max-w-[1500px] items-center gap-4 px-6 pb-2 pt-4">
+        <a href="/" aria-label="GupAi home" className="no-underline"><Wordmark height={30} /></a>
         <span className="hidden truncate text-[15px] text-ink-2 xl:inline">{chair ?? 'Upuan'} · {c.customer?.display_name ?? 'Temporary'}</span>
         <nav aria-label="Steps" className="mx-auto">
           <ol className="glass flex gap-0.5 rounded-full p-1">
@@ -80,7 +81,7 @@ export default function Consult({ id }: { id: string }) {
                 <button onClick={() => go(x.stage)} disabled={!canStep(i)} aria-current={i === at ? 'step' : undefined}
                   className={`relative min-h-9 whitespace-nowrap rounded-full px-3 text-[14px] font-medium transition-colors ${i === at ? 'text-on-action' : i < at ? 'text-ink' : 'text-ink-2'} disabled:cursor-default`}>
                   {i === at && <motion.span layoutId="step-thumb" className="absolute inset-0 rounded-full bg-action" transition={{ type: 'spring', stiffness: 420, damping: 34 }} />}
-                  <span className="relative">{i < at ? '✓ ' : ''}{x.label}</span>
+                  <span className="relative flex items-center gap-1">{i < at && <Icon name="check" size={14} strokeWidth={2.6} />}{x.label}</span>
                 </button>
               </li>
             ))}
@@ -93,8 +94,8 @@ export default function Consult({ id }: { id: string }) {
         }}>Itigil</Button>
       </header>
 
-      <main className="mx-auto grid min-h-0 w-full max-w-[1440px] flex-1 grid-cols-[minmax(320px,0.85fr)_2fr] gap-6 px-6 pb-5 pt-3">
-        <section className="min-h-0"><BarberPanel c={c} f={f} h={h} role="barber" recording={recording} onRecording={setRecording} /></section>
+      <main className="mx-auto grid min-h-0 w-full max-w-[1500px] flex-1 grid-cols-[minmax(340px,0.78fr)_2.2fr] gap-6 px-6 pb-5 pt-3">
+        <section className="min-h-0"><BarberPanel c={c} f={f} h={h} role="barber" recording={false} /></section>
         <section className="relative grid min-h-0 grid-rows-[1fr_auto] gap-3">
           <AnimatePresence mode="wait" custom={dir} initial={false}>
             <motion.div key={c.stage} custom={dir} className="min-h-0"
@@ -105,10 +106,10 @@ export default function Consult({ id }: { id: string }) {
           </AnimatePresence>
           {at <= ORDER.indexOf('summary') && (
             <div className="flex items-center justify-between gap-3">
-              <Button variant="quiet" className="rounded-full" disabled={at === 0} onClick={() => go(ORDER[at - 1])}>← Bumalik</Button>
+              <Button variant="quiet" className="rounded-full" disabled={at === 0} onClick={() => go(ORDER[at - 1])}><Icon name="left" size={18} /> Bumalik</Button>
               {block && <p className="text-[14px] text-ink-2">{block}</p>}
               {c.stage !== 'summary' && (
-                <Button variant="primary" className="rounded-full px-6" disabled={!!block} onClick={() => go(ORDER[at + 1])}>Susunod: {STEPS[at + 1].label} →</Button>
+                <Button variant="primary" className="rounded-full px-6" disabled={!!block} onClick={() => go(ORDER[at + 1])}>Susunod: {STEPS[at + 1].label} <Icon name="right" size={18} /></Button>
               )}
             </div>
           )}

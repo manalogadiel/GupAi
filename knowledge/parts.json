@@ -69,7 +69,18 @@
         "pall_mall_face_shapes",
         "manual_face_shapes",
         "gentlemans_gazette_face_shapes"
-      ]
+      ],
+      "desc": "Kalbo sa baba ng gilid, unti-unting humahaba pataas. Malinis at matapang.",
+      "hair_fit": {
+        "thick": {
+          "fit": "helps",
+          "note": "Removing side bulk may suit thick hair that puffs out."
+        },
+        "thin": {
+          "fit": "care",
+          "note": "Very close sides may make thin top hair look sparser by contrast; the barber should check."
+        }
+      }
     },
     {
       "id": "low_fade",
@@ -140,7 +151,14 @@
         "pall_mall_face_shapes",
         "manual_face_shapes",
         "gentlemans_gazette_face_shapes"
-      ]
+      ],
+      "desc": "Fade na mababa, malapit sa tenga. Malinis pero hindi masyadong litaw ang anit.",
+      "hair_fit": {
+        "thick": {
+          "fit": "helps",
+          "note": "A low fade may control thick side bulk while keeping coverage above the ear."
+        }
+      }
     },
     {
       "id": "mid_fade",
@@ -211,7 +229,14 @@
         "pall_mall_face_shapes",
         "manual_face_shapes",
         "gentlemans_gazette_face_shapes"
-      ]
+      ],
+      "desc": "Fade na nagsisimula sa gitna ng gilid. Balanse ng linis at haba.",
+      "hair_fit": {
+        "thick": {
+          "fit": "helps",
+          "note": "A mid fade may remove thick side bulk that makes the head look wide."
+        }
+      }
     },
     {
       "id": "taper",
@@ -282,7 +307,18 @@
         "pall_mall_face_shapes",
         "manual_face_shapes",
         "gentlemans_gazette_face_shapes"
-      ]
+      ],
+      "desc": "Unti-unting umiikli sa patilya at batok lang. Pinaka-natural at pang-opisina.",
+      "hair_fit": {
+        "thin": {
+          "fit": "helps",
+          "note": "A gentle taper keeps more hair on the sides, which may make thin hair look fuller."
+        },
+        "wavy": {
+          "fit": "helps",
+          "note": "A taper may let wavy sides lie naturally without a hard line."
+        }
+      }
     },
     {
       "id": "scissor_over_comb",
@@ -353,7 +389,18 @@
         "pall_mall_face_shapes",
         "manual_face_shapes",
         "gentlemans_gazette_face_shapes"
-      ]
+      ],
+      "desc": "Gunting lang, walang makina. Malambot at natural ang gilid.",
+      "hair_fit": {
+        "thin": {
+          "fit": "helps",
+          "note": "Scissors keep softer length on the sides, which may suit thin hair."
+        },
+        "wavy": {
+          "fit": "helps",
+          "note": "Scissor work may follow wavy texture more naturally."
+        }
+      }
     },
     {
       "id": "uniform",
@@ -424,7 +471,344 @@
         "pall_mall_face_shapes",
         "manual_face_shapes",
         "gentlemans_gazette_face_shapes"
-      ]
+      ],
+      "desc": "Pantay na haba sa buong gilid gamit ang isang guard. Simple at madali.",
+      "hair_fit": {
+        "thin": {
+          "fit": "helps",
+          "note": "Even length may avoid exposing scalp on thin hair."
+        },
+        "curly": {
+          "fit": "care",
+          "note": "One guard length on curly hair may puff unevenly; the barber should check."
+        }
+      }
+    },
+    {
+      "id": "high_fade",
+      "name": "High fade",
+      "desc": "Fade na mataas, halos hanggang sa itaas ng gilid. Matapang ang contrast.",
+      "pros": [
+        "Very clean outline",
+        "Strong contrast with the top"
+      ],
+      "cons": [
+        "Regrowth shows quickly",
+        "Shows more scalp on the sides"
+      ],
+      "maintenance": "Touch up every 2 weeks to keep the high contrast.",
+      "face_shape_fit": {
+        "oval": {
+          "fit": "suggested",
+          "note": "High fade is commonly suggested for oval faces because many outlines can work; customer preference comes first."
+        },
+        "round": {
+          "fit": "suggested",
+          "note": "High fade is commonly suggested for round faces because height on top with tidy sides may add apparent length; customer preference comes first."
+        },
+        "square": {
+          "fit": "suggested",
+          "note": "High fade is commonly suggested for square faces because it can echo or soften a defined jawline; customer preference comes first."
+        },
+        "oblong": {
+          "fit": "care",
+          "note": "High fade needs care for oblong faces; the barber should check because side fullness and a lower top may limit apparent length matters here; customer preference comes first."
+        },
+        "heart": {
+          "fit": "care",
+          "note": "High fade needs care for heart faces; the barber should check because a softer outline may balance a wider forehead matters here; customer preference comes first."
+        },
+        "diamond": {
+          "fit": "care",
+          "note": "High fade needs care for diamond faces; the barber should check because fullness at the fringe and lower sides may balance cheekbone width matters here; customer preference comes first."
+        }
+      },
+      "problem_fit": {
+        "puffy_sides": {
+          "fit": "helps",
+          "note": "High fade may help with this if it matches the look you want."
+        },
+        "cowlick": {
+          "fit": "neutral",
+          "note": "High fade does not change this much on its own; discuss it with the barber."
+        },
+        "hard_to_style": {
+          "fit": "helps",
+          "note": "High fade may help with this if it matches the look you want."
+        },
+        "grows_fast": {
+          "fit": "worse",
+          "note": "High fade may make this more noticeable; discuss it with the barber first."
+        },
+        "flat_top": {
+          "fit": "neutral",
+          "note": "High fade does not change this much on its own; discuss it with the barber."
+        },
+        "wide_forehead": {
+          "fit": "neutral",
+          "note": "High fade does not change this much on its own; discuss it with the barber."
+        }
+      },
+      "source_ids": [
+        "opentextbc_consultation",
+        "pall_mall_face_shapes",
+        "manual_face_shapes",
+        "gentlemans_gazette_face_shapes"
+      ],
+      "hair_fit": {
+        "thick": {
+          "fit": "helps",
+          "note": "A high fade may remove most side bulk from thick hair."
+        },
+        "thin": {
+          "fit": "care",
+          "note": "A high fade can make thin hair on top look sparser; consider a lower fade."
+        }
+      }
+    },
+    {
+      "id": "drop_fade",
+      "name": "Drop fade",
+      "desc": "Fade na bumababa sa likod ng tenga, sumusunod sa hugis ng ulo.",
+      "pros": [
+        "Follows the head shape",
+        "Clean behind the ear"
+      ],
+      "cons": [
+        "More detailed to maintain"
+      ],
+      "maintenance": "Touch up every 2 to 3 weeks to keep the curve behind the ear.",
+      "face_shape_fit": {
+        "oval": {
+          "fit": "suggested",
+          "note": "Drop fade is commonly suggested for oval faces because many outlines can work; customer preference comes first."
+        },
+        "round": {
+          "fit": "suggested",
+          "note": "Drop fade is commonly suggested for round faces because height on top with tidy sides may add apparent length; customer preference comes first."
+        },
+        "square": {
+          "fit": "suggested",
+          "note": "Drop fade is commonly suggested for square faces because it can echo or soften a defined jawline; customer preference comes first."
+        },
+        "oblong": {
+          "fit": "neutral",
+          "note": "Drop fade is commonly suggested for oblong faces because side fullness and a lower top may limit apparent length; customer preference comes first."
+        },
+        "heart": {
+          "fit": "neutral",
+          "note": "Drop fade is commonly suggested for heart faces because a softer outline may balance a wider forehead; customer preference comes first."
+        },
+        "diamond": {
+          "fit": "neutral",
+          "note": "Drop fade is commonly suggested for diamond faces because fullness at the fringe and lower sides may balance cheekbone width; customer preference comes first."
+        }
+      },
+      "problem_fit": {
+        "puffy_sides": {
+          "fit": "helps",
+          "note": "Drop fade may help with this if it matches the look you want."
+        },
+        "cowlick": {
+          "fit": "neutral",
+          "note": "Drop fade does not change this much on its own; discuss it with the barber."
+        },
+        "hard_to_style": {
+          "fit": "helps",
+          "note": "Drop fade may help with this if it matches the look you want."
+        },
+        "grows_fast": {
+          "fit": "worse",
+          "note": "Drop fade may make this more noticeable; discuss it with the barber first."
+        },
+        "flat_top": {
+          "fit": "neutral",
+          "note": "Drop fade does not change this much on its own; discuss it with the barber."
+        },
+        "wide_forehead": {
+          "fit": "neutral",
+          "note": "Drop fade does not change this much on its own; discuss it with the barber."
+        }
+      },
+      "source_ids": [
+        "opentextbc_consultation",
+        "pall_mall_face_shapes",
+        "manual_face_shapes",
+        "gentlemans_gazette_face_shapes"
+      ],
+      "hair_fit": {
+        "thick": {
+          "fit": "helps",
+          "note": "Following the head shape may keep thick hair from bulging behind the ear."
+        },
+        "curly": {
+          "fit": "helps",
+          "note": "A drop fade may keep curly sides neat while the top stays full."
+        }
+      }
+    },
+    {
+      "id": "burst_fade",
+      "name": "Burst fade",
+      "desc": "Paikot na fade sa paligid ng tenga lang; may haba pa sa likod.",
+      "pros": [
+        "Clean around the ear",
+        "Keeps length at the back"
+      ],
+      "cons": [
+        "Distinct look that not every school or office allows"
+      ],
+      "maintenance": "Touch up every 2 to 3 weeks around the ear.",
+      "face_shape_fit": {
+        "oval": {
+          "fit": "suggested",
+          "note": "Burst fade is commonly suggested for oval faces because many outlines can work; customer preference comes first."
+        },
+        "round": {
+          "fit": "neutral",
+          "note": "Burst fade is commonly suggested for round faces because height on top with tidy sides may add apparent length; customer preference comes first."
+        },
+        "square": {
+          "fit": "suggested",
+          "note": "Burst fade is commonly suggested for square faces because it can echo or soften a defined jawline; customer preference comes first."
+        },
+        "oblong": {
+          "fit": "suggested",
+          "note": "Burst fade is commonly suggested for oblong faces because side fullness and a lower top may limit apparent length; customer preference comes first."
+        },
+        "heart": {
+          "fit": "neutral",
+          "note": "Burst fade is commonly suggested for heart faces because a softer outline may balance a wider forehead; customer preference comes first."
+        },
+        "diamond": {
+          "fit": "neutral",
+          "note": "Burst fade is commonly suggested for diamond faces because fullness at the fringe and lower sides may balance cheekbone width; customer preference comes first."
+        }
+      },
+      "problem_fit": {
+        "puffy_sides": {
+          "fit": "helps",
+          "note": "Burst fade may help with this if it matches the look you want."
+        },
+        "cowlick": {
+          "fit": "neutral",
+          "note": "Burst fade does not change this much on its own; discuss it with the barber."
+        },
+        "hard_to_style": {
+          "fit": "neutral",
+          "note": "Burst fade does not change this much on its own; discuss it with the barber."
+        },
+        "grows_fast": {
+          "fit": "worse",
+          "note": "Burst fade may make this more noticeable; discuss it with the barber first."
+        },
+        "flat_top": {
+          "fit": "neutral",
+          "note": "Burst fade does not change this much on its own; discuss it with the barber."
+        },
+        "wide_forehead": {
+          "fit": "neutral",
+          "note": "Burst fade does not change this much on its own; discuss it with the barber."
+        }
+      },
+      "source_ids": [
+        "opentextbc_consultation",
+        "pall_mall_face_shapes",
+        "manual_face_shapes",
+        "gentlemans_gazette_face_shapes"
+      ],
+      "hair_fit": {
+        "curly": {
+          "fit": "helps",
+          "note": "Keeping length at the back while clearing around the ear may suit curly or coily hair."
+        },
+        "coily": {
+          "fit": "helps",
+          "note": "A burst fade is commonly used with coily texture to keep shape around the ear."
+        }
+      }
+    },
+    {
+      "id": "undercut",
+      "name": "Undercut",
+      "desc": "Maikli ang gilid, biglang humahaba sa ibabaw. Walang blending, kitang hiwalay.",
+      "pros": [
+        "Removes bulk underneath",
+        "Long top can be styled many ways"
+      ],
+      "cons": [
+        "Disconnection shows as it grows out",
+        "Needs top styling"
+      ],
+      "maintenance": "Clip the sides every 2 to 3 weeks; style the top daily.",
+      "face_shape_fit": {
+        "oval": {
+          "fit": "suggested",
+          "note": "Undercut is commonly suggested for oval faces because many outlines can work; customer preference comes first."
+        },
+        "round": {
+          "fit": "suggested",
+          "note": "Undercut is commonly suggested for round faces because height on top with tidy sides may add apparent length; customer preference comes first."
+        },
+        "square": {
+          "fit": "suggested",
+          "note": "Undercut is commonly suggested for square faces because it can echo or soften a defined jawline; customer preference comes first."
+        },
+        "oblong": {
+          "fit": "care",
+          "note": "Undercut needs care for oblong faces; the barber should check because side fullness and a lower top may limit apparent length matters here; customer preference comes first."
+        },
+        "heart": {
+          "fit": "neutral",
+          "note": "Undercut is commonly suggested for heart faces because a softer outline may balance a wider forehead; customer preference comes first."
+        },
+        "diamond": {
+          "fit": "neutral",
+          "note": "Undercut is commonly suggested for diamond faces because fullness at the fringe and lower sides may balance cheekbone width; customer preference comes first."
+        }
+      },
+      "problem_fit": {
+        "puffy_sides": {
+          "fit": "helps",
+          "note": "Undercut may help with this if it matches the look you want."
+        },
+        "cowlick": {
+          "fit": "neutral",
+          "note": "Undercut does not change this much on its own; discuss it with the barber."
+        },
+        "hard_to_style": {
+          "fit": "worse",
+          "note": "Undercut may make this more noticeable; discuss it with the barber first."
+        },
+        "grows_fast": {
+          "fit": "worse",
+          "note": "Undercut may make this more noticeable; discuss it with the barber first."
+        },
+        "flat_top": {
+          "fit": "neutral",
+          "note": "Undercut does not change this much on its own; discuss it with the barber."
+        },
+        "wide_forehead": {
+          "fit": "neutral",
+          "note": "Undercut does not change this much on its own; discuss it with the barber."
+        }
+      },
+      "source_ids": [
+        "opentextbc_consultation",
+        "pall_mall_face_shapes",
+        "manual_face_shapes",
+        "gentlemans_gazette_face_shapes"
+      ],
+      "hair_fit": {
+        "thick": {
+          "fit": "helps",
+          "note": "An undercut may remove heavy bulk underneath thick hair."
+        },
+        "thin": {
+          "fit": "care",
+          "note": "A disconnected undercut can expose how thin the top is; the barber should check."
+        }
+      }
     }
   ],
   "top": [
@@ -497,7 +881,22 @@
         "pall_mall_face_shapes",
         "manual_face_shapes",
         "gentlemans_gazette_face_shapes"
-      ]
+      ],
+      "desc": "Maikling ibabaw na may texture, bangs na bahagyang pababa. Low maintenance.",
+      "hair_fit": {
+        "thin": {
+          "fit": "helps",
+          "note": "Texture on a short top may make thin hair look fuller."
+        },
+        "thick": {
+          "fit": "helps",
+          "note": "Point-cut texture may remove weight from thick hair."
+        },
+        "wavy": {
+          "fit": "helps",
+          "note": "A crop can use natural wave as texture."
+        }
+      }
     },
     {
       "id": "side_part",
@@ -568,7 +967,18 @@
         "pall_mall_face_shapes",
         "manual_face_shapes",
         "gentlemans_gazette_face_shapes"
-      ]
+      ],
+      "desc": "May hati sa gilid, suklay patagilid. Classic at pormal.",
+      "hair_fit": {
+        "thin": {
+          "fit": "care",
+          "note": "A hard part may show scalp on thin hair; a soft part is gentler."
+        },
+        "thick": {
+          "fit": "helps",
+          "note": "Thick hair commonly holds a side part well."
+        }
+      }
     },
     {
       "id": "quiff",
@@ -639,7 +1049,22 @@
         "pall_mall_face_shapes",
         "manual_face_shapes",
         "gentlemans_gazette_face_shapes"
-      ]
+      ],
+      "desc": "Angat ang buhok sa harap, may volume. Kailangan ng blower o wax.",
+      "hair_fit": {
+        "thin": {
+          "fit": "care",
+          "note": "A quiff needs lift; thin hair may need more product to hold it."
+        },
+        "thick": {
+          "fit": "helps",
+          "note": "Thick hair commonly holds quiff volume well."
+        },
+        "wavy": {
+          "fit": "helps",
+          "note": "Natural wave may add volume to a quiff."
+        }
+      }
     },
     {
       "id": "curtains",
@@ -710,7 +1135,18 @@
         "pall_mall_face_shapes",
         "manual_face_shapes",
         "gentlemans_gazette_face_shapes"
-      ]
+      ],
+      "desc": "Hati sa gitna, bumabagsak ang buhok sa magkabilang gilid ng noo.",
+      "hair_fit": {
+        "wavy": {
+          "fit": "helps",
+          "note": "Natural wave may help curtains fall apart at the middle."
+        },
+        "thin": {
+          "fit": "care",
+          "note": "A centre part may show scalp on thin hair; the barber should check."
+        }
+      }
     },
     {
       "id": "keep_length",
@@ -781,7 +1217,18 @@
         "pall_mall_face_shapes",
         "manual_face_shapes",
         "gentlemans_gazette_face_shapes"
-      ]
+      ],
+      "desc": "Haba muna. Ayos lang ng kaunti, hindi binabago ang hugis.",
+      "hair_fit": {
+        "curly": {
+          "fit": "helps",
+          "note": "Keeping length may let curls hang instead of puffing."
+        },
+        "coily": {
+          "fit": "helps",
+          "note": "Retained length may keep coily shape and coverage."
+        }
+      }
     },
     {
       "id": "buzz",
@@ -852,7 +1299,597 @@
         "pall_mall_face_shapes",
         "manual_face_shapes",
         "gentlemans_gazette_face_shapes"
-      ]
+      ],
+      "desc": "Maikli at pantay ang buong ibabaw gamit ang makina. Pinakamadali.",
+      "hair_fit": {
+        "thin": {
+          "fit": "helps",
+          "note": "An even short length may make thinning less noticeable."
+        },
+        "coily": {
+          "fit": "helps",
+          "note": "A short even length is commonly easy to maintain for coily hair."
+        }
+      }
+    },
+    {
+      "id": "french_crop",
+      "name": "French crop",
+      "desc": "Maikli at diretsong bangs sa harap, malinis ang linya. Pang-everyday.",
+      "pros": [
+        "Very easy daily styling",
+        "Fringe softens the forehead"
+      ],
+      "cons": [
+        "Short fringe may not suit a formal look"
+      ],
+      "maintenance": "Trim every 3 to 4 weeks; a little matte clay is optional.",
+      "face_shape_fit": {
+        "oval": {
+          "fit": "suggested",
+          "note": "French crop is commonly suggested for oval faces because many outlines can work; customer preference comes first."
+        },
+        "round": {
+          "fit": "neutral",
+          "note": "French crop is commonly suggested for round faces because height on top with tidy sides may add apparent length; customer preference comes first."
+        },
+        "square": {
+          "fit": "suggested",
+          "note": "French crop is commonly suggested for square faces because it can echo or soften a defined jawline; customer preference comes first."
+        },
+        "oblong": {
+          "fit": "suggested",
+          "note": "French crop is commonly suggested for oblong faces because side fullness and a lower top may limit apparent length; customer preference comes first."
+        },
+        "heart": {
+          "fit": "suggested",
+          "note": "French crop is commonly suggested for heart faces because a softer outline may balance a wider forehead; customer preference comes first."
+        },
+        "diamond": {
+          "fit": "suggested",
+          "note": "French crop is commonly suggested for diamond faces because fullness at the fringe and lower sides may balance cheekbone width; customer preference comes first."
+        }
+      },
+      "problem_fit": {
+        "puffy_sides": {
+          "fit": "neutral",
+          "note": "French crop does not change this much on its own; discuss it with the barber."
+        },
+        "cowlick": {
+          "fit": "neutral",
+          "note": "French crop does not change this much on its own; discuss it with the barber."
+        },
+        "hard_to_style": {
+          "fit": "helps",
+          "note": "French crop may help with this if it matches the look you want."
+        },
+        "grows_fast": {
+          "fit": "neutral",
+          "note": "French crop does not change this much on its own; discuss it with the barber."
+        },
+        "flat_top": {
+          "fit": "helps",
+          "note": "French crop may help with this if it matches the look you want."
+        },
+        "wide_forehead": {
+          "fit": "helps",
+          "note": "French crop may help with this if it matches the look you want."
+        }
+      },
+      "source_ids": [
+        "opentextbc_consultation",
+        "pall_mall_face_shapes",
+        "manual_face_shapes",
+        "gentlemans_gazette_face_shapes"
+      ],
+      "hair_fit": {
+        "thin": {
+          "fit": "helps",
+          "note": "A short forward fringe may hide a thinning front and look fuller."
+        },
+        "curly": {
+          "fit": "care",
+          "note": "A straight blunt fringe may spring up on curly hair; the barber should check."
+        }
+      }
+    },
+    {
+      "id": "comb_over",
+      "name": "Comb over",
+      "desc": "Suklay patagilid nang mas mahaba, may konting volume. Pang-opisina.",
+      "pros": [
+        "Neat and professional",
+        "Works with longer top length"
+      ],
+      "cons": [
+        "Needs daily combing and a little product"
+      ],
+      "maintenance": "Trim every 4 weeks; comb with light pomade daily.",
+      "face_shape_fit": {
+        "oval": {
+          "fit": "suggested",
+          "note": "Comb over is commonly suggested for oval faces because many outlines can work; customer preference comes first."
+        },
+        "round": {
+          "fit": "suggested",
+          "note": "Comb over is commonly suggested for round faces because height on top with tidy sides may add apparent length; customer preference comes first."
+        },
+        "square": {
+          "fit": "suggested",
+          "note": "Comb over is commonly suggested for square faces because it can echo or soften a defined jawline; customer preference comes first."
+        },
+        "oblong": {
+          "fit": "neutral",
+          "note": "Comb over is commonly suggested for oblong faces because side fullness and a lower top may limit apparent length; customer preference comes first."
+        },
+        "heart": {
+          "fit": "suggested",
+          "note": "Comb over is commonly suggested for heart faces because a softer outline may balance a wider forehead; customer preference comes first."
+        },
+        "diamond": {
+          "fit": "neutral",
+          "note": "Comb over is commonly suggested for diamond faces because fullness at the fringe and lower sides may balance cheekbone width; customer preference comes first."
+        }
+      },
+      "problem_fit": {
+        "puffy_sides": {
+          "fit": "neutral",
+          "note": "Comb over does not change this much on its own; discuss it with the barber."
+        },
+        "cowlick": {
+          "fit": "helps",
+          "note": "Comb over may help with this if it matches the look you want."
+        },
+        "hard_to_style": {
+          "fit": "worse",
+          "note": "Comb over may make this more noticeable; discuss it with the barber first."
+        },
+        "grows_fast": {
+          "fit": "neutral",
+          "note": "Comb over does not change this much on its own; discuss it with the barber."
+        },
+        "flat_top": {
+          "fit": "helps",
+          "note": "Comb over may help with this if it matches the look you want."
+        },
+        "wide_forehead": {
+          "fit": "neutral",
+          "note": "Comb over does not change this much on its own; discuss it with the barber."
+        }
+      },
+      "source_ids": [
+        "opentextbc_consultation",
+        "pall_mall_face_shapes",
+        "manual_face_shapes",
+        "gentlemans_gazette_face_shapes"
+      ],
+      "hair_fit": {
+        "thick": {
+          "fit": "helps",
+          "note": "Thick hair commonly holds a comb over shape well."
+        },
+        "thin": {
+          "fit": "care",
+          "note": "Combing thin hair over a long distance may look flat; the barber should check."
+        }
+      }
+    },
+    {
+      "id": "pompadour",
+      "name": "Pompadour",
+      "desc": "Mataas at bilugang angat sa harap, suklay patalikod. Pang-porma.",
+      "pros": [
+        "Strong, stylish volume",
+        "Adds height"
+      ],
+      "cons": [
+        "Needs blow-dry and product every day",
+        "Needs enough length"
+      ],
+      "maintenance": "Trim every 4 to 5 weeks; blow-dry and pomade daily.",
+      "face_shape_fit": {
+        "oval": {
+          "fit": "suggested",
+          "note": "Pompadour is commonly suggested for oval faces because many outlines can work; customer preference comes first."
+        },
+        "round": {
+          "fit": "suggested",
+          "note": "Pompadour is commonly suggested for round faces because height on top with tidy sides may add apparent length; customer preference comes first."
+        },
+        "square": {
+          "fit": "suggested",
+          "note": "Pompadour is commonly suggested for square faces because it can echo or soften a defined jawline; customer preference comes first."
+        },
+        "oblong": {
+          "fit": "care",
+          "note": "Pompadour needs care for oblong faces; the barber should check because side fullness and a lower top may limit apparent length matters here; customer preference comes first."
+        },
+        "heart": {
+          "fit": "care",
+          "note": "Pompadour needs care for heart faces; the barber should check because a softer outline may balance a wider forehead matters here; customer preference comes first."
+        },
+        "diamond": {
+          "fit": "neutral",
+          "note": "Pompadour is commonly suggested for diamond faces because fullness at the fringe and lower sides may balance cheekbone width; customer preference comes first."
+        }
+      },
+      "problem_fit": {
+        "puffy_sides": {
+          "fit": "neutral",
+          "note": "Pompadour does not change this much on its own; discuss it with the barber."
+        },
+        "cowlick": {
+          "fit": "neutral",
+          "note": "Pompadour does not change this much on its own; discuss it with the barber."
+        },
+        "hard_to_style": {
+          "fit": "worse",
+          "note": "Pompadour may make this more noticeable; discuss it with the barber first."
+        },
+        "grows_fast": {
+          "fit": "neutral",
+          "note": "Pompadour does not change this much on its own; discuss it with the barber."
+        },
+        "flat_top": {
+          "fit": "helps",
+          "note": "Pompadour may help with this if it matches the look you want."
+        },
+        "wide_forehead": {
+          "fit": "worse",
+          "note": "Pompadour may make this more noticeable; discuss it with the barber first."
+        }
+      },
+      "source_ids": [
+        "opentextbc_consultation",
+        "pall_mall_face_shapes",
+        "manual_face_shapes",
+        "gentlemans_gazette_face_shapes"
+      ],
+      "hair_fit": {
+        "thin": {
+          "fit": "care",
+          "note": "A pompadour needs density and length; thin hair may struggle to hold it."
+        },
+        "thick": {
+          "fit": "helps",
+          "note": "Thick hair commonly suits pompadour volume."
+        }
+      }
+    },
+    {
+      "id": "slick_back",
+      "name": "Slick back",
+      "desc": "Suklay patalikod lahat, makinis. Kailangan ng pomade.",
+      "pros": [
+        "Polished, formal look",
+        "Works for events"
+      ],
+      "cons": [
+        "Needs pomade daily",
+        "Shows the full forehead"
+      ],
+      "maintenance": "Trim every 4 to 5 weeks; pomade daily.",
+      "face_shape_fit": {
+        "oval": {
+          "fit": "suggested",
+          "note": "Slick back is commonly suggested for oval faces because many outlines can work; customer preference comes first."
+        },
+        "round": {
+          "fit": "neutral",
+          "note": "Slick back is commonly suggested for round faces because height on top with tidy sides may add apparent length; customer preference comes first."
+        },
+        "square": {
+          "fit": "suggested",
+          "note": "Slick back is commonly suggested for square faces because it can echo or soften a defined jawline; customer preference comes first."
+        },
+        "oblong": {
+          "fit": "care",
+          "note": "Slick back needs care for oblong faces; the barber should check because side fullness and a lower top may limit apparent length matters here; customer preference comes first."
+        },
+        "heart": {
+          "fit": "care",
+          "note": "Slick back needs care for heart faces; the barber should check because a softer outline may balance a wider forehead matters here; customer preference comes first."
+        },
+        "diamond": {
+          "fit": "neutral",
+          "note": "Slick back is commonly suggested for diamond faces because fullness at the fringe and lower sides may balance cheekbone width; customer preference comes first."
+        }
+      },
+      "problem_fit": {
+        "puffy_sides": {
+          "fit": "neutral",
+          "note": "Slick back does not change this much on its own; discuss it with the barber."
+        },
+        "cowlick": {
+          "fit": "worse",
+          "note": "Slick back may make this more noticeable; discuss it with the barber first."
+        },
+        "hard_to_style": {
+          "fit": "worse",
+          "note": "Slick back may make this more noticeable; discuss it with the barber first."
+        },
+        "grows_fast": {
+          "fit": "neutral",
+          "note": "Slick back does not change this much on its own; discuss it with the barber."
+        },
+        "flat_top": {
+          "fit": "neutral",
+          "note": "Slick back does not change this much on its own; discuss it with the barber."
+        },
+        "wide_forehead": {
+          "fit": "worse",
+          "note": "Slick back may make this more noticeable; discuss it with the barber first."
+        }
+      },
+      "source_ids": [
+        "opentextbc_consultation",
+        "pall_mall_face_shapes",
+        "manual_face_shapes",
+        "gentlemans_gazette_face_shapes"
+      ],
+      "hair_fit": {
+        "thin": {
+          "fit": "care",
+          "note": "Slicking thin hair back may show scalp lines."
+        },
+        "curly": {
+          "fit": "care",
+          "note": "Curly hair may resist lying flat when slicked back."
+        },
+        "thick": {
+          "fit": "helps",
+          "note": "Thick straight or wavy hair commonly holds a slick back."
+        }
+      }
+    },
+    {
+      "id": "messy_fringe",
+      "name": "Messy fringe",
+      "desc": "Mahabang bangs na may texture, magulo pero sinadya. Pang-bata ang dating.",
+      "pros": [
+        "Youthful, relaxed look",
+        "Covers part of the forehead"
+      ],
+      "cons": [
+        "May fall into the eyes as it grows"
+      ],
+      "maintenance": "Trim every 3 to 4 weeks; texture spray or clay is optional.",
+      "face_shape_fit": {
+        "oval": {
+          "fit": "suggested",
+          "note": "Messy fringe is commonly suggested for oval faces because many outlines can work; customer preference comes first."
+        },
+        "round": {
+          "fit": "care",
+          "note": "Messy fringe needs care for round faces; the barber should check because height on top with tidy sides may add apparent length matters here; customer preference comes first."
+        },
+        "square": {
+          "fit": "suggested",
+          "note": "Messy fringe is commonly suggested for square faces because it can echo or soften a defined jawline; customer preference comes first."
+        },
+        "oblong": {
+          "fit": "suggested",
+          "note": "Messy fringe is commonly suggested for oblong faces because side fullness and a lower top may limit apparent length; customer preference comes first."
+        },
+        "heart": {
+          "fit": "suggested",
+          "note": "Messy fringe is commonly suggested for heart faces because a softer outline may balance a wider forehead; customer preference comes first."
+        },
+        "diamond": {
+          "fit": "suggested",
+          "note": "Messy fringe is commonly suggested for diamond faces because fullness at the fringe and lower sides may balance cheekbone width; customer preference comes first."
+        }
+      },
+      "problem_fit": {
+        "puffy_sides": {
+          "fit": "neutral",
+          "note": "Messy fringe does not change this much on its own; discuss it with the barber."
+        },
+        "cowlick": {
+          "fit": "neutral",
+          "note": "Messy fringe does not change this much on its own; discuss it with the barber."
+        },
+        "hard_to_style": {
+          "fit": "helps",
+          "note": "Messy fringe may help with this if it matches the look you want."
+        },
+        "grows_fast": {
+          "fit": "neutral",
+          "note": "Messy fringe does not change this much on its own; discuss it with the barber."
+        },
+        "flat_top": {
+          "fit": "helps",
+          "note": "Messy fringe may help with this if it matches the look you want."
+        },
+        "wide_forehead": {
+          "fit": "helps",
+          "note": "Messy fringe may help with this if it matches the look you want."
+        }
+      },
+      "source_ids": [
+        "opentextbc_consultation",
+        "pall_mall_face_shapes",
+        "manual_face_shapes",
+        "gentlemans_gazette_face_shapes"
+      ],
+      "hair_fit": {
+        "thin": {
+          "fit": "helps",
+          "note": "Textured forward length may make thin hair look fuller."
+        },
+        "wavy": {
+          "fit": "helps",
+          "note": "Wave may add natural mess to the fringe."
+        },
+        "curly": {
+          "fit": "helps",
+          "note": "Curly hair commonly suits a loose textured fringe."
+        }
+      }
+    },
+    {
+      "id": "two_block",
+      "name": "Two block",
+      "desc": "Korean style: mahaba ang ibabaw na tumatakip sa maikling gilid.",
+      "pros": [
+        "Popular Korean style",
+        "Long top hides a short underneath"
+      ],
+      "cons": [
+        "Needs length on top",
+        "Works best on straight hair"
+      ],
+      "maintenance": "Clip underneath every 3 weeks; trim top every 5 to 6 weeks.",
+      "face_shape_fit": {
+        "oval": {
+          "fit": "suggested",
+          "note": "Two block is commonly suggested for oval faces because many outlines can work; customer preference comes first."
+        },
+        "round": {
+          "fit": "neutral",
+          "note": "Two block is commonly suggested for round faces because height on top with tidy sides may add apparent length; customer preference comes first."
+        },
+        "square": {
+          "fit": "suggested",
+          "note": "Two block is commonly suggested for square faces because it can echo or soften a defined jawline; customer preference comes first."
+        },
+        "oblong": {
+          "fit": "suggested",
+          "note": "Two block is commonly suggested for oblong faces because side fullness and a lower top may limit apparent length; customer preference comes first."
+        },
+        "heart": {
+          "fit": "suggested",
+          "note": "Two block is commonly suggested for heart faces because a softer outline may balance a wider forehead; customer preference comes first."
+        },
+        "diamond": {
+          "fit": "suggested",
+          "note": "Two block is commonly suggested for diamond faces because fullness at the fringe and lower sides may balance cheekbone width; customer preference comes first."
+        }
+      },
+      "problem_fit": {
+        "puffy_sides": {
+          "fit": "helps",
+          "note": "Two block may help with this if it matches the look you want."
+        },
+        "cowlick": {
+          "fit": "neutral",
+          "note": "Two block does not change this much on its own; discuss it with the barber."
+        },
+        "hard_to_style": {
+          "fit": "neutral",
+          "note": "Two block does not change this much on its own; discuss it with the barber."
+        },
+        "grows_fast": {
+          "fit": "neutral",
+          "note": "Two block does not change this much on its own; discuss it with the barber."
+        },
+        "flat_top": {
+          "fit": "neutral",
+          "note": "Two block does not change this much on its own; discuss it with the barber."
+        },
+        "wide_forehead": {
+          "fit": "helps",
+          "note": "Two block may help with this if it matches the look you want."
+        }
+      },
+      "source_ids": [
+        "opentextbc_consultation",
+        "pall_mall_face_shapes",
+        "manual_face_shapes",
+        "gentlemans_gazette_face_shapes"
+      ],
+      "hair_fit": {
+        "thick": {
+          "fit": "helps",
+          "note": "The short underneath layer may remove heavy bulk from thick straight hair."
+        },
+        "curly": {
+          "fit": "care",
+          "note": "Two block usually relies on straight hair lying over the sides; curls may spring out."
+        }
+      }
+    },
+    {
+      "id": "faux_hawk",
+      "name": "Faux hawk",
+      "desc": "Mas mataas sa gitna ng ibabaw, parang mohawk pero hindi kalbo ang gilid.",
+      "pros": [
+        "Adds height without shaving the sides",
+        "Playful, bold look"
+      ],
+      "cons": [
+        "Needs product to hold the centre",
+        "Not always allowed in school"
+      ],
+      "maintenance": "Trim every 3 to 4 weeks; clay or wax daily.",
+      "face_shape_fit": {
+        "oval": {
+          "fit": "suggested",
+          "note": "Faux hawk is commonly suggested for oval faces because many outlines can work; customer preference comes first."
+        },
+        "round": {
+          "fit": "suggested",
+          "note": "Faux hawk is commonly suggested for round faces because height on top with tidy sides may add apparent length; customer preference comes first."
+        },
+        "square": {
+          "fit": "suggested",
+          "note": "Faux hawk is commonly suggested for square faces because it can echo or soften a defined jawline; customer preference comes first."
+        },
+        "oblong": {
+          "fit": "care",
+          "note": "Faux hawk needs care for oblong faces; the barber should check because side fullness and a lower top may limit apparent length matters here; customer preference comes first."
+        },
+        "heart": {
+          "fit": "neutral",
+          "note": "Faux hawk is commonly suggested for heart faces because a softer outline may balance a wider forehead; customer preference comes first."
+        },
+        "diamond": {
+          "fit": "neutral",
+          "note": "Faux hawk is commonly suggested for diamond faces because fullness at the fringe and lower sides may balance cheekbone width; customer preference comes first."
+        }
+      },
+      "problem_fit": {
+        "puffy_sides": {
+          "fit": "neutral",
+          "note": "Faux hawk does not change this much on its own; discuss it with the barber."
+        },
+        "cowlick": {
+          "fit": "neutral",
+          "note": "Faux hawk does not change this much on its own; discuss it with the barber."
+        },
+        "hard_to_style": {
+          "fit": "worse",
+          "note": "Faux hawk may make this more noticeable; discuss it with the barber first."
+        },
+        "grows_fast": {
+          "fit": "neutral",
+          "note": "Faux hawk does not change this much on its own; discuss it with the barber."
+        },
+        "flat_top": {
+          "fit": "helps",
+          "note": "Faux hawk may help with this if it matches the look you want."
+        },
+        "wide_forehead": {
+          "fit": "worse",
+          "note": "Faux hawk may make this more noticeable; discuss it with the barber first."
+        }
+      },
+      "source_ids": [
+        "opentextbc_consultation",
+        "pall_mall_face_shapes",
+        "manual_face_shapes",
+        "gentlemans_gazette_face_shapes"
+      ],
+      "hair_fit": {
+        "thick": {
+          "fit": "helps",
+          "note": "Thick hair commonly holds the raised centre."
+        },
+        "thin": {
+          "fit": "care",
+          "note": "Thin hair may need product to keep a raised centre."
+        }
+      }
     }
   ]
 }

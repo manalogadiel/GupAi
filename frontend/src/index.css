@@ -103,3 +103,8 @@ html { overscroll-behavior: none; }
   .mirror-shell { gap: 8px; }
   .mirror-shell button { min-height: 44px; }
 }
+
+/* Reveal: a scan line sweeps the photo only while the real hair/face job is running. */
+@keyframes scan { 0% { transform: translateY(-10%); } 100% { transform: translateY(100%); } }
+.scan-line { background: linear-gradient(to bottom, transparent 0, rgb(217 103 58 / .0) 40%, rgb(217 103 58 / .55) 49%, rgb(255 255 255 / .9) 50%, transparent 52%); animation: scan 1.8s cubic-bezier(.45,0,.55,1) infinite alternate; border-radius: var(--radius-sheet); }
+@media (prefers-reduced-motion: reduce) { .scan-line { animation: none; opacity: .4; } }

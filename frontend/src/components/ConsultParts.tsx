@@ -1,11 +1,11 @@
 import { AnimatePresence, motion } from 'motion/react'
-import type { Consultation, FaceShape, Job, Option } from '../api'
+import type { Consultation, Job, Option } from '../api'
 import { api } from '../api'
-import { Button, Chip } from './ui'
+import { Button } from './ui'
 import { shapeLabel } from './Photo'
 
 const JOB_TL: Record<string, string> = {
-  chat: 'Sumasagot si Kuya Pal', recommend: 'Pinipili ang haircut', suggest: 'Pinipili ang part options', checkpoint: 'Sinusuri ang checkpoint',
+  chat: 'Sumasagot si Kuya Gup', recommend: 'Pinipili ang haircut', suggest: 'Pinipili ang part options', checkpoint: 'Sinusuri ang checkpoint',
   transcribe: 'Isinasalin ang boses sa text sa laptop',
   observe: 'Tinitingnan ng local AI ang photo',
   faceshape: 'Sinusukat ang hugis ng mukha',
@@ -31,30 +31,6 @@ export function JobStatus({ job }: { job: Job | null }) {
         </motion.div>
       )}
     </AnimatePresence>
-  )
-}
-
-export const FACE_SHAPES: FaceShape[] = ['oval', 'round', 'square', 'oblong', 'heart', 'diamond']
-
-export function FaceShapeChips({ c, onPick, disabled }: { c: Consultation; onPick: (s: FaceShape) => void; disabled?: boolean }) {
-  const fs = c.state.face_shape
-  return (
-    <div className="space-y-2">
-      <p className="text-[15px] font-medium">
-        Hugis ng mukha{' '}
-        <span className="font-normal text-ink-2">
-          {fs?.confirmed ? `· confirmed: ${shapeLabel(fs.confirmed)}` : fs?.suggested.length ? `· AI: ${fs.suggested.map(shapeLabel).join(' o ')}, i-confirm ng barbero` : '· barbero ang pipili'}
-        </span>
-      </p>
-      <div className="flex flex-wrap gap-2">
-        {FACE_SHAPES.map(s => (
-          <Chip key={s} pressed={fs?.confirmed === s} disabled={disabled} onClick={() => onPick(s)}
-            className={!fs?.confirmed && fs?.suggested.includes(s) ? 'ring-2 ring-action/40' : ''}>
-            {shapeLabel(s)}{!fs?.confirmed && fs?.suggested.includes(s) ? ' · AI' : ''}
-          </Chip>
-        ))}
-      </div>
-    </div>
   )
 }
 

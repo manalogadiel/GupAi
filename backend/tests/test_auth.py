@@ -94,7 +94,7 @@ def test_consultation_defaults_and_multiple_active(barber):
     assert consultation["state"] == {"goal": "", "keep": [], "change": [], "avoid": [], "styling_effort": None, "observations": [], "face_shape": None, "options": [], "selected_option_id": None, "conflicts": [], "reply": None, "next_question": None, "uncertainties": [],
         "problems": [], "chat": [], "revealed": False, "recommendations": None, "selected_style": None,
         "sides": {"options": [], "recommended_id": None, "intro": None, "choice": None},
-        "top": {"options": [], "recommended_id": None, "intro": None, "choice": None}, "checkpoints": {"sides": None, "top": None}, "rating": None, "brief": consult.brief_defaults()}
+        "top": {"options": [], "recommended_id": None, "intro": None, "choice": None}, "checkpoints": {"sides": None, "top": None}, "rating": None, "brief": consult.brief_defaults(), "hair_profile": None}
     assert barber.get("/api/consultations/active").json() == consultation
     assert barber.get('/api/consultations/' + consultation['id']).json() == consultation
     second = create(barber)

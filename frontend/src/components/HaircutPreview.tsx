@@ -1,10 +1,14 @@
 import './HaircutPreview.css'
 
-type Sides = 'skin_fade' | 'low_fade' | 'mid_fade' | 'taper' | 'scissor_over_comb' | 'uniform'
-type Top = 'textured_crop' | 'side_part' | 'quiff' | 'curtains' | 'keep_length' | 'buzz'
+export type Sides = 'skin_fade' | 'low_fade' | 'mid_fade' | 'high_fade' | 'drop_fade' | 'burst_fade' | 'taper' | 'undercut' | 'scissor_over_comb' | 'uniform'
+export type Top = 'textured_crop' | 'french_crop' | 'side_part' | 'comb_over' | 'quiff' | 'pompadour' | 'slick_back' | 'curtains'
+  | 'messy_fringe' | 'two_block' | 'faux_hawk' | 'keep_length' | 'buzz'
 
-const sideVariants: (Sides | null)[] = ['skin_fade', 'low_fade', 'mid_fade', 'taper', 'scissor_over_comb', 'uniform', null]
-const topVariants: (Top | null)[] = ['textured_crop', 'side_part', 'quiff', 'curtains', 'keep_length', 'buzz', null]
+const sideVariants: (Sides | null)[] = ['skin_fade', 'low_fade', 'mid_fade', 'high_fade', 'drop_fade', 'burst_fade', 'taper', 'undercut', 'scissor_over_comb', 'uniform', null]
+const topVariants: (Top | null)[] = ['textured_crop', 'french_crop', 'side_part', 'comb_over', 'quiff', 'pompadour', 'slick_back', 'curtains',
+  'messy_fringe', 'two_block', 'faux_hawk', 'keep_length', 'buzz', null]
+export const asSides = (id: string | null | undefined) => (sideVariants.includes(id as Sides) ? (id as Sides) : null)
+export const asTop = (id: string | null | undefined) => (topVariants.includes(id as Top) ? (id as Top) : null)
 
 // Bands follow the temples instead of crossing the face.
 function templeBand(start: number, end: number) {
@@ -19,6 +23,9 @@ const fadeBands = {
   low_fade: [125, 135, 144],
   mid_fade: [111, 125, 138],
   taper: [132, 141, 147],
+  high_fade: [88, 99, 112],
+  drop_fade: [106, 121, 136],
+  burst_fade: [118, 130, 142],
 } satisfies Partial<Record<Sides, number[]>>
 
 const tops: Record<Top | 'neutral', { outline: string; detail: string }> = {
@@ -41,6 +48,34 @@ const tops: Record<Top | 'neutral', { outline: string; detail: string }> = {
   keep_length: {
     outline: 'M80 141C69 128 74 108 76 94 70 80 80 61 94 56 106 42 122 49 136 46 155 37 168 51 182 54 200 59 207 75 201 91 209 110 205 130 198 143L183 131 179 107 163 96 151 102 138 94 124 102 111 96 101 109 97 134Z',
     detail: 'M90 89q3-21 24-28m6 18q13-16 28-15m12 6q22 7 28 28M85 114l4 13m106-15-3 16',
+  },
+  french_crop: {
+    outline: 'M82 104 81 86C82 67 106 58 140 58s57 8 58 28v18l-9-4H91Z',
+    detail: 'M92 100h96M100 74l6-6m14 4 6-7m14 6 6-7m14 7 6-6m12 9 6-5M104 88l-2 9m16-9-1 9m16-9v9m15-9 1 9m15-9 2 9',
+  },
+  comb_over: {
+    outline: 'M82 108V84C81 59 111 47 150 51c27 3 47 18 48 40l-3 17-9-17c-19-8-43-8-62-1-15 6-29 9-39 7l-6 21Z',
+    detail: 'M108 66c22-12 52-12 78 2M100 78c26-10 56-10 86 2M152 54l-6 16',
+  },
+  pompadour: {
+    outline: 'M82 106 81 84C77 56 98 36 124 32c24-4 50 2 64 18 14 14 14 32 10 46l-4 12-9-20c-24-12-60-12-86-1l-8 19Z',
+    detail: 'M100 66c18-22 54-26 80-10M106 52c16-12 40-14 58-6M110 80c20-10 48-10 70 0',
+  },
+  slick_back: {
+    outline: 'M84 98 83 84C83 61 108 52 140 52s57 9 57 32v14l-7-7c-17-9-83-9-100 0Z',
+    detail: 'M106 64q34-9 68 0M100 75q40-9 80 0M112 56q28-5 56 0M96 86q44-8 88 0',
+  },
+  messy_fringe: {
+    outline: 'M79 114C75 92 80 70 94 60c19-13 54-15 77-4 21 9 31 27 28 52l-4 9-6-12-7 13-6-15-9 14-7-14-9 15-8-15-9 14-7-14-9 13-5-14-8 15Z',
+    detail: 'M100 76c10-8 18-10 26-10m10 2c12-6 26-6 38 2M110 96l-4 10m22-12-2 12m18-12 3 12m17-10 4 9',
+  },
+  two_block: {
+    outline: 'M77 126C71 98 76 72 92 60c20-15 57-15 81-2 19 10 29 29 27 56l-2 14-11-9-4-14c-21 7-61 8-91 2l-4 13Z',
+    detail: 'M96 98c18 4 50 4 88-1M108 70c12-6 28-8 40-6m10 2c10 2 20 6 26 12M90 110l-4 10m110-10 3 10',
+  },
+  faux_hawk: {
+    outline: 'M84 104 82 86C82 70 96 62 112 57l14-23 14 15 12-18 14 20c18 4 31 15 31 31l-2 18-9-12c-23-8-62-8-86 0l-6 14Z',
+    detail: 'M126 42 132 66m14-27-2 26m14-12-8 18M110 74c20-6 44-6 64 0',
   },
   buzz: {
     outline: 'M83 99V87C83 64 106 60 140 60S197 65 197 87V99L187 94 180 84C156 79 120 79 99 86L93 99Z',
@@ -93,6 +128,8 @@ export default function HaircutPreview({
             [...fadeBands[variant as keyof typeof fadeBands], 151].map((end, i, edges) => (
               <path key={i} className={`hp-tone-${[0, 2, 3, 4][i]}`} d={templeBand(i === 0 ? 82 : edges[i - 1], end)} />
             ))
+          ) : variant === 'undercut' ? (
+            <path className="hp-tone-2" d="M84 86h14v54l-7 13-5-12-6-29Zm112 0h-14v54l7 13 5-12 6-29Z" />
           ) : (
             <>
               <path className={variant === 'scissor_over_comb' ? 'hp-hair' : 'hp-hair-medium'} d="M84 83h14v57l-7 13-5-12-6-29Zm112 0h-14v57l7 13 5-12 6-29Z" />

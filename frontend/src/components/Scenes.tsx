@@ -1,13 +1,19 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { useState } from 'react'
-import type { Consultation, Part, PartOption, ProblemId, Stage } from '../api'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { CatalogItem, Consultation, Part, PartOption, ProblemId, Stage } from '../api'
+import { cutName, useCatalog } from '../catalog'
 import type { flow } from '../flow'
 import type { useConsultation } from '../useConsultation'
+import BarberMascot from './BarberMascot'
 import Character, { type CharacterState } from './Character'
-import { FaceShapeChips, JobStatus } from './ConsultParts'
-import HaircutPreview from './HaircutPreview'
+import { JobStatus } from './ConsultParts'
+import { FaceShapePicker, SHAPE_INFO } from './FaceShapes'
+import HairProfile, { HAIR_TL } from './HairProfile'
+import HaircutPreview, { asSides, asTop } from './HaircutPreview'
+import Icon, { type IconName } from './Icon'
+import SideProfile from './SideProfile'
 import Mirror from './Mirror'
-import Photo, { shapeLabel } from './Photo'
+import Photo from './Photo'
 import Talk from './Talk'
 import { Button, Chip, ErrorLine } from './ui'
 
@@ -17,88 +23,175 @@ export type Role = 'barber' | 'customer'
 export interface SceneProps { c: Consultation; f: Flow; h: Hook; role: Role; compact?: boolean }
 
 export const STEPS: { stage: Stage; label: string }[] = [
-  { stage: 'photos', label: 'Photos' }, { stage: 'goal', label: 'Usapan' }, { stage: 'reveal', label: 'Reveal' },
+  { stage: 'photos', label: 'Photos' }, { stage: 'goal', label: 'Usapan' }, { stage: 'reveal', label: 'Scan' },
   { stage: 'sides', label: 'Gilid' }, { stage: 'top', label: 'Ibabaw' }, { stage: 'summary', label: 'Final' },
   { stage: 'cutting', label: 'Gupit' }, { stage: 'done', label: 'Rating' },
 ]
 const PROMPT: Partial<Record<Stage, string>> = {
   photos: 'Kunan muna natin ng harap at gilid.',
-  goal: 'Kwento mo, anong look ang gusto mo?',
-  reveal: 'Heto ang nakita ko.',
+  goal: 'Kwentuhan muna tayo.',
+  reveal: 'Suriin natin ang mukha at buhok.',
   sides: 'Sa gilid muna tayo.',
   top: 'Ngayon, sa ibabaw naman.',
   summary: 'Final check bago gumupit.',
-  cutting: 'Gupitan time. Checkpoint tayo.',
+  cutting: 'Gupitan time.',
   done: 'Tapos na! Kumusta ang gupit?',
 }
-const OPENER: Partial<Record<Stage, string>> = {
-  photos: 'Harap muna, tapos gilid. Ayos lang kahit hindi perpekto ang anggulo, basta kita ang tenga at noo.',
-  goal: 'Para saan ang gupit mo ngayon, at anong dating ang gusto mong ma-achieve? Kwento mo rin kung may problema sa buhok.',
-  reveal: 'Heto ang tantiya sa hugis ng mukha. Gabay lang ito; ang gusto mo pa rin ang masusunod.',
-  summary: 'Silipin natin lahat bago ako gumupit. Kung may gusto kang baguhin, ngayon na.',
-  cutting: 'Pag tapos ang gilid, kunan natin para ma-check. Ganun din sa ibabaw.',
+/** Kuya Gup's instruction for the step. The live conversation lives only in the center thread. */
+const INSTRUCTION: Partial<Record<Stage, string>> = {
+  photos: 'Harap muna, tapos gilid. Kita dapat ang tenga at noo. Ayos lang kahit hindi perpekto ang anggulo.',
+  goal: 'Sagutin lang ang mga tanong ko sa usapan. Puwedeng mag-type, o pindutin ang mic. Sa Hands-free, magsalita ka lang at kusa itong magse-send.',
+  reveal: 'Titingnan ko ang hugis ng mukha at uri ng buhok mo. Tantya lang ito ng AI, kaya kumpirmahin ng barbero.',
+  sides: 'Kung may gusto ka na, piliin sa listahan. Kung wala pa, ako ang magsa-suggest batay sa napag-usapan natin.',
+  top: 'Ganun din sa ibabaw: pumili sa listahan, o hayaan akong mag-suggest na bagay sa gilid na napili mo.',
+  summary: 'Silipin natin lahat bago gumupit. Kung may gusto kang baguhin, ngayon na.',
+  cutting: 'Pag tapos ang isang bahagi, kunan natin para ma-check. Advisory lang ito; ang barbero pa rin ang huhusga.',
   done: 'Salamat! Bigyan mo ng rating ang gupit at ang usapan natin.',
 }
 export const PROBLEM_LABEL: Record<ProblemId, string> = {
-  puffy_sides: 'Pumupuff ang gilid', cowlick: 'May puyo', hard_to_style: 'Hirap i-style',
+  puffy_sides: 'Umaalsa ang gilid', cowlick: 'May puyo', hard_to_style: 'Hirap i-style',
   grows_fast: 'Mabilis humaba', flat_top: 'Flat sa ibabaw', wide_forehead: 'Malapad ang noo',
 }
+const PROBLEM_SAY: Record<ProblemId, string> = {
+  puffy_sides: 'Umaalsa yung gilid ko pag humahaba.', cowlick: 'May puyo ako na ayaw sumunod.', hard_to_style: 'Hirap akong i-style ang buhok ko.',
+  grows_fast: 'Mabilis humaba ang buhok ko.', flat_top: 'Flat at walang volume sa ibabaw.', wide_forehead: 'Gusto kong matakpan nang kaunti ang noo ko.',
+}
 const shared = { type: 'spring', stiffness: 380, damping: 32 } as const
+const PART_TL: Record<Part, string> = { sides: 'gilid', top: 'ibabaw' }
 
 export function moodOf(c: Consultation, h: Hook, recording: boolean): CharacterState {
-  if (recording) return 'listening'
+  if (recording || h.chatJob?.type === 'transcribe') return 'listening'
+  if (h.chatJob?.type === 'chat' && h.chatJob.partial_text) return 'talking'
   if (h.runningJob) return 'thinking'
   const agreed = !!(c.agreement?.customer_confirmed_at && c.agreement?.barber_confirmed_at)
   return agreed || c.stage === 'done' ? 'happy' : 'idle'
 }
 
-/** What Kuya Pal is saying right now: the live stream, else his last turn, else the stage opener. */
-function bubbleOf(c: Consultation, h: Hook) {
-  const job = h.runningJob
-  if (job?.type === 'chat') return { text: job.partial_text || '', streaming: true }
-  const part = c.stage === 'sides' || c.stage === 'top' ? c.state[c.stage].intro : null
-  const lastAi = [...(c.state.chat ?? [])].reverse().find(t => t.role === 'ai')?.text
-  const text = ['goal', 'sides', 'top'].includes(c.stage) ? (lastAi ?? part ?? OPENER[c.stage]) : OPENER[c.stage] ?? ''
-  return { text, streaming: false }
+function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return <div className={`glass rounded-[var(--radius-sheet)] ${className}`}>{children}</div>
 }
 
-/** Left panel: the barber persona, the conversation, and the voice/typing dock. */
-export function BarberPanel({ c, f, h, compact, onRecording, recording }: SceneProps & { onRecording: (r: boolean) => void; recording: boolean }) {
-  const bubble = bubbleOf(c, h)
+/* ---------------- left panel: mascot, instruction, memory ---------------- */
+
+/** What Kuya Gup already knows. Fills live from the shared brief, scan and choices. */
+function Memory({ c }: { c: Consultation }) {
+  const catalog = useCatalog()
+  const s = c.state, b = s.brief
+  const shape = s.face_shape?.confirmed ?? s.face_shape?.suggested?.[0]
+  const hair = s.hair_profile?.confirmed ?? s.hair_profile?.suggested
+  const choice = (part: Part) => s[part].choice ? (s[part].choice!.custom ?? cutName(catalog, part, s[part].choice!.id)) : null
+  const rows: { icon: IconName; label: string; value: string | null }[] = [
+    { icon: 'warning', label: 'Problema', value: [...(s.problems ?? []).map(p => PROBLEM_LABEL[p]), b?.problem_detail ? `“${b.problem_detail}”` : ''].filter(Boolean).join(' · ') || null },
+    { icon: 'star', label: 'Para saan', value: b?.occasion ?? null },
+    { icon: 'sparkle', label: 'Dating', value: b?.desired_impression?.join(', ') || null },
+    { icon: 'refresh', label: 'Routine', value: b?.styling_minutes != null ? `${b.styling_minutes} minuto mag-ayos` : null },
+    { icon: 'face', label: 'Mukha', value: shape ? SHAPE_INFO[shape].name + (s.face_shape?.confirmed ? '' : ' (tantya)') : null },
+    { icon: 'hair', label: 'Buhok', value: hair ? `${HAIR_TL[hair.density]}, ${HAIR_TL[hair.texture].toLowerCase()}${s.hair_profile?.confirmed ? '' : ' (tantya)'}` : null },
+    { icon: 'check', label: 'Iwan / iwasan', value: [...s.keep.map(k => `iwan: ${k}`), ...s.avoid.map(a => `iwasan: ${a}`)].join(' · ') || null },
+    { icon: 'scissors', label: 'Gilid / ibabaw', value: [choice('sides'), choice('top')].filter(Boolean).join(' + ') || null },
+  ]
+  const known = rows.filter(r => r.value).length
   return (
-    <div className={`flex min-h-0 flex-col ${compact ? 'gap-2 shrink-0' : 'h-full gap-3'}`}>
-      <div className="flex items-end gap-3">
-        <Character state={moodOf(c, h, recording)} size={compact ? 44 : 88} />
+    <section aria-label="Alam na ni Kuya Gup" className="glass rounded-[22px] p-4">
+      <div className="mb-2 flex items-baseline justify-between">
+        <h2 className="text-[13px] font-bold uppercase tracking-wider text-ink-2">Alam na ni Kuya Gup</h2>
+        <span className="tabular-nums text-[12px] text-ink-2">{known}/{rows.length}</span>
+      </div>
+      <ul className="space-y-1.5">
+        {rows.map(r => (
+          <motion.li key={r.label} layout className={`flex items-start gap-2.5 text-[14px] ${r.value ? '' : 'opacity-45'}`}>
+            <span className={`mt-0.5 grid size-6 shrink-0 place-items-center rounded-full ${r.value ? 'bg-action text-on-action' : 'bg-subtle text-ink-2'}`}><Icon name={r.icon} size={14} strokeWidth={2.2} /></span>
+            <span className="min-w-0"><span className="font-semibold">{r.label}: </span><span className="break-words">{r.value ?? '—'}</span></span>
+          </motion.li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+export function BarberPanel({ c, h, compact, recording }: SceneProps & { recording: boolean }) {
+  const mood = moodOf(c, h, recording)
+  const backgroundJob = h.jobs.find(j => j.type !== 'chat' && j.type !== 'transcribe') ?? null
+  if (compact) {
+    return (
+      <div className="flex shrink-0 items-center gap-3">
+        <Character state={mood} size={86} />
         <AnimatePresence mode="wait">
-          <motion.h1 key={c.stage} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.22 }}
-            className={`pb-1 font-display ${compact ? 'text-[24px]' : 'text-[clamp(1.9rem,2.6vw,2.6rem)]'}`}>{PROMPT[c.stage]}</motion.h1>
+          <motion.h1 key={c.stage} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+            className="font-display text-[26px] leading-tight">{PROMPT[c.stage]}</motion.h1>
         </AnimatePresence>
       </div>
-      {(!compact || ['goal','sides','top'].includes(c.stage)) && (bubble.text !== '' || bubble.streaming) ? (
-        <motion.div layout className={`glass rounded-[22px] rounded-tl-[6px] p-4 ${compact ? 'text-[14px] py-2 max-h-20 overflow-y-auto' : 'text-[15px] leading-relaxed flex-1 min-h-0 overflow-y-auto'}`} aria-live="polite">
-          <p className="mb-1 text-[13px] font-semibold text-action">Kuya Pal</p>
-          <p className={bubble.streaming ? 'caret' : ''}>{bubble.text || (bubble.streaming ? '' : '')}</p>
-        </motion.div>
-      ) : null}
-      {c.stage === 'goal' && !compact && (
-        <div className="flex flex-wrap gap-2">
-          {(Object.keys(PROBLEM_LABEL) as ProblemId[]).map(p => {
-            const on = c.state.problems?.includes(p)
-            return <Chip key={p} pressed={on} onClick={() => f.problem(p, !!on)} className="min-h-10 text-[14px]">{PROBLEM_LABEL[p]}</Chip>
-          })}
+    )
+  }
+  return (
+    <div className="scroll-col flex h-full min-h-0 flex-col gap-3 overflow-y-auto pr-1">
+      <div className="relative flex items-end gap-2">
+        <div className="relative shrink-0">
+          <div aria-hidden className="absolute inset-x-2 bottom-2 top-10 rounded-full bg-peach/70 blur-2xl" />
+          <div className="relative"><Character state={mood} size={230} /></div>
         </div>
-      )}
-      {!compact && c.stage !== 'cutting' && c.stage !== 'done' && (
-        <Talk onSend={f.say} onAudio={f.audio} transcript={h.results.transcribe?.text} transcriptId={h.results.transcribe?.job_id} busy={!!h.runningJob} onRecordingChange={onRecording} />
-      )}
-      {<JobStatus job={h.runningJob} />}
+        <div className="mb-6 min-w-0 flex-1 space-y-2">
+          <AnimatePresence mode="wait">
+            <motion.h1 key={c.stage} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.22 }}
+              className="font-display text-[clamp(1.7rem,2.3vw,2.4rem)]">{PROMPT[c.stage]}</motion.h1>
+          </AnimatePresence>
+          <AnimatePresence mode="wait">
+            <motion.p key={c.stage} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="glass relative rounded-[18px] rounded-bl-[4px] p-3 text-[14px] leading-snug">
+              <span className="mb-0.5 block text-[12px] font-bold text-action">Kuya Gup</span>{INSTRUCTION[c.stage]}
+            </motion.p>
+          </AnimatePresence>
+        </div>
+      </div>
+      <Memory c={c} />
+      <JobStatus job={backgroundJob} />
       <ErrorLine message={h.error} />
     </div>
   )
 }
 
-function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <div className={`glass rounded-[var(--radius-sheet)] ${className}`}>{children}</div>
+/* ---------------- the one conversation thread ---------------- */
+
+function ChatThread({ c, f, h, compact, quickReplies, placeholder, narrow }: SceneProps & { quickReplies?: React.ReactNode; placeholder?: string; narrow?: boolean }) {
+  const turns = c.state.chat ?? []
+  const job = h.chatJob
+  const streaming = job?.type === 'chat' ? job.partial_text ?? '' : null
+  const end = useRef<HTMLDivElement>(null)
+  useEffect(() => { end.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }) }, [turns.length, streaming])
+  return (
+    <Card className={`flex h-full min-h-0 flex-col ${compact ? 'p-2.5' : 'p-4'}`}>
+      <div className="scroll-col min-h-0 flex-1 space-y-3 overflow-y-auto px-1 pb-2" aria-live="polite">
+        {turns.map((t, i) => <Bubble key={i} role={t.role} text={t.text} />)}
+        {streaming !== null && <Bubble role="ai" text={streaming} streaming />}
+        {job?.type === 'transcribe' && <p className="ml-auto w-fit rounded-full bg-subtle px-3 py-1.5 text-[13px] text-ink-2">Isinasalin ang boses mo…</p>}
+        {!turns.length && streaming === null && <p className="py-6 text-center text-ink-2">Sandali, babatiin ka ni Kuya Gup…</p>}
+        <div ref={end} />
+      </div>
+      {quickReplies && <div className="flex shrink-0 flex-wrap gap-1.5 pb-2">{quickReplies}</div>}
+      <div className="shrink-0"><Talk onSend={t => f.say(t)} onVoice={f.voice} busy={!!h.chatJob} placeholder={placeholder} micSize={compact || narrow ? 50 : 58} stacked={narrow} /></div>
+    </Card>
+  )
+}
+
+function Bubble({ role, text, streaming }: { role: 'ai' | 'customer' | 'barber'; text: string; streaming?: boolean }) {
+  if (role === 'ai') {
+    return (
+      <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="flex max-w-[88%] items-end gap-2">
+        <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full bg-peach"><BarberMascot bust size={36} state={streaming ? 'talking' : 'idle'} /></span>
+        <p className="rounded-[18px] rounded-bl-[4px] bg-surface px-3.5 py-2.5 text-[15px] leading-snug shadow-[var(--shadow-card)]">
+          <span className="block text-[11px] font-bold text-action">Kuya Gup</span>
+          <span className={streaming ? 'caret' : ''}>{text}</span>
+        </p>
+      </motion.div>
+    )
+  }
+  return (
+    <motion.p initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+      className="ml-auto w-fit max-w-[85%] rounded-[18px] rounded-br-[4px] bg-action px-3.5 py-2.5 text-[15px] leading-snug text-on-action">
+      {role === 'barber' && <span className="block text-[11px] font-bold opacity-80">Barbero</span>}
+      {text}
+    </motion.p>
+  )
 }
 
 /* ---------------- photos ---------------- */
@@ -109,7 +202,7 @@ export function PhotosScene({ c, f, h, role, compact }: SceneProps) {
   return (
     <div className={`grid h-full min-h-0 gap-4 ${compact ? '' : 'grid-cols-[1.25fr_1fr]'}`}>
       {showMirror ? <div className="min-h-0"><Mirror onCapture={f.photo} busy={!!h.runningJob} /></div> : (
-        <Card className="grid place-items-center p-8 text-center"><div><p className="font-display text-3xl">Nasa phone ng customer ang salamin</p><p className="text-ink-2">Lalabas dito ang mga kuha.</p></div></Card>
+        <Card className="grid place-items-center p-8 text-center"><div><Icon name="phone" size={40} className="mx-auto mb-2 text-action" /><p className="font-display text-3xl">Nasa phone ng customer ang camera</p><p className="text-ink-2">Lalabas dito ang mga kuha.</p></div></Card>
       )}
       <div className={`grid min-h-0 content-start gap-3 ${compact ? 'grid-cols-2' : ''}`}>
         {(['front', 'side'] as const).map(v => {
@@ -117,167 +210,285 @@ export function PhotosScene({ c, f, h, role, compact }: SceneProps) {
           return (
             <Card key={v} className="flex min-h-0 items-center gap-3 p-3">
               <div className="grid size-20 shrink-0 place-items-center overflow-hidden rounded-[16px] bg-subtle">
-                {p ? <img src={p.url} alt={`${v === 'front' ? 'Harap' : 'Gilid'} photo`} className="size-full object-cover" /> : <span className="text-2xl text-ink-2" aria-hidden>{v === 'front' ? '◉' : '◐'}</span>}
+                {p ? <img src={p.url} alt={`${v === 'front' ? 'Harap' : 'Gilid'} photo`} className="size-full object-cover" /> : <Icon name="camera" size={28} className="text-ink-2" />}
               </div>
               <div className="min-w-0">
-                <p className="font-semibold">{v === 'front' ? 'Harap' : 'Gilid'} {p && <span className="text-action">✓</span>}</p>
-                <p className="text-[14px] text-ink-2">{p ? 'Naka-save · sinusuri sa likod' : 'Wala pa'}</p>
+                <p className="flex items-center gap-1.5 font-semibold">{v === 'front' ? 'Harap' : 'Gilid'} {p && <Icon name="check" size={16} strokeWidth={2.6} className="text-action" />}</p>
+                <p className="text-[14px] text-ink-2">{p ? 'Naka-save' : 'Wala pa'}</p>
               </div>
             </Card>
           )
         })}
-        {!compact && <p className="px-1 text-[14px] text-ink-2">Ilalabas ang hugis ng mukha at mga suggestion pagkatapos nating mag-usap.</p>}
       </div>
     </div>
   )
 }
 
-/* ---------------- goal ---------------- */
-export function GoalScene({ c, f, compact }: SceneProps) {
-  const s = c.state
-  const brief = s.brief
-  const labels: Record<string,string> = { occasion:'Para saan', desired_impression:'Dating', change_level:'Pagbabago', styling_minutes:'Minuto sa styling', maintenance_preference:'Upkeep', dress_rules:'Aktuwal na rules', inspiration:'Inspiration', keep:'Panatilihin', avoid:'Iwasan', change:'Baguhin' }
-  const entries = Object.entries({...(brief ?? {}),keep:s.keep,avoid:s.avoid,change:s.change}).filter(([k,v]) => k !== 'evidence' && v !== null && v !== undefined && v !== '' && (!Array.isArray(v) || v.length))
-  const turns = (s.chat ?? []).slice(compact ? -3 : -6)
+/* ---------------- goal: the interview ---------------- */
+export function GoalScene(props: SceneProps) {
+  const { c, f, role } = props
+  const asked = useRef(false)
+  // Kuya Gup opens the conversation himself, once, from the laptop.
+  useEffect(() => {
+    if (role === 'barber' && !asked.current && !(c.state.chat ?? []).length && !props.h.chatJob) { asked.current = true; void f.opener() }
+  }, [role, c.state.chat, f, props.h.chatJob])
+  const problems = c.state.problems ?? []
+  const early = (c.state.chat ?? []).filter(t => t.role !== 'ai').length < 2
+  const quick = early ? (Object.keys(PROBLEM_LABEL) as ProblemId[]).filter(p => !problems.includes(p)).map(p => (
+    <Chip key={p} className="min-h-9 px-3 text-[13px]" onClick={() => f.say(PROBLEM_SAY[p])}>{PROBLEM_LABEL[p]}</Chip>
+  )) : null
   return (
-    <Card className={`flex h-full min-h-0 flex-col gap-3 ${compact ? 'p-3' : 'p-5'}`}>
-      <div className="min-h-0 flex-1 overflow-y-auto space-y-3">
-        {turns.length ? turns.map((t,i) => <p key={i} className={`max-w-[92%] rounded-[16px] px-3 py-2 text-[15px] ${t.role === 'ai' ? 'bg-surface' : 'ml-auto bg-action text-on-action'}`}><span className="block text-xs opacity-75">{t.role === 'ai' ? 'Kuya Pal' : t.role === 'barber' ? 'Barbero' : 'Ikaw'}</span>{t.text}</p>) : <p className="text-ink-2">School, work, birthday, o everyday? Anong look ang gusto mong dating, at ano ang ayaw mong mawala?</p>}
-      </div>
-      {entries.length > 0 && <details className="shrink-0 rounded-xl bg-subtle px-3 py-2 text-sm"><summary className="cursor-pointer font-semibold">Ang pagkaintindi natin · {entries.length} detalye</summary><div className="mt-2 max-h-32 overflow-y-auto space-y-1">{entries.map(([k,v]) => <p key={k}><strong>{labels[k]}: </strong>{Array.isArray(v) ? v.join(', ') : String(v)}</p>)}<p className="text-ink-2">May mali? Sabihin ang correction sa usapan.</p></div></details>}
-      {!turns.length && <div className="flex flex-wrap gap-2">{['Para sa school','Para sa work','Birthday look'].map(text => <Chip key={text} className="min-h-10" onClick={() => f.say(text,'customer','typed')}>{text}</Chip>)}</div>}
-      {s.conflicts.map(conflict => <div key={conflict.id} className="text-sm"><p>{conflict.text}</p><div className="flex gap-2"><Button onClick={() => f.contribute({kind:'resolve_conflict', conflict_id:conflict.id,keep:'first'})}>Unang preference</Button><Button onClick={() => f.contribute({kind:'resolve_conflict',conflict_id:conflict.id,keep:'second'})}>Ikalawang preference</Button></div></div>)}
-    </Card>
+    <div className="flex h-full min-h-0 flex-col gap-2">
+      <div className="min-h-0 flex-1"><ChatThread {...props} quickReplies={quick} placeholder="Sagutin si Kuya Gup…" /></div>
+      {c.state.conflicts.map(conflict => (
+        <Card key={conflict.id} className="flex flex-wrap items-center gap-2 p-3 text-sm">
+          <Icon name="warning" className="text-voice" /><p className="flex-1">{conflict.text}</p>
+          <Button className="min-h-9" onClick={() => f.contribute({ kind: 'resolve_conflict', conflict_id: conflict.id, keep: 'first' })}>Una</Button>
+          <Button className="min-h-9" onClick={() => f.contribute({ kind: 'resolve_conflict', conflict_id: conflict.id, keep: 'second' })}>Ikalawa</Button>
+        </Card>
+      ))}
+    </div>
   )
 }
 
-/* ---------------- reveal ---------------- */
+/* ---------------- reveal: face + hair scan ---------------- */
 export function RevealScene({ c, f, h, role, compact }: SceneProps) {
-  const s=c.state
-  const front=c.photos.filter(p => p.view==='front').at(-1)
-  const face=h.results.faceshape ?? s.face_shape
-  const shape=s.face_shape?.confirmed ?? s.face_shape?.suggested?.[0]
-  const [factIndex,setFactIndex]=useState(0)
-  const facts=s.observations.filter(o => o.status!=='rejected')
-  const at=Math.min(factIndex,Math.max(0,facts.length-1)); const fact=facts[at]
-  if (!s.revealed) return <Card className="grid h-full place-items-center p-6 text-center"><div className="space-y-4"><p className="font-display text-3xl">Tingnan ang hugis ng mukha</p><p className="text-ink-2">Tantiya lang ito, hindi pagpili ng gupit.</p>{role==='barber' ? <Button onClick={f.reveal}>Ipakita ang resulta</Button> : <p>Hinihintay ang barbero.</p>}</div></Card>
-  return <Card className={`flex h-full min-h-0 flex-col gap-3 ${compact ? 'p-3' : 'p-5'}`}>
-    {front && <div className={compact ? 'phone-face shrink-0' : 'min-h-0 flex-1 overflow-hidden'}><Photo src={front.url} label="Harap" face={face} /></div>}
-    <p className="font-display text-[28px] leading-none">Mukhang {shape ? shapeLabel(shape) : 'hindi tiyak'}</p>
-    <p className="text-sm text-ink-2">Gabay lang; ang preferences mo ang masusunod. Puwedeng magpatuloy kahit hindi tiyak.</p>
-    {role==='barber' && <FaceShapeChips c={c} onPick={confirmed => f.contribute({kind:'face_shape',confirmed})} />}
-    {role==='barber' && <div className="flex flex-wrap gap-2"><Button className="min-h-10" disabled={!!h.runningJob} onClick={f.analyzeHair}>AI hair analysis · optional</Button><Button className="min-h-10" onClick={() => {const text=window.prompt('Ano ang nakita sa buhok?'); if(text?.trim()) f.contribute({kind:'observation_add',text:text.trim(),region:'general'})}}>Barber observation</Button></div>}
-    {role==='barber' && fact && <div className="shrink-0 space-y-2 text-sm"><p>{fact.text} <span className="text-ink-2">· {fact.status}</span></p><div className="flex flex-wrap gap-2"><Button className="min-h-10" onClick={() => f.contribute({kind:'observation',observation_id:fact.id,status:'confirmed'})}>Confirm</Button><Button className="min-h-10" onClick={() => {const text=window.prompt('Ayusin ang observation',fact.text); if(text?.trim()) f.contribute({kind:'observation',observation_id:fact.id,status:'confirmed',text:text.trim()})}}>Edit</Button><Button className="min-h-10" onClick={() => f.contribute({kind:'observation',observation_id:fact.id,status:'rejected'})}>Reject</Button>{facts.length>1 && <Button className="min-h-10" onClick={() => setFactIndex((at+1)%facts.length)}>Observation {at+1}/{facts.length} →</Button>}</div></div>}
-  </Card>
+  const s = c.state
+  const front = c.photos.filter(p => p.view === 'front').at(-1)
+  const face = h.results.faceshape ?? s.face_shape
+  const shape = s.face_shape?.confirmed ?? s.face_shape?.suggested?.[0]
+  const scanning = h.jobs.some(j => j.type === 'observe' || j.type === 'faceshape')
+  if (!s.revealed) {
+    return (
+      <Card className="grid h-full place-items-center p-6 text-center">
+        <div className="space-y-4">
+          <div className="mx-auto flex w-fit gap-3 text-action"><Icon name="face" size={44} /><Icon name="hair" size={44} /></div>
+          <p className="font-display text-4xl">Handa na ang scan</p>
+          <p className="mx-auto max-w-[40ch] text-ink-2">Titingnan ang hugis ng mukha at uri ng buhok mula sa photo. Tantya lang ito ng AI; ang barbero ang magkukumpirma.</p>
+          {role === 'barber' ? <Button variant="primary" className="rounded-full px-6" onClick={f.reveal}>Simulan ang scan</Button> : <p>Hinihintay ang barbero.</p>}
+        </div>
+      </Card>
+    )
+  }
+  return (
+    <div className={`grid h-full min-h-0 gap-4 ${compact ? 'grid-rows-[auto_1fr]' : 'grid-cols-[0.9fr_1.1fr]'}`}>
+      {front && (
+        <Card className={`relative min-h-0 overflow-hidden ${compact ? 'p-2' : 'grid place-items-center p-4'}`}>
+          <div className={`relative ${compact ? 'phone-face' : ''}`}>
+            <Photo src={front.url} label="Harap" face={face} />
+            {scanning && <div aria-hidden className="scan-line pointer-events-none absolute inset-x-0 top-0 h-full" />}
+          </div>
+          {scanning && <p className="mt-2 flex items-center gap-2 text-[14px] text-action"><Icon name="sparkle" size={16} /> Sinusuri ang buhok…</p>}
+        </Card>
+      )}
+      <div className="scroll-col min-h-0 space-y-3 overflow-y-auto pr-1">
+        <div>
+          <p className="mb-2 flex items-baseline gap-2"><span className="font-display text-[30px] leading-none">Mukhang {shape ? SHAPE_INFO[shape].name.toLowerCase() : 'hindi tiyak'}</span>
+            <span className="text-[13px] text-ink-2">{s.face_shape?.confirmed ? 'kinumpirma ng barbero' : 'tantya ng AI'}</span></p>
+          {role === 'barber' ? <FaceShapePicker c={c} onPick={confirmed => f.contribute({ kind: 'face_shape', confirmed })} />
+            : shape && <p className="text-ink-2">{SHAPE_INFO[shape].trait}</p>}
+        </div>
+        <HairProfile profile={s.hair_profile} scanning={scanning} editable={role === 'barber'} onConfirm={f.confirmHair} onScan={f.scanHair} />
+        <p className="text-[13px] text-ink-2">Gabay lang ang hugis at uri ng buhok. Ang gusto mo pa rin ang masusunod.</p>
+      </div>
+    </div>
+  )
 }
 
 /* ---------------- sides / top ---------------- */
-function OptionTile({ o, recommended, selected, onPick, compact }: { o: PartOption; recommended: boolean; selected: boolean; onPick: () => void; compact?: boolean }) {
+
+/** One suggested cut: drawn preview, why it suits this customer, pros/cons and upkeep. */
+function SuggestionCard({ o, part, other, recommended, selected, onPick, big }: {
+  o: PartOption; part: Part; other: string | null; recommended: boolean; selected: boolean; onPick: () => void; big?: boolean
+}) {
+  const sides = part === 'sides' ? asSides(o.id) : asSides(other)
+  const top = part === 'top' ? asTop(o.id) : asTop(other)
   return (
-    <motion.button type="button" onClick={onPick} whileTap={{ scale: 0.98 }} animate={{ scale: selected ? 1.015 : 1 }} transition={shared}
-      className={`glass flex min-h-0 flex-col gap-2 rounded-[22px] p-4 text-left ${selected ? 'shadow-[0_0_0_3px_var(--color-action),var(--shadow-lift)]' : ''}`}>
-      <span className="flex items-center justify-between gap-2">
-        <span className="font-display text-[28px] leading-none">{o.name}</span>
-        {selected ? <span className="grid size-7 place-items-center rounded-full bg-action text-on-action">✓</span>
-          : recommended ? <span className="rounded-full bg-voice px-2 py-0.5 text-[12px] font-semibold text-white">Recommended</span> : null}
-      </span>
-      {o.why && <span className={`text-[14.5px] ${compact ? '' : ''}`}>{o.why}</span>}
-      <span className="grid gap-0.5 text-[14px]">
-        {o.pros.slice(0, 2).map(p => <span key={p}><span className="text-action">✓</span> {p}</span>)}
-        {o.cons.slice(0, 2).map(p => <span key={p} className="text-ink-2"><span aria-hidden>–</span> {p}</span>)}
-      </span>
-    </motion.button>
+    <motion.article layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={shared}
+      className={`glass flex min-h-0 flex-col gap-3 overflow-y-auto rounded-[22px] p-4 ${selected ? 'shadow-[0_0_0_3px_var(--color-action),var(--shadow-lift)]' : ''} ${big ? 'row-span-2' : ''}`}>
+      <div className={`flex gap-3 ${big ? 'flex-col items-center text-center' : 'items-center'}`}>
+        <div className="shrink-0 rounded-[18px] bg-peach/60 p-1">
+          {part === 'sides' ? <SideProfile sides={sides} top={top} size={big ? 190 : 104} /> : <HaircutPreview sides={sides} top={top} size={big ? 190 : 104} />}
+        </div>
+        <div className="min-w-0">
+          <div className={`flex flex-wrap items-center gap-2 ${big ? 'justify-center' : ''}`}>
+            <h3 className={`font-display leading-none ${big ? 'text-[34px]' : 'text-[26px]'}`}>{o.name}</h3>
+            {recommended && <span className="flex items-center gap-1 rounded-full bg-voice px-2 py-0.5 text-[11px] font-bold text-white"><Icon name="star" size={11} strokeWidth={2.4} />Pinaka-bagay</span>}
+          </div>
+          {o.desc && <p className="mt-1 text-[14px] text-ink-2">{o.desc}</p>}
+        </div>
+      </div>
+      {(o.reasons?.length ?? 0) > 0 && (
+        <div className="space-y-1.5 rounded-[16px] bg-surface/80 p-3">
+          <p className="text-[12px] font-bold uppercase tracking-wider text-ink-2">Bakit bagay sa'yo</p>
+          {o.reasons!.map(r => (
+            <p key={r.label} className="flex gap-2 text-[13.5px] leading-snug">
+              <Icon name={r.fit === 'care' || r.fit === 'worse' ? 'warning' : 'check'} size={16} strokeWidth={2.4} className={`mt-0.5 ${r.fit === 'care' || r.fit === 'worse' ? 'text-voice' : 'text-action'}`} />
+              <span><span className="font-semibold">{r.label}.</span> {r.text}</span>
+            </p>
+          ))}
+        </div>
+      )}
+      {o.why && !o.reasons?.length && <p className="text-[14px]">{o.why}</p>}
+      <div className="grid gap-0.5 text-[13.5px]">
+        {o.pros.slice(0, big ? 3 : 2).map(p => <span key={p} className="flex gap-1.5"><Icon name="check" size={15} className="mt-0.5 text-action" />{p}</span>)}
+        {o.cons.slice(0, big ? 2 : 1).map(p => <span key={p} className="flex gap-1.5 text-ink-2"><Icon name="warning" size={15} className="mt-0.5" />{p}</span>)}
+        <span className="mt-1 text-[13px] text-ink-2"><span className="font-semibold">Upkeep:</span> {o.maintenance}</span>
+      </div>
+      <Button variant={selected ? 'primary' : 'secondary'} className="mt-auto min-h-11 rounded-full" onClick={onPick} aria-pressed={selected}>
+        {selected ? <><Icon name="check" size={18} /> Napili</> : 'Piliin ito'}
+      </Button>
+    </motion.article>
   )
 }
 
-export function PartScene({ c, f, h, compact }: SceneProps) {
+/** Every cut in the catalog, drawn, so the customer can point at what they mean. */
+function FullList({ part, other, chosen, onPick, onClose }: { part: Part; other: string | null; chosen: string | null; onPick: (o: CatalogItem) => void; onClose: () => void }) {
+  const catalog = useCatalog()
+  return (
+    <motion.div className="fixed inset-0 z-50 grid place-items-center bg-ink/40 p-4 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
+      <motion.div role="dialog" aria-modal aria-label={`Lahat ng ${PART_TL[part]}`} onClick={e => e.stopPropagation()}
+        initial={{ y: 24, scale: 0.98 }} animate={{ y: 0, scale: 1 }} exit={{ y: 24 }} transition={shared}
+        className="flex max-h-[90dvh] w-full max-w-5xl flex-col rounded-[28px] bg-canvas p-5 shadow-[var(--shadow-lift)]">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-display text-[34px] leading-none">Lahat ng {PART_TL[part]} <span className="text-ink-2">· {catalog?.[part].length ?? '…'}</span></h2>
+          <Button variant="quiet" className="min-h-10 rounded-full" onClick={onClose} aria-label="Isara"><Icon name="close" /></Button>
+        </div>
+        <div className="scroll-col grid min-h-0 grid-cols-2 gap-3 overflow-y-auto pb-1 sm:grid-cols-3 lg:grid-cols-4">
+          {(catalog?.[part] ?? []).map(o => {
+            const on = chosen === o.id
+            return (
+              <button key={o.id} type="button" onClick={() => onPick(o)} aria-pressed={on}
+                className={`flex flex-col items-center gap-1.5 rounded-[20px] bg-surface p-3 text-center transition-shadow hover:shadow-[var(--shadow-lift)] ${on ? 'shadow-[0_0_0_3px_var(--color-action)]' : 'shadow-[var(--shadow-card)]'}`}>
+                {part === 'sides' ? <SideProfile sides={asSides(o.id)} top={asTop(other)} size={130} />
+                  : <HaircutPreview sides={asSides(other)} top={asTop(o.id)} size={130} />}
+                <span className="flex items-center gap-1 font-semibold">{on && <Icon name="check" size={16} className="text-action" />}{o.name}</span>
+                <span className="text-[12.5px] leading-snug text-ink-2">{o.desc}</span>
+              </button>
+            )
+          })}
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+export function PartScene(props: SceneProps) {
+  const { c, f, h, compact } = props
   const part = c.stage as Part
   const ps = c.state[part]
+  const otherPart: Part = part === 'sides' ? 'top' : 'sides'
+  const other = c.state[otherPart].choice?.id ?? null
+  const [listOpen, setListOpen] = useState(false)
   const [custom, setCustom] = useState('')
-  const [optionIndex, setOptionIndex] = useState(0)
+  const [index, setIndex] = useState(0)
+  const catalog = useCatalog()
   const chosen = ps.choice
-  const busy = !!h.runningJob
-  return (
-    <div className="grid h-full min-h-0 grid-rows-[auto_1fr] gap-2">
-      <Card className="flex flex-wrap items-center gap-3 p-4">
-        <form className="flex min-w-0 flex-1 items-center gap-2 rounded-full bg-subtle py-1.5 pl-5 pr-1.5"
-          onSubmit={e => { e.preventDefault(); if (custom.trim()) { f.choose(part, { custom: custom.trim() }); setCustom('') } }}>
-          <label htmlFor="part-custom" className="sr-only">Alam ko na ang gusto ko</label>
-          <input id="part-custom" value={custom} onChange={e => setCustom(e.target.value)} maxLength={120}
-            placeholder={part === 'sides' ? 'Alam ko na: hal. “#2 sa gilid, low taper”' : 'Alam ko na: hal. “trim lang, iwan ang haba”'}
-            className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-ink-2" />
-          <Button type="submit" variant={custom.trim() ? 'primary' : 'quiet'} className="min-h-10 rounded-full" disabled={!custom.trim()}>Ito</Button>
-        </form>
-        <Button variant={ps.options.length ? 'secondary' : 'primary'} className="rounded-full" disabled={busy} onClick={() => f.suggest(part)}>
-          {ps.options.length ? '↻ Ibang suggestion' : 'Hindi ko alam, i-suggest mo'}
+  const suggesting = h.jobs.some(j => j.type === 'suggest')
+  const ordered = useMemo(() => [...ps.options].sort((a, b) => Number(b.id === ps.recommended_id) - Number(a.id === ps.recommended_id)), [ps.options, ps.recommended_id])
+  const chosenName = chosen ? chosen.custom ?? cutName(catalog, part, chosen.id) : null
+
+  const header = (
+    <Card className="space-y-3 p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="mr-auto font-display text-[26px] leading-tight">May plano ka na ba sa {PART_TL[part]}?</p>
+        <Button className="min-h-10 rounded-full" onClick={() => setListOpen(true)}><Icon name="list" size={18} /> Oo, pipili ako · tingnan lahat</Button>
+        <Button variant={ps.options.length ? 'secondary' : 'primary'} className="min-h-10 rounded-full" disabled={suggesting} onClick={() => f.suggest(part)}>
+          <Icon name={ps.options.length ? 'refresh' : 'sparkle'} size={18} /> {ps.options.length ? 'I-suggest ulit' : 'Wala pa, i-suggest mo'}
         </Button>
-        {chosen?.custom && <p className="w-full text-[15px]"><span className="font-semibold text-action">✓ Napili:</span> “{chosen.custom}”</p>}
-      </Card>
-      {ps.options.length ? (
-        <div className={`grid min-h-0 gap-3 ${compact ? 'grid-rows-[auto_1fr]' : 'grid-cols-3'}`}>
-          {compact && <div role="tablist" aria-label="Part options" className="flex gap-2">
-            {ps.options.map((o, i) => <button role="tab" aria-selected={optionIndex === i} key={o.id} onClick={() => setOptionIndex(i)} className={`min-h-11 flex-1 rounded-full px-2 text-sm ${optionIndex === i ? 'bg-action text-on-action' : 'glass'}`}>Option {i + 1}{ps.recommended_id === o.id ? ' ★' : ''}</button>)}
-          </div>}
-          {(compact ? [ps.options[optionIndex] ?? ps.options[0]] : ps.options).map((o, i) => (
-            <motion.div key={o.id} className="min-h-0 overflow-y-auto" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ ...shared, delay: i * 0.05 }}>
-              <OptionTile o={o} compact={compact} recommended={ps.recommended_id === o.id} selected={chosen?.id === o.id} onPick={() => f.choose(part, { option_id: o.id })} />
-            </motion.div>
-          ))}
-        </div>
-      ) : (
-        <Card className="grid place-items-center p-6 text-center">
-          <p className="max-w-[36ch] text-ink-2">{busy ? `Pinipili ni Kuya Pal ang bagay sa ${part === 'sides' ? 'gilid' : 'ibabaw'} mo…` : 'Kwento muna ang gusto mo, o mag-suggest batay sa usapan, routine, problema at preferences mo.'}</p>
-        </Card>
-      )}
+      </div>
+      <form className="flex items-center gap-2 rounded-full bg-subtle py-1 pl-4 pr-1"
+        onSubmit={e => { e.preventDefault(); if (custom.trim()) { f.choose(part, { custom: custom.trim() }); setCustom('') } }}>
+        <label htmlFor="part-custom" className="sr-only">I-describe ang gusto</label>
+        <input id="part-custom" value={custom} onChange={e => setCustom(e.target.value)} maxLength={120}
+          placeholder={part === 'sides' ? 'O i-describe: hal. “#2 sa gilid, low taper”' : 'O i-describe: hal. “trim lang, iwan ang haba”'}
+          className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-ink-2" />
+        <Button type="submit" variant={custom.trim() ? 'primary' : 'quiet'} className="min-h-9 rounded-full" disabled={!custom.trim()}>Ito</Button>
+      </form>
+      {chosenName && <p className="flex items-center gap-2 text-[15px]"><Icon name="check" size={18} className="text-action" /><span className="font-semibold">Napili:</span> {chosenName}</p>}
+    </Card>
+  )
+
+  const cards = suggesting ? (
+    <Card className="grid h-full place-items-center p-6 text-center">
+      <div className="space-y-3"><Character state="thinking" size={150} /><p className="text-ink-2">Pinipili ni Kuya Gup ang bagay sa {PART_TL[part]} mo, batay sa problema, mukha at buhok mo…</p></div>
+    </Card>
+  ) : ordered.length ? (
+    compact ? (
+      <div className="flex min-h-0 flex-col gap-2">
+        <div role="tablist" className="flex shrink-0 gap-1.5">{ordered.map((o, i) => <button key={o.id} role="tab" aria-selected={index === i} onClick={() => setIndex(i)} className={`min-h-10 flex-1 truncate rounded-full px-2 text-[13px] ${index === i ? 'bg-action text-on-action' : 'glass'}`}>{o.name}</button>)}</div>
+        <SuggestionCard o={ordered[index] ?? ordered[0]} part={part} other={other} recommended={(ordered[index] ?? ordered[0]).id === ps.recommended_id} selected={chosen?.id === (ordered[index] ?? ordered[0]).id} onPick={() => f.choose(part, { option_id: (ordered[index] ?? ordered[0]).id })} />
+      </div>
+    ) : (
+      <div className="grid h-full min-h-0 grid-cols-[1.15fr_1fr] grid-rows-2 gap-3">
+        {ordered.map((o, i) => <SuggestionCard key={o.id} o={o} part={part} other={other} big={i === 0} recommended={o.id === ps.recommended_id} selected={chosen?.id === o.id} onPick={() => f.choose(part, { option_id: o.id })} />)}
+      </div>
+    )
+  ) : (
+    <Card className="grid h-full place-items-center p-6 text-center">
+      <div className="max-w-[44ch] space-y-2">
+        <HaircutPreview sides={part === 'sides' ? asSides(chosen?.id) : asSides(other)} top={part === 'top' ? asTop(chosen?.id) : asTop(other)} size={150} />
+        <p className="text-ink-2">Pumili sa listahan, o pindutin ang <b>i-suggest</b>. Babasahin ko ang problema, gamit, hugis ng mukha at buhok mo, pati ang bagong sinabi mo sa usapan.</p>
+      </div>
+    </Card>
+  )
+
+  return (
+    <div className={`grid h-full min-h-0 gap-3 ${compact ? 'grid-rows-[auto_minmax(0,1fr)_minmax(0,0.8fr)]' : 'grid-cols-[1fr_minmax(300px,0.42fr)]'}`}>
+      {compact ? <>{header}{cards}<ChatThread {...props} placeholder={`May gusto ka sa ${PART_TL[part]}?`} /></> : <>
+        <div className="flex min-h-0 flex-col gap-3">{header}<div className="min-h-0 flex-1">{cards}</div></div>
+        <ChatThread {...props} narrow placeholder={`May gusto o ayaw ka sa ${PART_TL[part]}?`} />
+      </>}
+      <AnimatePresence>{listOpen && <FullList part={part} other={other} chosen={chosen?.id ?? null} onClose={() => setListOpen(false)} onPick={o => { f.choose(part, { option_id: o.id }); setListOpen(false) }} />}</AnimatePresence>
     </div>
   )
 }
 
 /* ---------------- summary ---------------- */
-function choiceName(ps: Consultation['state']['sides']) {
-  const ch = ps.choice
-  if (!ch) return '—'
-  return ch.custom ?? ps.options.find(o => o.id === ch.id)?.name ?? ch.id ?? '—'
-}
-
 export function SummaryScene({ c, f, role, compact }: SceneProps) {
   const s = c.state
+  const catalog = useCatalog()
   const [notes, setNotes] = useState('')
   const a = c.agreement
-  const sidesId = s.sides.choice?.id as Parameters<typeof HaircutPreview>[0]['sides'] | undefined
-  const topId = s.top.choice?.id as Parameters<typeof HaircutPreview>[0]['top'] | undefined
+  const name = (part: Part) => s[part].choice ? s[part].choice!.custom ?? cutName(catalog, part, s[part].choice!.id) : '—'
+  const hair = s.hair_profile?.confirmed ?? s.hair_profile?.suggested
+  const shape = s.face_shape?.confirmed ?? s.face_shape?.suggested?.[0]
   const rows: [string, string][] = [
-    ['Gilid', choiceName(s.sides)], ['Ibabaw', choiceName(s.top)],
+    ['Gilid', name('sides')], ['Ibabaw', name('top')],
+    ['Problema', [...(s.problems ?? []).map(p => PROBLEM_LABEL[p]), s.brief?.problem_detail ?? ''].filter(Boolean).join(' · ') || '—'],
     ['Para sa', s.brief?.occasion || '—'],
     ['Dating / routine', [s.brief?.desired_impression?.join(', '), s.brief?.styling_minutes != null ? `${s.brief.styling_minutes} min mag-ayos` : ''].filter(Boolean).join(' · ') || '—'],
-    ['Hugis ng mukha', s.face_shape?.confirmed ? shapeLabel(s.face_shape.confirmed) : s.face_shape?.suggested?.[0] ? shapeLabel(s.face_shape.suggested[0]) : '—'],
-    ['Keep', s.keep.join(', ') || '—'], ['Avoid', s.avoid.join(', ') || '—'],
-    ['Problema', (s.problems ?? []).map(p => PROBLEM_LABEL[p]).join(', ') || '—'],
+    ['Hugis ng mukha', shape ? SHAPE_INFO[shape].name : '—'],
+    ['Buhok', hair ? `${HAIR_TL[hair.density]}, ${HAIR_TL[hair.strand].toLowerCase()} na hibla, ${HAIR_TL[hair.texture].toLowerCase()}` : '—'],
+    ['Iwan', s.keep.join(', ') || '—'], ['Iwasan', s.avoid.join(', ') || '—'],
   ]
   return (
     <div className={`grid h-full min-h-0 gap-4 ${compact ? '' : 'grid-cols-[1.1fr_0.9fr]'}`}>
-      <Card className={`flex min-h-0 flex-col ${compact ? "p-3" : "p-5"}`}>
-        {compact && <div className="float-preview"><HaircutPreview sides={sidesId ?? null} top={topId ?? null} size={90} /></div>}
-        <h2 className="font-display text-[28px] leading-none">Napagkasunduan</h2>
-        <dl className="mt-3 grid min-h-0 content-start overflow-y-auto grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-[15.5px]">
+      <Card className={`flex min-h-0 flex-col ${compact ? 'p-3' : 'p-5'}`}>
+        {compact && <div className="float-preview"><HaircutPreview sides={asSides(s.sides.choice?.id)} top={asTop(s.top.choice?.id)} size={90} /></div>}
+        <h2 className="font-display text-[30px] leading-none">Napagkasunduan</h2>
+        <dl className="mt-3 grid min-h-0 grid-cols-[auto_1fr] content-start gap-x-4 gap-y-2 overflow-y-auto text-[15.5px]">
           {rows.flatMap(([k, v]) => [<dt key={`t${k}`} className="font-semibold text-ink-2">{k}</dt>, <dd className="min-w-0 break-words" key={`d${k}`}>{v}</dd>])}
         </dl>
         <div className="flex-1" />
         <div className="mt-4 flex shrink-0 flex-wrap items-center gap-2">
-          {a?.customer_confirmed_at ? <span className="rounded-full bg-action/10 px-3 py-2 text-action">✓ Customer: Ito ang gusto ko</span>
+          {a?.customer_confirmed_at ? <span className="flex items-center gap-1.5 rounded-full bg-action/10 px-3 py-2 text-action"><Icon name="check" size={16} /> Customer: Ito ang gusto ko</span>
             : <Button variant="primary" className="rounded-full" onClick={() => f.confirm('customer')}>Customer: Ito ang gusto ko</Button>}
-          {role === 'barber' && (a?.barber_confirmed_at ? <span className="rounded-full bg-action/10 px-3 py-2 text-action">✓ Barbero: Kaya ko ’to</span> : (
+          {role === 'barber' && (a?.barber_confirmed_at ? <span className="flex items-center gap-1.5 rounded-full bg-action/10 px-3 py-2 text-action"><Icon name="check" size={16} /> Barbero: Kaya ko ’to</span> : (
             <>
               <input value={notes} onChange={e => setNotes(e.target.value)} maxLength={300} placeholder="Notes: hal. #2 guard, gunting sa ibabaw"
-                className="min-h-11 min-w-0 flex-1 rounded-full bg-subtle px-4 outline-none" />
+                className="order-first min-h-11 min-w-0 basis-full rounded-full bg-subtle px-4 outline-none" />
               <Button variant="primary" className="rounded-full" onClick={() => f.confirm('barber', notes.trim())}>Barbero: Kaya ko ’to</Button>
             </>
           ))}
         </div>
       </Card>
       {!compact && <Card className="grid min-h-0 place-items-center p-4">
-        <HaircutPreview sides={sidesId ?? null} top={topId ?? null} size={compact ? 200 : 300} />
-        <p className="text-center text-[13px] text-ink-2">Illustration ng napagkasunduan · hindi ikaw ito{s.sides.choice?.custom || s.top.choice?.custom ? " · generic para sa custom choice" : ""}</p>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <HaircutPreview sides={asSides(s.sides.choice?.id)} top={asTop(s.top.choice?.id)} size={240} />
+          <SideProfile sides={asSides(s.sides.choice?.id)} top={asTop(s.top.choice?.id)} size={240} />
+        </div>
+        <p className="text-center text-[13px] text-ink-2">Illustration ng napagkasunduan · hindi ikaw ito{s.sides.choice?.custom || s.top.choice?.custom ? ' · generic para sa custom choice' : ''}</p>
       </Card>}
     </div>
   )
@@ -293,13 +504,14 @@ export function CuttingScene({ c, f, h, role, compact }: SceneProps) {
     <div className={`grid h-full min-h-0 gap-4 ${compact ? '' : 'grid-cols-[1.2fr_1fr]'}`}>
       {capturing ? (
         <div className="flex min-h-0 flex-col gap-2">
-          <p className="shrink-0 text-sm">{capturing === "sides" ? "Ipakita ang gilid at tenga, hindi harap lang." : "Itaas nang kaunti ang camera para kita ang ibabaw at fringe."}</p>
+          <p className="shrink-0 text-sm">{capturing === 'sides' ? 'Ipakita ang gilid at tenga, hindi harap lang.' : 'Itaas nang kaunti ang camera para kita ang ibabaw at fringe.'}</p>
           <div className="min-h-0 flex-1"><Mirror busy={!!h.runningJob} onCapture={async blob => { setCapturing(null); await f.checkpoint(blob, capturing) }} /></div>
           <Button variant="quiet" className="mt-2" onClick={() => setCapturing(null)}>Kanselahin</Button>
         </div>
       ) : (
         <Card className="grid place-items-center p-6 text-center">
-          <p className="max-w-[34ch] text-ink-2">Pag tapos ang isang bahagi, pindutin ang checkpoint para kunan at ma-check ng AI. Advisory lang ito: ang barbero pa rin ang huhusga.</p>
+          <div className="space-y-3"><HaircutPreview sides={asSides(c.state.sides.choice?.id)} top={asTop(c.state.top.choice?.id)} size={200} />
+            <p className="max-w-[34ch] text-ink-2">Pag tapos ang isang bahagi, pindutin ang checkpoint para kunan at ma-check ng AI. Advisory lang ito.</p></div>
         </Card>
       )}
       <div className="grid min-h-0 content-start gap-3">
@@ -313,12 +525,12 @@ export function CuttingScene({ c, f, h, role, compact }: SceneProps) {
               </div>
               {cp && <p className="text-[15px]">{cp.note}</p>}
               <Button className="w-full rounded-full" disabled={!!h.runningJob} onClick={() => setCapturing(part)}>
-                {cp ? '↻ Kunan ulit' : `Tapos na ang ${part === 'sides' ? 'gilid' : 'ibabaw'}: kunan`}
+                <Icon name={cp ? 'refresh' : 'camera'} size={18} /> {cp ? 'Kunan ulit' : `Tapos na ang ${part === 'sides' ? 'gilid' : 'ibabaw'}: kunan`}
               </Button>
             </Card>
           )
         })}
-        {role === 'barber' && <Button variant="primary" className="rounded-full" onClick={() => f.go('done')}>Tapos na ang gupit →</Button>}
+        {role === 'barber' && <Button variant="primary" className="rounded-full" onClick={() => f.go('done')}>Tapos na ang gupit <Icon name="right" size={18} /></Button>}
       </div>
     </div>
   )
@@ -328,13 +540,7 @@ export function CuttingScene({ c, f, h, role, compact }: SceneProps) {
 const TAGS = ['Malinis ang fade', 'Sinunod ang usapan', 'Maayos kausap', 'Mabilis', 'Babalik ako']
 
 function Scissors({ on }: { on: boolean }) {
-  return (
-    <svg viewBox="0 0 24 24" width="44" height="44" aria-hidden fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"
-      className={on ? 'text-action' : 'text-boundary/50'}>
-      <circle cx="6" cy="6" r="3" fill={on ? 'currentColor' : 'none'} /><circle cx="6" cy="18" r="3" fill={on ? 'currentColor' : 'none'} />
-      <path d="M8.6 7.5 20 18M8.6 16.5 20 6" />
-    </svg>
-  )
+  return <Icon name="scissors" size={44} className={on ? 'text-action' : 'text-boundary/50'} />
 }
 
 export function DoneScene({ c, f, role, onComplete }: SceneProps & { onComplete: (rating: { score: number; tags: string[] }, notes: string, preferred: boolean, keepPhotos: boolean) => Promise<void> }) {
@@ -354,14 +560,14 @@ export function DoneScene({ c, f, role, onComplete }: SceneProps & { onComplete:
         {[1, 2, 3, 4, 5].map(n => (
           <motion.button key={n} role="radio" aria-checked={shownScore === n} aria-label={`${n} sa 5`} whileTap={{ scale: 0.85 }}
             animate={{ scale: n <= shownScore ? 1.08 : 1, rotate: n <= shownScore ? -8 : 0 }} transition={{ type: 'spring', stiffness: 500, damping: 18 }}
-            disabled={role === "barber" && !!sharedRating} onClick={() => setScore(n)} className="rounded-full p-1">
+            disabled={role === 'barber' && !!sharedRating} onClick={() => setScore(n)} className="rounded-full p-1">
             <Scissors on={n <= shownScore} />
           </motion.button>
         ))}
       </div>
       <p className="font-display text-[30px]">{['Pumili ng rating', 'Kailangan pang ayusin', 'Pwede na', 'Ayos', 'Ang ganda', 'Solid, idol!'][shownScore]}</p>
       <div className="flex flex-wrap justify-center gap-2">
-        {TAGS.map(t => <Chip key={t} disabled={role === "barber" && !!sharedRating} pressed={shownTags.includes(t)} onClick={() => setTags(x => x.includes(t) ? x.filter(y => y !== t) : [...x, t])}>{t}</Chip>)}
+        {TAGS.map(t => <Chip key={t} disabled={role === 'barber' && !!sharedRating} pressed={shownTags.includes(t)} onClick={() => setTags(x => x.includes(t) ? x.filter(y => y !== t) : [...x, t])}>{t}</Chip>)}
       </div>
       {role === 'barber' && (
         <div className="grid gap-3 text-left">
@@ -381,7 +587,7 @@ export function DoneScene({ c, f, role, onComplete }: SceneProps & { onComplete:
       )}
       {role === 'customer' && <>
         <Button variant="primary" className="min-h-12 rounded-full" disabled={busy || score === 0} onClick={submitRating}>{busy ? 'Sine-send…' : 'I-send ang rating'}</Button>
-        {sharedRating && <p className="text-sm text-action">✓ Natanggap ng barbero ang {sharedRating.score}/5. Hinihintay ang pag-save.</p>}
+        {sharedRating && <p className="text-sm text-action">Natanggap ng barbero ang {sharedRating.score}/5. Hinihintay ang pag-save.</p>}
       </>}
       {role === 'barber' && sharedRating && <p className="text-sm text-action">Rating mula sa phone ng customer · {sharedRating.score}/5</p>}
     </Card>

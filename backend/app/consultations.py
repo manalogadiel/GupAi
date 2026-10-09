@@ -184,7 +184,7 @@ def _write(consultation_id, request, action, payload):
                 # Confirmed versions are immutable; edits invalidate only pending drafts.
                 conn.execute("DELETE FROM agreements WHERE consultation_id=? AND (customer_confirmed_at IS NULL OR barber_confirmed_at IS NULL)", (consultation_id,))
                 speaker = contribution.get("speaker", "barber")
-                input_type = "chip" if contribution["kind"] == "rating" else contribution.get("input_type", contribution["kind"])
+                input_type = "chip" if contribution["kind"] in ("rating", "hair_profile") else contribution.get("input_type", contribution["kind"])
                 # C6 consumes real typed/voice text, including its original negation.
                 text = contribution["text"] if contribution["kind"] == "text" else json.dumps(contribution)
                 conn.execute("INSERT INTO contributions VALUES (?,?,?,?,?,?)", (consult._id([event_id, "input"]),
@@ -222,7 +222,7 @@ def _write(consultation_id, request, action, payload):
 def contribute(consultation_id: str, request: Request, body: dict):
     require_scope(consultation_id, request)
     contribution = consult.validate_contribution({name: value for name, value in body.items() if name != "expected_revision"})
-    if contribution["kind"] in {"observation", "observation_add", "face_shape", "stage", "reveal"}:
+    if contribution["kind"] in {"observation", "observation_add", "face_shape", "hair_profile", "stage", "reveal"}:
         require_barber(request)
     return _write(consultation_id, request, "contribution", body)
 

@@ -1,3 +1,4 @@
+import Icon from './Icon'
 import { useEffect, useRef, useState } from 'react'
 import { Button, Segmented } from './ui'
 
@@ -73,8 +74,8 @@ export default function Mirror({ onCapture, busy }: { onCapture: (b: Blob, view:
         <Segmented id="view" label="Photo view" value={view} onChange={setView}
           options={[{ value: 'front', label: 'Harap' }, { value: 'side', label: 'Gilid' }]} />
         {state === 'live'
-          ? <Button variant="primary" className="rounded-full" disabled={busy} onClick={captureLive}>📸 Kunan ng photo</Button>
-          : <Button variant="primary" className="rounded-full" disabled={busy} onClick={() => fileInput.current?.click()}>📸 Kumuha ng photo</Button>}
+          ? <Button variant="primary" className="rounded-full" disabled={busy} onClick={captureLive}><Icon name="camera" size={18} /> Kunan ng photo</Button>
+          : <Button variant="primary" className="rounded-full" disabled={busy} onClick={() => fileInput.current?.click()}><Icon name="camera" size={18} /> Kumuha ng photo</Button>}
         <input ref={fileInput} type="file" accept="image/*" capture="user" hidden
           onChange={e => { const f = e.target.files?.[0]; if (f) captureFile(f); e.target.value = '' }} />
       </div>

@@ -62,3 +62,29 @@ def profile(customer_id: str):
             "SELECT * FROM visits WHERE customer_id=? ORDER BY completed_at DESC, id", (customer_id,))]
         preferred = next((visit for visit in visits if visit["id"] == customer["preferred_visit_id"]), None)
     return {"customer": dict(customer), "preferred": preferred, "visits": visits}
+
+
+@router.delete("/{customer_id}")
+def erase(customer_id: str):
+    """Right to erasure: the customer, every visit and consultation, and saved photos."""
+    from .media import _media_path
+
+    with db.connect() as conn:
+        if conn.execute("SELECT 1 FROM customers WHERE id=?", (customer_id,)).fetchone() is None:
+            raise APIError("not_found", "Customer not found.")
+        if conn.execute("SELECT 1 FROM consultations WHERE customer_id=? AND status='active'", (customer_id,)).fetchone():
+            raise APIError("in_use", "Tapusin o itigil muna ang kasalukuyang konsulta.")
+        ids = [row["id"] for row in conn.execute("SELECT id FROM consultations WHERE customer_id=?", (customer_id,))]
+        marks = ",".join("?" for _ in ids)
+        keys = [row["storage_key"] for row in conn.execute(
+            f"SELECT storage_key FROM media WHERE consultation_id IN ({marks})", ids)] if ids else []
+        conn.execute("UPDATE customers SET preferred_visit_id=NULL WHERE id=?", (customer_id,))
+        conn.execute("DELETE FROM visits WHERE customer_id=?", (customer_id,))
+        if ids:
+            for table in ("media", "agreements", "contributions", "jobs"):
+                conn.execute(f"DELETE FROM {table} WHERE consultation_id IN ({marks})", ids)
+            conn.execute(f"DELETE FROM consultations WHERE id IN ({marks})", ids)
+        conn.execute("DELETE FROM customers WHERE id=?", (customer_id,))
+    for key in keys:  # after commit, so a failed transaction never loses photos
+        _media_path(key).unlink(missing_ok=True)
+    return {"deleted": customer_id}

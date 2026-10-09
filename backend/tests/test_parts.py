@@ -7,8 +7,10 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 IDS = {
-    "sides": {"skin_fade", "low_fade", "mid_fade", "taper", "scissor_over_comb", "uniform"},
-    "top": {"textured_crop", "side_part", "quiff", "curtains", "keep_length", "buzz"},
+    "sides": {"skin_fade", "low_fade", "mid_fade", "high_fade", "drop_fade", "burst_fade", "taper",
+              "undercut", "scissor_over_comb", "uniform"},
+    "top": {"textured_crop", "french_crop", "side_part", "comb_over", "quiff", "pompadour", "slick_back",
+            "curtains", "messy_fringe", "two_block", "faux_hawk", "keep_length", "buzz"},
 }
 SHAPES = {"oval", "round", "square", "oblong", "heart", "diamond"}
 PROBLEMS = {"puffy_sides", "cowlick", "hard_to_style", "grows_fast", "flat_top", "wide_forehead"}
@@ -25,7 +27,7 @@ def test_exact_groups_and_unique_ids():
     assert set(parts) == set(IDS)
     for group, expected in IDS.items():
         assert isinstance(parts[group], list)
-        assert len(parts[group]) == 6
+        assert len(parts[group]) == len(expected)
         assert {part["id"] for part in parts[group]} == expected
 
 
@@ -34,9 +36,12 @@ def test_fields_and_complete_fit_maps(group):
     parts = load_parts()
     for part in parts[group]:
         assert set(part) == {
-            "id", "name", "pros", "cons", "maintenance",
-            "face_shape_fit", "problem_fit", "source_ids",
+            "id", "name", "desc", "pros", "cons", "maintenance",
+            "face_shape_fit", "problem_fit", "hair_fit", "source_ids",
         }
+        assert isinstance(part["desc"], str) and 10 < len(part["desc"]) <= 120
+        assert set(part["hair_fit"]) <= {"thin", "thick", "wavy", "curly", "coily"}
+        assert all(e["fit"] in {"helps", "care"} and e["note"].strip() for e in part["hair_fit"].values())
         for field in ("id", "name", "maintenance"):
             assert isinstance(part[field], str) and part[field].strip()
         for field, minimum in (("pros", 2), ("cons", 1)):

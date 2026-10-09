@@ -101,7 +101,7 @@ def test_negated_occasion_is_not_assigned_by_fallback():
 def test_unwanted_puffy_sides_does_not_protect_sides_from_cutting():
     state=consult.empty_state(); state['avoid']=['puffy_sides']; state['keep']=['fringe']
     choices=ai.eligible_parts(ai.load_parts()['sides'],state)
-    assert len(choices)==6
+    assert len(choices)==len(ai.load_parts()['sides'])
     assert all(o['id'] not in ('buzz','textured_crop') for o in ai.eligible_parts(ai.load_parts()['top'],state))
 
 def test_latest_explicit_correction_survives_many_turns():

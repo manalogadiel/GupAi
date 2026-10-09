@@ -7,7 +7,7 @@ from starlette.exceptions import HTTPException
 STATUS_CODES = {
     "not_found": 404, "forbidden": 403, "revision_conflict": 409,
     "invalid_input": 422, "unsupported_media": 415, "too_large": 413,
-    "model_unavailable": 503, "conflict_unresolved": 409, "pair_expired": 410,
+    "model_unavailable": 503, "conflict_unresolved": 409, "pair_expired": 410, "in_use": 409,
 }
 
 

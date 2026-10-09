@@ -410,3 +410,43 @@ def test_abandon_frees_the_chair_and_revokes_phone(tmp_path, monkeypatch):
     assert barber.post("/api/consultations", json={}, headers=h()).status_code == 200
     phone = TestClient(main.app, base_url="https://localhost:8443", client=("192.168.1.9", 5000))
     assert phone.post(f"/api/consultations/{cid}/abandon", headers=h()).status_code == 403
+
+
+def delete(client, path):
+    return client.delete(path, headers={"Origin": "https://localhost:8443"})
+
+
+def test_delete_customer_erases_visits_consultations_and_photos(barber):
+    current = create(barber, customer=True)
+    cid, customer_id = current["id"], current["customer"]["id"]
+    current = agree(barber, agreement_stage(barber, cid), "customer").json()
+    current = agree(barber, current, "barber").json()
+    media.MEDIA_DIR.mkdir()
+    (media.MEDIA_DIR / "kept.jpg").write_bytes(b"fixture")
+    with db.connect() as conn:
+        conn.execute("INSERT INTO media VALUES (?,?,?,?,?,?,?)", (str(uuid4()), cid, "photo", "front", "kept.jpg", 0, "now"))
+    body = {"actual_notes": "trim", "save_as_preferred": True, "keep_photos": True}
+    assert post(barber, f"/api/consultations/{cid}/complete", body).status_code == 200
+    other = create(barber, customer=True)["customer"]["id"]
+
+    response = delete(barber, "/api/customers/" + customer_id)
+    assert response.status_code == 200
+    assert not (media.MEDIA_DIR / "kept.jpg").exists()
+    with db.connect() as conn:
+        for table in ("visits", "media", "agreements", "contributions", "jobs"):
+            assert conn.execute(f"SELECT COUNT(*) FROM {table} t WHERE NOT EXISTS (SELECT 1 FROM consultations c WHERE c.id = t.consultation_id)").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM consultations WHERE id=?", (cid,)).fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM customers WHERE id=?", (customer_id,)).fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM customers WHERE id=?", (other,)).fetchone()[0] == 1
+    assert barber.get("/api/customers/" + customer_id).status_code == 404
+    assert delete(barber, "/api/customers/" + customer_id).status_code == 404
+
+
+def test_delete_customer_refuses_active_consultation_and_phone(barber):
+    current = create(barber, customer=True)
+    customer_id = current["customer"]["id"]
+    assert delete(barber, "/api/customers/" + customer_id).status_code == 409
+    remote = TestClient(main.app, base_url="https://localhost:8443", client=("192.168.1.2", 1))
+    assert remote.delete("/api/customers/" + customer_id, headers={"Origin": "https://localhost:8443"}).status_code == 403
+    with db.connect() as conn:
+        assert conn.execute("SELECT COUNT(*) FROM customers WHERE id=?", (customer_id,)).fetchone()[0] == 1

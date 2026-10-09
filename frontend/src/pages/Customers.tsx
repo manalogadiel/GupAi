@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { api, ApiError, type CustomerRef, type CustomerRow, type Visit } from '../api'
 import { navigate } from '../App'
 import Character from '../components/Character'
+import Icon from '../components/Icon'
 import { Button, ErrorLine, Header } from '../components/ui'
 
 const fmt = (iso: string | null) =>
@@ -50,13 +51,20 @@ function NewCustomer({ onDone }: { onDone: (id: string) => void }) {
   )
 }
 
-function CustomerDetail({ id }: { id: string }) {
+function CustomerDetail({ id, onDeleted }: { id: string; onDeleted: () => void }) {
   const [data, setData] = useState<{ customer: CustomerRef; preferred: Visit | null; visits: Visit[] } | null>(null)
   const [error, setError] = useState<string | null>(null)
   useEffect(() => { setData(null); api.customer(id).then(setData, e => setError(e.message)) }, [id])
   async function start(fromVisit?: string) {
     try { navigate(`/consult/${(await api.createConsultation(id, fromVisit)).id}`) }
     catch (e) { setError(e instanceof ApiError ? e.message : 'Hindi nakapagsimula.') }
+  }
+  async function erase() {
+    if (!data) return
+    const name = data.customer.display_name
+    if (!confirm(`Buburahin si ${name} at lahat ng visit at photo niya. Hindi na ito maibabalik. Ituloy?`)) return
+    try { await api.deleteCustomer(id); onDeleted() }
+    catch (e) { setError(e instanceof ApiError ? e.message : 'Hindi nabura.') }
   }
   if (error) return <ErrorLine message={error} />
   if (!data) return <p className="text-ink-2">Loading…</p>
@@ -91,6 +99,11 @@ function CustomerDetail({ id }: { id: string }) {
         {p && pref && <Button variant="primary" className="flex-1" onClick={() => start(pref.id)}>Same as last time, o may babaguhin?</Button>}
         <Button className={p ? '' : 'flex-1'} onClick={() => start()}>Start fresh</Button>
       </div>
+      <div className="border-t border-separator pt-4">
+        <Button variant="quiet" className="min-h-10 rounded-full text-error hover:bg-error/10" onClick={erase}>
+          <Icon name="trash" size={18} /> Burahin ang customer at lahat ng record
+        </Button>
+      </div>
     </div>
   )
 }
@@ -113,10 +126,11 @@ export default function Customers() {
   }
 
   const panelKey = creating ? 'new' : selected ?? 'empty'
+  const reload = () => api.searchCustomers(q).then(r => { setRows(r); setError(null) }, e => setError(e.message))
 
   return (
     <div className="min-h-dvh pb-12">
-      <Header sub="Customers · barbero lang" right={<Button variant="quiet" className="min-h-10 rounded-full" onClick={() => navigate('/')}>← Home</Button>} />
+      <Header sub="Customers · barbero lang" right={<Button variant="quiet" className="min-h-10 rounded-full" onClick={() => navigate("/")}><Icon name="left" size={18} /> Home</Button>} />
       <main className="mx-auto grid max-w-[1180px] grid-cols-1 gap-8 px-4 pt-6 sm:px-8 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
         <section className="min-w-0 space-y-4">
           <h1 className="font-display text-[clamp(2.5rem,4vw,3.5rem)]">Sino ang nasa upuan?</h1>
@@ -151,10 +165,10 @@ export default function Customers() {
           <AnimatePresence mode="wait">
             <motion.div key={panelKey} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}>
               {creating ? <NewCustomer onDone={createdThenStart} />
-                : selected ? <CustomerDetail id={selected} />
+                : selected ? <CustomerDetail id={selected} onDeleted={() => { setSelected(null); void reload() }} />
                 : (
                   <div className="flex flex-col items-center gap-3 py-8 text-center">
-                    <Character state="idle" size={140} />
+                    <Character state="idle" size={200} />
                     <p className="font-display text-[30px]">Pumili ng customer</p>
                     <p className="max-w-[30ch] text-ink-2">Makikita rito ang preferred haircut niya at ang huling ginawa.</p>
                   </div>

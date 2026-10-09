@@ -17,6 +17,15 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
 from .errors import APIError
 from .conversation import brief_defaults, merge_brief
+from functools import lru_cache
+from pathlib import Path
+
+
+@lru_cache(maxsize=1)
+def catalog_ids():
+    """Every cut in knowledge/parts.json, so the full list can be picked from, not only AI suggestions."""
+    data = json.loads((Path(__file__).resolve().parents[2] / "knowledge/parts.json").read_text(encoding="utf-8-sig"))
+    return {group: {o["id"] for o in options} for group, options in data.items()}
 
 REGIONS = ("top", "sides", "back", "fringe", "crown", "general")
 SHAPES = ("oval", "round", "square", "oblong", "heart", "diamond")
@@ -65,6 +74,14 @@ class FaceInput(Input):
     confirmed: Shape
 
 
+class HairInput(Input):
+    kind: Literal["hair_profile"]
+    density: Literal["thin", "medium", "thick"]
+    strand: Literal["fine", "medium", "coarse"]
+    texture: Literal["straight", "wavy", "curly", "coily"]
+    hairline: Literal["normal", "receding", "widows_peak"]
+
+
 class SelectInput(Input):
     kind: Literal["select_option"]
     option_id: Text
@@ -110,7 +127,7 @@ class RatingContribution(Input):
 
 
 CONTRIBUTION = TypeAdapter(Annotated[TextInput | ChipInput | ObservationInput |
-    ObservationAddInput | FaceInput | SelectInput | ResolveInput | StageInput |
+    ObservationAddInput | FaceInput | HairInput | SelectInput | ResolveInput | StageInput |
     ProblemInput | RevealInput | PickInput | PartInput | RatingContribution,
     Field(discriminator="kind")])
 
@@ -145,7 +162,8 @@ def empty_state():
             "problems": [], "chat": [], "revealed": False, "recommendations": None, "selected_style": None,
             "sides": {"options": [], "recommended_id": None, "intro": None, "choice": None},
             "top": {"options": [], "recommended_id": None, "intro": None, "choice": None},
-            "checkpoints": {"sides": None, "top": None}, "rating": None, "brief": brief_defaults()}
+            "checkpoints": {"sides": None, "top": None}, "rating": None, "brief": brief_defaults(),
+            "hair_profile": None}
 
 
 def require_summary(state):
@@ -245,7 +263,7 @@ def apply_contribution(state, c, expected_revision):
         out["selected_style"] = c["catalog_id"]
     elif kind == "choose_part":
         part = out[c["part"]]
-        if "option_id" in c and not any(o["id"] == c["option_id"] for o in part["options"]):
+        if "option_id" in c and not any(o["id"] == c["option_id"] for o in part["options"]) and c["option_id"] not in catalog_ids()[c["part"]]:
             _invalid("Pick an available part option.")
         part["choice"] = {"id": c.get("option_id"), "custom": c.get("custom")}
     elif kind == "chip":
@@ -273,6 +291,10 @@ def apply_contribution(state, c, expected_revision):
         face.pop("outline", None)
         face["confirmed"] = c["confirmed"]
         out["face_shape"] = face
+    elif kind == "hair_profile":
+        hair = out.get("hair_profile") or {"suggested": None}
+        hair["confirmed"] = {k: c[k] for k in ("density", "strand", "texture", "hairline")}
+        out["hair_profile"] = hair
     elif kind == "select_option":
         if not any(o["id"] == c["option_id"] for o in out["options"]):
             raise APIError("not_found", "Option not found.")
@@ -342,6 +364,9 @@ def merge_job_result(state: dict, job_type: str, result: dict, part=None, media_
             item.update(id=oid, status="proposed", origin="ai")
             out["observations"].append(item)
             used.add(oid)
+        if result.get("hair"):
+            out["hair_profile"] = {"suggested": deepcopy(result["hair"]),
+                                   "confirmed": (state.get("hair_profile") or {}).get("confirmed")}
         _invalidate_options(out)
     elif job_type == "faceshape":
         out["face_shape"] = {key: deepcopy(result[key]) for key in ("suggested", "ratios", "face_found")}

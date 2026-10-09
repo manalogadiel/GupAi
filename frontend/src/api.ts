@@ -5,7 +5,14 @@ export type Speaker = 'customer' | 'barber'
 export type Stage = 'photos' | 'goal' | 'reveal' | 'sides' | 'top' | 'summary' | 'cutting' | 'done' | 'completed' | 'abandoned'
 export type Part = 'sides' | 'top'
 export type ProblemId = 'puffy_sides' | 'cowlick' | 'hard_to_style' | 'grows_fast' | 'flat_top' | 'wide_forehead'
-export interface PartOption { id: string; name: string; pros: string[]; cons: string[]; why: string; maintenance: string }
+export interface Reason { label: string; text: string; fit: 'helps' | 'care' | 'worse' | 'neutral' }
+export interface PartOption { id: string; name: string; desc?: string; reasons?: Reason[]; pros: string[]; cons: string[]; why: string; maintenance: string }
+export interface CatalogItem { id: string; name: string; desc: string; maintenance: string; pros: string[]; cons: string[] }
+export type Density = 'thin' | 'medium' | 'thick'
+export type Strand = 'fine' | 'medium' | 'coarse'
+export type Texture = 'straight' | 'wavy' | 'curly' | 'coily'
+export type Hairline = 'normal' | 'receding' | 'widows_peak'
+export interface Hair { density: Density; strand: Strand; texture: Texture; hairline: Hairline; cowlick?: boolean; uncertain?: boolean }
 export interface PartState { options: PartOption[]; recommended_id: string | null; intro: string | null; choice: { id: string | null; custom: string | null } | null }
 export interface Pick { catalog_id: string; name: string; image: string; why: string }
 export interface Checkpoint { status: 'ok' | 'review' | 'insufficient'; note: string; media_id: string }
@@ -26,9 +33,10 @@ export interface Option {
   stays: string[]; changes: string[]; effort: Effort; needs_barber_check: string[]
   face_shape_note: string | null; source_ids: string[]
 }
-export interface Brief { occasion:string|null; desired_impression:string[]; change_level:string|null; styling_minutes:number|null; maintenance_preference:string|null; dress_rules:string|null; inspiration:string|null; evidence:{field:string;source_text:string}[] }
+export interface Brief { problem_detail?:string|null; occasion:string|null; desired_impression:string[]; change_level:string|null; styling_minutes:number|null; maintenance_preference:string|null; dress_rules:string|null; inspiration:string|null; evidence:{field:string;source_text:string}[] }
 export interface ConsultState {
   brief?: Brief
+  hair_profile?: { suggested: Hair | null; confirmed: Hair | null } | null
   rating: Rating | null
   problems: ProblemId[]; chat: { role: 'customer' | 'barber' | 'ai'; text: string }[]; revealed: boolean
   recommendations: { top_pick: Pick; alternatives: Pick[]; face_note: string | null } | null
@@ -69,6 +77,7 @@ export type Contribution =
   | { kind: 'observation'; observation_id: string; status: 'confirmed' | 'rejected'; text?: string }
   | { kind: 'observation_add'; text: string; region: Region }
   | { kind: 'face_shape'; confirmed: FaceShape }
+  | { kind: 'hair_profile'; density: Density; strand: Strand; texture: Texture; hairline: Hairline }
   | { kind: 'select_option'; option_id: string }
   | { kind: 'resolve_conflict'; conflict_id: string; keep: 'first' | 'second' }
   | { kind: 'stage'; stage: Stage }
@@ -113,6 +122,8 @@ export const api = {
   searchCustomers: (q: string) => request<CustomerRow[]>('GET', `/api/customers?q=${encodeURIComponent(q)}`),
   createCustomer: (display_name: string, nickname: string | null) =>
     request<CustomerRef>('POST', '/api/customers', { display_name, nickname, retention_consent: true }, idem()),
+  deleteCustomer: (id: string) => request<{ deleted: string }>('DELETE', `/api/customers/${id}`),
+  parts: () => request<Record<Part, CatalogItem[]>>('GET', '/api/parts'),
   customer: (id: string) => request<{ customer: CustomerRef; preferred: Visit | null; visits: Visit[] }>('GET', `/api/customers/${id}`),
   createConsultation: (customer_id?: string, from_visit_id?: string, chair_label?: string) =>
     request<Consultation>('POST', '/api/consultations', { customer_id, from_visit_id, chair_label }, idem()),
@@ -138,8 +149,28 @@ export const api = {
     request<{ visit_id: string }>('POST', `/api/consultations/${id}/complete`, { actual_notes, save_as_preferred, keep_photos, rating }, key ? { 'Idempotency-Key': key } : idem()),
 }
 
-/** Poll a job until it leaves queued/running. Resolves with the final job; `onTick` gets each poll. */
-export async function waitForJob(jobId: string, onTick?: (j: Job) => void, signal?: AbortSignal): Promise<Job> {
+/** Chat replies stream over server-sent events: each delta lands as it is generated, then the final job. */
+function streamJob(job: Job, onTick?: (j: Job) => void, signal?: AbortSignal): Promise<Job> {
+  return new Promise((resolve, reject) => {
+    const source = new EventSource(`/api/jobs/${job.id}/stream`)
+    let text = ''
+    const close = () => source.close()
+    signal?.addEventListener('abort', () => { close(); reject(new DOMException('aborted', 'AbortError')) })
+    source.addEventListener('delta', e => {
+      text += JSON.parse((e as MessageEvent).data).text
+      onTick?.({ ...job, status: 'running', partial_text: text })
+    })
+    source.addEventListener('done', e => { close(); const j = JSON.parse((e as MessageEvent).data) as Job; onTick?.(j); resolve(j) })
+    source.onerror = () => { close(); reject(new Error('stream')) }
+  })
+}
+
+/** Follow a job until it leaves queued/running. Chat streams; other jobs (and a broken stream) poll. */
+export async function waitForJob(jobId: string, onTick?: (j: Job) => void, signal?: AbortSignal, type?: JobType): Promise<Job> {
+  if (type === 'chat' && typeof EventSource !== 'undefined') {
+    try { return await streamJob({ id: jobId, type, status: 'queued' } as Job, onTick, signal) }
+    catch (e) { if (e instanceof DOMException) throw e }
+  }
   for (;;) {
     if (signal?.aborted) throw new DOMException('aborted', 'AbortError')
     const j = await api.job(jobId)

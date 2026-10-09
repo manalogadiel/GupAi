@@ -34,3 +34,11 @@ async def health():
         whisper = False
     return {"ollama": ollama, "vision_model": vision_model, "whisper": whisper,
             "face_landmarker": LANDMARKER_PATH.is_file()}
+
+
+@router.get("/api/parts")
+def parts():
+    """The full sides/top catalog for the 'Tingnan lahat' list. Static knowledge, no customer data."""
+    from .ai import load_parts
+    keys = ("id", "name", "desc", "maintenance", "pros", "cons")
+    return {group: [{k: o[k] for k in keys} for o in options] for group, options in load_parts().items()}
