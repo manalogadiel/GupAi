@@ -53,7 +53,7 @@ export function useConsultation(id: string | null) {
     tick(job)
     const pending = waitForJob(job.id, tick, controller.signal, job.type).then(j => {
       absorbJob(j)
-      if (j.status === 'failed' && mounted.current) setError(j.error?.message ?? 'Hindi natapos ang AI job.')
+      if (j.status === 'failed' && mounted.current) setError(j.error?.message ?? 'Hindi natapos si Kuya Gup. Subukan ulit.')
       return j
     }).finally(() => {
       followers.current.delete(job.id)
@@ -140,7 +140,7 @@ export function useConsultation(id: string | null) {
       await refresh()
       return done
     } catch (e) {
-      if (mounted.current && !(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof ApiError ? e.message : 'Hindi nasimulan ang AI job.')
+      if (mounted.current && !(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof ApiError ? e.message : 'Hindi nakapagsimula si Kuya Gup. Subukan ulit.')
       return null
     }
   }, [id, follow, refresh, withRevision])

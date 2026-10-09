@@ -277,3 +277,14 @@ def test_delete_cleans_row_when_file_already_missing(setup):
     media.delete_media(result["id"])
     with db.connect() as conn:
         assert conn.execute("SELECT id FROM media WHERE id=?", (result["id"],)).fetchone() is None
+
+
+@pytest.mark.parametrize("view", ["left", "right"])
+def test_left_and_right_photos_are_accepted(setup, view):
+    response = upload(setup, photo(), "photo", view)
+    assert response.status_code == 200 and response.json()["view"] == view
+
+
+def test_reference_photo_is_accepted(setup):
+    response = upload(setup, photo(), "photo", "reference")
+    assert response.status_code == 200 and response.json()["view"] == "reference"

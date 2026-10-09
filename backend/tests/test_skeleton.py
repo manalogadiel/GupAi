@@ -34,7 +34,7 @@ def test_schema_has_seven_tables_and_enforces_foreign_keys(tmp_path):
             "SELECT name FROM sqlite_master WHERE type='table'")}
         assert tables == {"customers", "consultations", "contributions", "media",
                           "agreements", "visits", "jobs"}
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == 4
         assert conn.execute("PRAGMA foreign_keys").fetchone()[0] == 1
         with pytest.raises(sqlite3.IntegrityError):
             conn.execute("INSERT INTO contributions VALUES (?, ?, ?, ?, ?, ?)",

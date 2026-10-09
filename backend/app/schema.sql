@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS media (
     id TEXT PRIMARY KEY,
     consultation_id TEXT NOT NULL REFERENCES consultations(id),
     kind TEXT NOT NULL CHECK (kind IN ('photo','audio')),
-    view TEXT CHECK (view IN ('front','side')),
+    view TEXT CHECK (view IN ('front','side','left','right','reference')),
     storage_key TEXT NOT NULL UNIQUE,
     keep INTEGER NOT NULL DEFAULT 0 CHECK (keep IN (0,1)),
     created_at TEXT NOT NULL
@@ -69,5 +69,5 @@ CREATE TABLE IF NOT EXISTS jobs (
     finished_at TEXT
 );
 -- Face shape remains inside consultations.state_json; no landmarks or embeddings.
-PRAGMA user_version=2;
+PRAGMA user_version=4;
 COMMIT;

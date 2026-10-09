@@ -354,7 +354,14 @@ def merge_job_result(state: dict, job_type: str, result: dict, part=None, media_
     out = deepcopy(state)
     if job_type == "transcribe":
         return out
-    if job_type == "observe":
+    if job_type == "observe" and result.get("reference"):
+        # The reference photo is the customer's turn; Kuya Gup's reading of it is his reply.
+        out["brief"] = merge_brief(out.get("brief"), [{"field": "desired_cut", "value": result["desired_cut"],
+            "source_text": "reference photo", "speaker": "customer", "contribution_id": media_id}])
+        out["chat"] = (out["chat"] + [{"role": "customer", "text": "Reference photo", "media_id": media_id},
+                                      {"role": "ai", "text": result["reply"]}])[-12:]
+        _invalidate_options(out)
+    elif job_type == "observe":
         used = {o["id"] for o in out["observations"]}
         for index, observation in enumerate(result["observations"]):
             item = {key: deepcopy(observation[key]) for key in ("text", "view", "region", "uncertain")}

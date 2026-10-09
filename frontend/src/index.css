@@ -104,7 +104,12 @@ html { overscroll-behavior: none; }
   .mirror-shell button { min-height: 44px; }
 }
 
-/* Reveal: a scan line sweeps the photo only while the real hair/face job is running. */
-@keyframes scan { 0% { transform: translateY(-10%); } 100% { transform: translateY(100%); } }
-.scan-line { background: linear-gradient(to bottom, transparent 0, rgb(217 103 58 / .0) 40%, rgb(217 103 58 / .55) 49%, rgb(255 255 255 / .9) 50%, transparent 52%); animation: scan 1.8s cubic-bezier(.45,0,.55,1) infinite alternate; border-radius: var(--radius-sheet); }
-@media (prefers-reduced-motion: reduce) { .scan-line { animation: none; opacity: .4; } }
+/* Reveal: a scan band sweeps the photo only while the real hair/face job runs. Animates `top` on a thin band
+   (not a transformed full-height layer) because WebKit repaints that reliably. */
+.scan-line { position: absolute; left: 0; right: 0; height: 18%; top: -18%; pointer-events: none; will-change: top;
+  background: linear-gradient(to bottom, transparent, rgb(217 103 58 / .28) 70%, rgb(255 255 255 / .95) 94%, transparent);
+  animation: scan-sweep 1.9s ease-in-out infinite alternate; }
+.scan-tint { position: absolute; inset: 0; pointer-events: none; background: rgb(217 103 58 / .12); animation: scan-pulse 1.6s ease-in-out infinite; }
+@keyframes scan-sweep { from { top: -18%; } to { top: 100%; } }
+@keyframes scan-pulse { 0%, 100% { opacity: .2; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .scan-line { animation: none; top: 40%; opacity: .4; } .scan-tint { animation: none; } }

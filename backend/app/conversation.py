@@ -1,8 +1,8 @@
 """Evidence-backed customer brief and JSON reply streaming; no network or database I/O."""
 import json
 
-FIELDS=('problem_detail','occasion','desired_cut','desired_impression','change_level','styling_minutes','maintenance_preference','dress_rules','inspiration')
-VERBATIM=('problem_detail','dress_rules','maintenance_preference','inspiration')
+FIELDS=('problem_detail','occasion','desired_cut','preferences','desired_impression','change_level','styling_minutes','maintenance_preference','dress_rules','inspiration')
+VERBATIM=('problem_detail','preferences','dress_rules','maintenance_preference','inspiration')
 def brief_defaults():
     return {**{field:None for field in FIELDS},'desired_impression':[],'evidence':[]}
 
@@ -28,10 +28,12 @@ def validate_brief_updates(updates, source_turns):
     return valid
 
 def next_slot(brief, problems):
-    """Kuya Gup's interview agenda: problem, occasion, the cut they want, routine. Then the scan."""
+    """Kuya Gup's interview agenda: problem, occasion, cut, look (dating), keep/avoid, routine. Then the scan."""
     if not problems and not brief.get('problem_detail'): return 'problem'
     if not brief.get('occasion'): return 'occasion'
     if not brief.get('desired_cut'): return 'desired_cut'
+    if not brief.get('desired_impression'): return 'desired_impression'
+    if not brief.get('preferences'): return 'keep_avoid'
     if brief.get('styling_minutes') is None and not brief.get('maintenance_preference'): return 'styling_minutes'
     return 'done'
 
@@ -90,6 +92,9 @@ def _cut_pattern():
     return r"\b(?:"+"|".join(re.escape(n) for n in sorted(names,key=len,reverse=True))+r")\b"
 CUT_PATTERN=_cut_pattern()
 
+NUMBER_WORDS={'isang':1,'dalawang':2,'tatlong':3,'apat na':4,'limang':5,'anim na':6,'pitong':7,'walong':8,'siyam na':9,
+              'sampung':10,'labing-limang':15,'labinlimang':15,'dalawampung':20,'tatlumpung':30}
+
 def explicit_brief_updates(turns):
     """Recover stated facts only, never map an occasion to a haircut."""
     import re
@@ -105,6 +110,11 @@ def explicit_brief_updates(turns):
             updates.append({'field':'occasion','value':match.group().casefold(),'source_text':match.group()})
         for match in re.finditer(r"\b(\d{1,2})\s*(?:minutes?|mins?|minuto)\b",text,re.I):
             updates.append({'field':'styling_minutes','value':int(match.group(1)),'source_text':match.group()})
+        # Voice transcripts spell numbers out ("limang minuto"), so read Tagalog number words too.
+        match=re.search(r"\b("+"|".join(NUMBER_WORDS)+r")\s+minuto\b|\bkalahating oras\b",text,re.I)
+        if match:
+            value=30 if match.group(1) is None else NUMBER_WORDS[match.group(1).casefold()]
+            updates.append({'field':'styling_minutes','value':value,'source_text':match.group()})
         if re.search(r"\b(?:hilamos lang|hindi ako nag-?aayos|walang ayos)\b",text,re.I):
             phrase=re.search(r"hilamos lang|hindi ako nag-?aayos|walang ayos",text,re.I).group()
             updates.append({'field':'styling_minutes','value':0,'source_text':phrase})

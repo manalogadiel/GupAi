@@ -29,9 +29,11 @@ def initialize(path=None):
         version = conn.execute("PRAGMA user_version").fetchone()[0]
         if version == 0:
             conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8-sig"))
-        elif version == 1:
-            _upgrade_v2(conn)
-        elif version != 2:
+        elif version in (1, 2, 3):
+            if version == 1:
+                _upgrade_v2(conn)
+            _rebuild_media(conn)
+        elif version != 4:
             raise RuntimeError("Unsupported database schema version.")
 
 
@@ -70,6 +72,28 @@ def _upgrade_v2(conn):
         if conn.execute("PRAGMA foreign_key_check").fetchone():
             raise RuntimeError("Database migration found invalid resource links.")
         conn.execute("PRAGMA user_version=2")
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.execute("PRAGMA foreign_keys=ON")
+
+
+def _rebuild_media(conn):
+    """v3 left/right and v4 reference photo views: rebuild only media (SQLite cannot ALTER a CHECK), keeping rowids."""
+    schema = SCHEMA_PATH.read_text(encoding="utf-8-sig")
+    prefix = "CREATE TABLE IF NOT EXISTS media ("
+    definition = prefix + schema.split(prefix, 1)[1].split(";", 1)[0] + ";"
+    conn.execute("PRAGMA foreign_keys=OFF")
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        conn.execute(definition.replace(prefix, "CREATE TABLE media_v3 (", 1))
+        conn.execute("INSERT INTO media_v3 (rowid,id,consultation_id,kind,view,storage_key,keep,created_at) "
+                     "SELECT rowid,id,consultation_id,kind,view,storage_key,keep,created_at FROM media ORDER BY rowid")
+        conn.execute("DROP TABLE media")
+        conn.execute("ALTER TABLE media_v3 RENAME TO media")
+        conn.execute("PRAGMA user_version=4")
         conn.commit()
     except Exception:
         conn.rollback()

@@ -1,4 +1,5 @@
 """Local speech-to-text with faster-whisper (CPU, int8). Loaded once, on first use."""
+import os
 import threading
 from pathlib import Path
 
@@ -6,16 +7,25 @@ from .errors import APIError
 
 _model = None
 _lock = threading.Lock()
+# large-v3-turbo: much lower Tagalog/Taglish error rate, near small's speed on CPU int8. small is the light fallback.
+MODEL = os.environ.get("GUPAI_WHISPER", "large-v3-turbo")
+FALLBACK = "small"
+
+
+def _cached(name) -> bool:
+    """Check cached weights without downloading or loading the speech model."""
+    try:
+        from faster_whisper.utils import _MODELS
+        from huggingface_hub import snapshot_download
+        files = ["model.bin", "config.json", "tokenizer.json"]
+        path = Path(snapshot_download(_MODELS.get(name, name), local_files_only=True, allow_patterns=files + ["vocabulary.*"]))
+        return all((path / f).is_file() for f in files)
+    except Exception:
+        return False
 
 
 def available() -> bool:
-    """Check cached weights without downloading or loading the speech model."""
-    try:
-        from huggingface_hub import snapshot_download
-        path = Path(snapshot_download("Systran/faster-whisper-small", local_files_only=True, allow_patterns=["model.bin", "config.json", "tokenizer.json", "vocabulary.txt"]))
-        return all((path / name).is_file() for name in ("model.bin", "config.json", "tokenizer.json", "vocabulary.txt"))
-    except Exception:
-        return False
+    return _cached(MODEL) or _cached(FALLBACK)
 
 
 def _load():
@@ -24,7 +34,9 @@ def _load():
         if _model is None:
             try:
                 from faster_whisper import WhisperModel
-                _model = WhisperModel("small", device="cpu", compute_type="int8", local_files_only=True)
+                # shortcut: falls back to small when turbo was never downloaded; run the README setup line to upgrade.
+                name = MODEL if _cached(MODEL) else FALLBACK
+                _model = WhisperModel(name, device="cpu", compute_type="int8", local_files_only=True)
             except Exception as exc:  # missing package or model files
                 raise APIError("model_unavailable", "Hindi pa handa ang speech model sa laptop.", retryable=True) from exc
     return _model

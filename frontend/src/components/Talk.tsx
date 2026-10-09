@@ -16,8 +16,9 @@ type Phase = 'idle' | 'listening' | 'recording' | 'sending'
  * - Hands-free: the mic stays open; speaking starts a clip, dead air ends it and sends it.
  *   Listening pauses while Kuya Gup is answering, so he never records the room mid-reply.
  */
-export default function Talk({ onSend, onVoice, busy, placeholder, onRecordingChange, micSize = 64, stacked = false }: {
+export default function Talk({ onSend, onVoice, onAttach, busy, placeholder, onRecordingChange, micSize = 64, stacked = false }: {
   stacked?: boolean
+  onAttach?: (file: File) => void
   onSend: (text: string) => Promise<boolean | void> | void
   onVoice?: (clip: Blob) => Promise<boolean | void>
   busy?: boolean
@@ -138,7 +139,7 @@ export default function Talk({ onSend, onVoice, busy, placeholder, onRecordingCh
 
   async function send() {
     const t = text.trim()
-    if (!t) return
+    if (!t || busy) return  // one turn at a time: Enter must not queue a second reply
     setText('')
     const sent = await onSend(t)
     if (sent === false) setText(t)
@@ -154,6 +155,15 @@ export default function Talk({ onSend, onVoice, busy, placeholder, onRecordingCh
       <form className={`flex items-center gap-2 ${stacked ? 'flex-wrap justify-end' : ''}`} onSubmit={e => { e.preventDefault(); send() }}>
         <div className={`flex min-h-14 flex-1 items-center gap-2 rounded-full ${stacked ? 'basis-full' : ''} bg-surface py-1.5 pl-5 pr-1.5 shadow-[var(--shadow-card)]`}>
           <label className="sr-only" htmlFor="talk-input">Sabihin o i-type</label>
+          {onAttach && !status && (
+            <label htmlFor="talk-attach" title="Mag-attach ng reference photo"
+              className={`-ml-2 grid size-10 shrink-0 place-items-center rounded-full text-ink-2 hover:bg-subtle hover:text-ink ${busy ? 'pointer-events-none opacity-45' : 'cursor-pointer'}`}>
+              <Icon name="image" size={20} />
+              <span className="sr-only">Mag-attach ng reference photo</span>
+              <input id="talk-attach" type="file" accept="image/*" hidden disabled={busy}
+                onChange={e => { const f = e.target.files?.[0]; if (f) onAttach(f); e.target.value = '' }} />
+            </label>
+          )}
           {status ? (
             <p className="flex flex-1 items-center gap-2 text-[15px]" aria-live="polite">
               <span aria-hidden className={`inline-block size-2.5 rounded-full ${phase === 'recording' ? 'bg-voice animate-pulse' : 'bg-action'}`} />

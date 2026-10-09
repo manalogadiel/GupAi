@@ -54,7 +54,7 @@ def job_dict(row) -> dict:
         result = {**result, **{k: v for k, v in _transient[row["id"]].items() if k in _TRANSIENT_KEYS.get(row["type"], ())}}
     error = None
     if row["error_code"]:
-        error = {"code": row["error_code"], "message": (result or {}).get("message") or "Hindi natapos ang AI job."}
+        error = {"code": row["error_code"], "message": (result or {}).get("message") or "Hindi natapos si Kuya Gup. Subukan ulit."}
     return {"id": row["id"], "type": row["type"], "status": row["status"], "requested_revision": row["requested_revision"],
             "started_at": row["started_at"], "finished_at": row["finished_at"], "elapsed_s": round(elapsed, 1),
             "result": None if error else result, "error": error,
@@ -107,6 +107,10 @@ def start(consultation_id: str, request: Request, body: JobInput):
                 raise APIError("invalid_input", "Face shape needs the front photo.")
         if body.type == "checkpoint" and row["stage"] != "cutting":
             raise APIError("invalid_input", "Checkpoint is only available while cutting.")
+        if body.type == "chat":  # one reply at a time: a queued reply will read every new message when it runs
+            queued = conn.execute("SELECT * FROM jobs WHERE consultation_id=? AND type='chat' AND status='queued'", (consultation_id,)).fetchone()
+            if queued:
+                return {**job_dict(queued), "result": None}
         job_id = str(uuid4())
         conn.execute("INSERT INTO jobs (id, consultation_id, type, requested_revision, status, result_json, error_code, started_at, finished_at) "
                      "VALUES (?,?,?,?,?,?,?,?,?)",
@@ -213,6 +217,8 @@ def _run(job, conn_snapshot):
     path = media.MEDIA_DIR / conn_snapshot["media"]["storage_key"]
     if t == "checkpoint":
         return ai.checkpoint(conn_snapshot["state"], path, conn_snapshot["part"])
+    if t == "observe" and conn_snapshot["media"]["view"] == "reference":
+        return ai.describe_reference(path, conn_snapshot["state"])
     if t == "observe":
         return ai.observe(path, conn_snapshot["media"]["view"] or "front")
     if t == "faceshape":
@@ -252,7 +258,7 @@ def _process(job_id):
     except APIError as exc:
         error = exc
     except Exception:  # never let one bad job kill the worker
-        error = APIError("model_unavailable", "Nagka-problema ang local AI job. Subukan ulit.", retryable=True)
+        error = APIError("model_unavailable", "Nagka-problema si Kuya Gup. Subukan ulit.", retryable=True)
     finally:
         if job["type"] == "transcribe" and media_id:
             try:
@@ -279,7 +285,8 @@ def _process(job_id):
         if job["type"] != "transcribe":
             if (row["status"] != "active"
                     or (row["stage"] in ("cutting", "done") and job["type"] != "checkpoint")
-                    or (job["type"] not in ("chat", "checkpoint") and row["revision"] != job["requested_revision"])):
+                    or (job["type"] not in ("chat", "checkpoint") and not result.get("reference")
+                        and row["revision"] != job["requested_revision"])):
                 conn.execute("UPDATE jobs SET status='stale', finished_at=? WHERE id=?", (_now(), job_id))
                 return
             merged = consult.merge_job_result(_state(row), job["type"], result, snapshot["part"], media_id)

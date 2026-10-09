@@ -26,8 +26,9 @@ export default function App() {
 }
 
 function route(path: string) {
-  if (path.startsWith('/dev/preview')) return <PreviewStates />
-  if (path.startsWith('/dev/mascot')) return <MascotStates />
+  // Design previews exist in `npm run dev` only; the production build drops them.
+  if (import.meta.env.DEV && path.startsWith('/dev/preview')) return <PreviewStates />
+  if (import.meta.env.DEV && path.startsWith('/dev/mascot')) return <MascotStates />
   if (path.startsWith('/phone')) return <Phone />
   const consult = path.match(/^\/consult\/([\w-]+)/)
   if (consult) return <Consult key={consult[1]} id={consult[1]} />

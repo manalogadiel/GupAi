@@ -53,7 +53,7 @@ def chat(system: str, user: str, schema: dict, images: list[str] | None = None, 
             _record_metrics(data)
             return json.loads(data["message"]["content"])
     except (httpx.HTTPError, KeyError) as exc:
-        raise APIError("model_unavailable", "Hindi maabot ang local AI (Ollama) sa laptop.", retryable=True) from exc
+        raise APIError("model_unavailable", "Hindi maabot si Kuya Gup (Ollama) sa laptop.", retryable=True) from exc
     except json.JSONDecodeError as exc:
         raise ValueError("model returned invalid JSON") from exc
 
@@ -105,6 +105,38 @@ def observe(path: Path, view: str) -> dict:
                 raise APIError("model_unavailable", "Hindi maintindihan ang sagot ng AI. Subukan ulit.", retryable=True)
 
 
+# ---------- reference photo (Usapan) ----------
+
+REFERENCE_SYSTEM = (
+    "A barbershop customer shows a haircut reference photo they like. Look ONLY at the haircut. "
+    "Pick the closest sides style and top style from the allowed ids, or 'unclear' if the hair is not visible. "
+    "summary: one short Taglish sentence about the cut (length, fade, texture). Never describe the person, face or identity.")
+
+
+def describe_reference(path, state: dict) -> dict:
+    """Name the cut in a customer's reference photo, fill the wanted-cut answer, and ask the next agenda question."""
+    parts = load_parts()
+    name = {o["id"]: re.sub(r"\s*\(.*\)", "", o["name"]) for group in parts.values() for o in group}
+    schema = {"type": "object", "required": ["sides", "top", "summary"], "properties": {
+        "sides": {"type": "string", "enum": [o["id"] for o in parts["sides"]] + ["unclear"]},
+        "top": {"type": "string", "enum": [o["id"] for o in parts["top"]] + ["unclear"]}, "summary": _s(120)}}
+    for attempt in range(2):
+        try:
+            out = chat(REFERENCE_SYSTEM, "Identify the haircut in this reference photo.", schema, [image_b64(path)])
+            break
+        except ValueError:
+            if attempt:
+                raise APIError("model_unavailable", "Hindi mabasa ang reference. Subukan ulit o i-describe na lang.", retryable=True)
+    cuts = [name[out[k]] for k in ("sides", "top") if out.get(k) in name]
+    desired = " + ".join(cuts) or "ayon sa reference photo"
+    brief = {**brief_defaults(), **(state.get("brief") or {}), "desired_cut": desired}
+    slot = next_slot(brief, state.get("problems") or [])
+    seen = f"Mukhang {desired}." if cuts else "Hindi ko masyadong makita ang gupit, pero gagamitin ko itong gabay."
+    reply = f"Salamat sa reference! {seen} " + (CLOSING if slot == "done" else SLOT_QUESTIONS[slot])
+    return {"reference": True, "desired_cut": desired, "summary": str(out.get("summary", ""))[:120], "reply": reply,
+            "observations": []}
+
+
 # ---------- propose ----------
 
 EXTRACT_SCHEMA = {"type": "object", "required": ["goal", "proposed_changes"], "properties": {
@@ -144,6 +176,19 @@ def _stated_avoids(texts):
             value = match.group(1).strip().lower()
             if value and not value.startswith(("okay", "ok ", "naman")):
                 out.append({"field": "avoid", "op": "add", "value": value, "negated": False})
+    return out
+
+
+_IWAN = re.compile(r"\b(?:iwan|panatilihin|huwag(?: mong)? (?:galawin|gupitin|ikliin))\s+(?:mo\s+)?(?:ang|yung|ung|lang)?\s*([a-z][a-z ]{1,30}?)(?=[,.!?]|$)", re.I)
+
+
+def _stated_keeps(texts):
+    """'Iwan mo yung bangs' keeps the fringe; only real hair regions count."""
+    out = []
+    for text in texts:
+        for match in _IWAN.finditer(text):
+            for region in sorted(consult._regions(match.group(1)) & set(consult.REGIONS)):
+                out.append({"field": "keep", "op": "add", "value": region, "negated": False})
     return out
 
 
@@ -389,7 +434,7 @@ def stream_text(system: str, user: str, on_token, num_predict: int = 120, temper
                         text.append(piece)
                         on_token(piece)
     except (httpx.HTTPError, json.JSONDecodeError) as exc:
-        raise APIError("model_unavailable", "Hindi maabot ang local AI (Ollama) sa laptop.", retryable=True) from exc
+        raise APIError("model_unavailable", "Hindi maabot si Kuya Gup (Ollama) sa laptop.", retryable=True) from exc
     return "".join(text).strip()
 
 
@@ -432,6 +477,8 @@ SLOT_HINTS = {
     "problem": "ask what bothers them about their hair now (umaalsa, mahirap i-style, puyo, flat, mabilis humaba, noo)",
     "occasion": "ask what the haircut is for: school, work, an event, or everyday",
     "desired_cut": "ask if they have a specific haircut in mind (name, photo or reference); if not, offer to choose for them",
+    "desired_impression": "ask what look or dating they want people to notice (malinis, pormal, astig, bata tingnan)",
+    "keep_avoid": "ask if there is anything to keep (bangs, haba sa taas) or avoid (sobrang ikli, kita ang anit)",
     "styling_minutes": "ask how many minutes they spend fixing their hair daily and whether they use wax or pomade",
     "done": "everything needed is known; acknowledge their last answer warmly",
 }
@@ -439,28 +486,41 @@ SLOT_QUESTIONS = {
     "problem": "Ano ang pinaka-ayaw mo sa buhok mo ngayon?",
     "occasion": "Para saan ang gupit na ito: school, work, o may okasyon?",
     "desired_cut": "May specific ka bang gupit na gusto, o picture? Kung wala, ako na ang bahala.",
+    "desired_impression": "Anong dating ang gusto mong makita ng iba: malinis, pormal, astig, o bata tingnan?",
+    "keep_avoid": "May gusto ka bang iwan o iwasan, gaya ng bangs o ayaw makita ang anit?",
     "styling_minutes": "Ilang minuto ka nag-aayos ng buhok araw-araw?",
 }
 CLOSING = "Kumpleto na ang kwento natin! Tara, i-scan natin ang mukha at buhok mo."
-_ACK = {"problem_detail": lambda v: "walang problema" if v == "wala" else f"gets ko, “{v}”", "occasion": lambda v: f"para sa {v}",
-        "desired_cut": lambda v: v, "styling_minutes": lambda v: "walang ayos araw-araw" if v == 0 else f"{v} minuto sa pag-aayos"}
+_ACK = {"problem_detail": lambda v: "walang problema" if v == "wala" else f"gets ko, “{v.rstrip('.!? ')}”", "occasion": lambda v: f"para sa {v}",
+        "desired_cut": lambda v: v,
+        "desired_impression": lambda v: "kahit anong dating" if v in ("wala", ["wala"]) else (", ".join(v) if isinstance(v, list) else v) + " na dating",
+        "preferences": lambda v: "walang iiwan o iiwasan" if v == "wala" else f"“{v.rstrip('.!? ')}”",
+        "maintenance_preference": lambda v: f"“{v.rstrip('.!? ')}” sa pag-aayos",
+        "styling_minutes": lambda v: "walang ayos araw-araw" if v == 0 else f"{v} minuto sa pag-aayos"}
 
 
 def _ack(updates, fresh=()):
     """A short acknowledgement built from what the customer just told us, plus why a named problem happens."""
     parts = [_ACK[u["field"]](u["value"]) for u in updates if u["field"] in _ACK]
-    said = "Noted: " + ", ".join(parts) + "." if parts else "Sige, noted."
+    said = "Noted: " + ", ".join(parts) + "." if parts else ("Gets ko." if fresh else "Sige, noted.")
     return said + (" " + PROBLEM_INSIGHT[fresh[0]][0] if fresh else "")
 
 
-_SLOT_FIELD = {"problem": "problem_detail", "occasion": "occasion", "desired_cut": "desired_cut", "styling_minutes": "maintenance_preference"}
+_AGENDA_FIELDS = {"problem_detail", "occasion", "desired_cut", "desired_impression", "preferences", "styling_minutes", "maintenance_preference"}
+_FILLER = re.compile(r"^\W*(?:oo|opo|yes|yup|tama|sige|ok|okay|ayun|yun na(?: nga)?|ganun|ganon|basta|ewan)\b", re.I)
+_SLOT_FIELD = {"desired_impression": "desired_impression", "keep_avoid": "preferences", "problem": "problem_detail", "occasion": "occasion", "desired_cut": "desired_cut", "styling_minutes": "maintenance_preference"}
 
 
 def _answered(asked, text, turns):
     """Whatever the customer says right after a question is their answer to it (never ask a slot twice)."""
+    none = re.match(r"^\W*(wala|none|kahit ano)\b", text, re.I)
+    if asked in ("desired_impression", "keep_avoid") and none and len(text.split()) <= 4:  # "wala" is a real answer here
+        return validate_brief_updates([{"field": _SLOT_FIELD[asked], "value": "wala", "source_text": none.group(1)}], turns)
     if asked not in _SLOT_FIELD or len(text.split()) < 2 or text.rstrip().endswith("?"):
         return []
-    limit = {"problem": 120, "occasion": 60, "desired_cut": 80, "styling_minutes": 120}[asked]
+    if _FILLER.search(text) and len(text.split()) <= 6:
+        return []  # "yun na nga", "oo": a confirmation, not an answer
+    limit = {"problem": 120, "occasion": 60, "desired_cut": 80, "desired_impression": 60, "keep_avoid": 120, "styling_minutes": 120}[asked]
     return validate_brief_updates([{"field": _SLOT_FIELD[asked], "value": text[:limit], "source_text": text[:limit]}], turns)
 
 
@@ -469,10 +529,13 @@ def _sound(said, text):
     if not said or re.search(r"\b(?:hindi|di) ko alam\b", said, re.I):
         return False
     words = lambda t: {w for w in re.findall(r"[a-zà-ÿ'-]{4,}", t.casefold())}
-    return bool(words(said) & words(text))
+    mine = words(said)
+    # Echoing the customer's own words back is not an acknowledgement.
+    return bool(mine & words(text)) and len(mine - words(text)) >= max(2, len(mine) // 2)
 
 
 _ASKED = {"problem": r"problema", "occasion": r"para saan|school, work", "desired_cut": r"anong gupit|specific na gupit",
+          "desired_impression": r"anong dating", "keep_avoid": r"iwan o iwasan",
           "styling_minutes": r"ilang minuto"}
 
 
@@ -482,7 +545,8 @@ def _repeats(reply, state, brief, problems):
     if any(SequenceMatcher(None, reply, t["text"]).ratio() > 0.8 for t in state.get("chat", []) if t.get("role") == "ai"):
         return True
     filled = {"problem": bool(problems or brief.get("problem_detail")), "occasion": bool(brief.get("occasion")),
-              "desired_cut": bool(brief.get("desired_cut")), "styling_minutes": brief.get("styling_minutes") is not None}
+              "desired_cut": bool(brief.get("desired_cut")), "desired_impression": bool(brief.get("desired_impression")),
+              "keep_avoid": bool(brief.get("preferences")), "styling_minutes": brief.get("styling_minutes") is not None}
     return any(filled[slot] and re.search(rx, reply, re.I) for slot, rx in _ASKED.items())
 
 
@@ -529,6 +593,9 @@ def chat_reply(state: dict, new_texts: list[str], on_token) -> dict:
     reply=_whole_sentences(out.get('reply'))
     if not reply: raise APIError('model_unavailable','Walang malinaw na sagot. Subukan ulit.',retryable=True)
     updates=validate_brief_updates(out.get('brief_updates',[]),turns)
+    # The model may only answer the question that was asked; other agenda slots need the customer's own words.
+    allowed={_SLOT_FIELD.get(asked),'styling_minutes' if asked=='styling_minutes' else None}
+    updates=[u for u in updates if u['field'] not in _AGENDA_FIELDS or u['field'] in allowed]
     # These are explicit customer facts, not taste rules; an omitted field must not lose them.
     present={u['field'] for u in updates}
     updates += [u for u in explicit if u['field'] not in present]
@@ -537,6 +604,8 @@ def chat_reply(state: dict, new_texts: list[str], on_token) -> dict:
     if next_slot(current_brief,problems)==asked:
         fallback=_answered(asked,last,turns)
         updates+=fallback; current_brief=merge_brief(current_brief,fallback)
+    if any(u['field']=='styling_minutes' for u in updates):  # minutes already answer the routine; no duplicate echo
+        updates=[u for u in updates if u['field']!='maintenance_preference']
     slot_now=next_slot(current_brief,problems)
     if slot_now=='done':  # everything is known: close deterministically so the app can move to the scan
         reply=_ack(updates,fresh)+' '+CLOSING; on_token('\n')
@@ -544,12 +613,27 @@ def chat_reply(state: dict, new_texts: list[str], on_token) -> dict:
         # Kuya Gup leads: keep his acknowledgement, but the question is always the next agenda item.
         said=' '.join(x for x in re.split(r'(?<=[.!?])\s+',reply) if x and not x.endswith('?'))
         if not _sound(said,last) or _repeats(said,state,current_brief,problems): said=_ack(updates,fresh)
-        reply=said+' '+SLOT_QUESTIONS[slot_now]; on_token('\n')
+        question=SLOT_QUESTIONS[slot_now]
+        if slot_now==asked:  # still unanswered: ask again in other words, never a word-for-word repeat
+            question='Para sigurado ako, '+question[0].lower()+question[1:]
+        reply=said+' '+question; on_token('\n')
     # A named cut is the wanted cut (brief.desired_cut), not a region to keep or change.
-    changes=[c for c in out.get('proposed_changes',[]) if c.get('field')=='avoid' or not re.search(CUT_PATTERN,str(c.get('value','')),re.I)]
-    # Keep the explicit-negation guard even when generation misses the phrase.
-    for change in _negated_keeps(new_texts) + _stated_avoids(new_texts):
-        if change not in changes and not any(c.get('value')==change['value'] for c in changes): changes.append(change)
+    # Keep/change must name a hair region ("school look" is not one).
+    # Rule-based changes come first: they use clean region names and need no model.
+    changes=[]
+    for c in _negated_keeps(new_texts)+_stated_keeps(new_texts)+_stated_avoids(new_texts):  # one entry per area
+        if not any(x['field']==c['field'] and (x['value']==c['value'] or consult._regions(x['value'])&consult._regions(c['value'])&set(consult.REGIONS)) for x in changes):
+            changes.append(c)
+    said_regions=consult._regions(' '.join(new_texts))&set(consult.REGIONS)
+    for c in out.get('proposed_changes',[]):
+        value=str(c.get('value',''))
+        regions=consult._regions(value)&set(consult.REGIONS)
+        if c.get('field')=='avoid':
+            ok=not detect_problems([value])  # a problem ("puffy sides") lives in problems, never in avoid
+        else:  # keep/change must name an area the customer actually mentioned, and not a cut ("low fade")
+            ok=bool(regions & said_regions) and not re.search(CUT_PATTERN,value,re.I)
+        same=any(x['field']==c.get('field') and (x['value']==value or regions & consult._regions(x['value'])) for x in changes)
+        if ok and not same: changes.append(c)
     source_goals=[t['text'] for t in turns if t.get('speaker')=='customer' and
                   re.search(r"\b(gusto|want|prefer|goal|palit|instead)\b",t['text'],re.I)]
     return {'reply':reply,'brief_updates':updates,

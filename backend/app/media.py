@@ -73,7 +73,7 @@ def upload_media(
     request: Request,
     file: UploadFile = File(...),
     kind: Literal["photo", "audio"] = Form(...),
-    view: Literal["front", "side"] | None = Form(None),
+    view: Literal["front", "side", "left", "right", "reference"] | None = Form(None),
 ):
     require_scope(consultation_id, request)
     if (kind == "photo" and view is None) or (kind == "audio" and view is not None):

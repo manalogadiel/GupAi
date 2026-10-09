@@ -9,14 +9,14 @@ Built for the **AppBuildersPH Hackathon 2026: Local AI**.
 ## The problem
 A customer shows a reference photo but can't say which parts they actually want. The barber reads the photo differently. A haircut can't be undone, so the customer quietly lives with a result they didn't expect.
 
-## What GupAi v2 does
-1. Pair a phone to a named chair with a single-use QR. Multiple chairs share one local inference queue.
-2. Capture front and side photos. The barber confirms, edits, or rejects observations and face shape; manual recovery works when a face is not detected.
-3. Talk to Kuya Pal in Taglish or type. Discuss school, work, birthdays, the impression you want and your daily routine. Replies stream from one local call; the shared brief retains customer source quotes and Keep / Change / Avoid remain explicit constraints.
-4. Reveal the face shape only, then discuss and choose sides and top separately. Local Qwen compares all eligible choices using occasion, desired impression, routine, problems and protected preferences; cards retain pros, cons and an illustrative SVG preview. A custom description is also supported.
-5. Both devices accept the same version of the agreement before cutting starts. Plan edits are then locked.
-6. Optional photo checkpoints provide advisory feedback. They never authorize cutting more.
-7. The customer sends a shared rating from the phone. The barber saves the consented visit and optional preferred haircut for the next appointment.
+## What GupAi does
+1. Pair a phone to a named chair with a single-use QR over local HTTPS. Multiple chairs share one local inference queue.
+2. Take three guided photos (Harap, Kaliwa, Kanan) with a pose outline and a 3-2-1 countdown; each capture moves on to the next view, and any view can be retaken.
+3. Talk with **Kuya Gup** by typing, tapping answer chips, voice (tap-to-talk or hands-free), or a reference photo. He leads one question at a time: problem → occasion → wanted cut → dating (look) → keep/avoid → routine, explains why a problem happens, and reads his replies aloud with an on-device voice. The Scan step opens only after every answer is in.
+4. Scan: face shape (six outlines) and hair profile (density, strand, texture, hairline) are AI estimates the barber confirms.
+5. Choose sides and top separately from 10 sides and 13 tops, each drawn (side profile for fades). Suggestions are ranked by problem, face shape, hair type and the wanted cut, with the reasons shown.
+6. Both devices accept the same version of the agreement before cutting starts; the plan is then locked. Optional photo checkpoints are advisory only.
+7. The customer rates from the phone. The barber saves the consented visit and preferred haircut for "same as last time", and can delete a customer with every visit and photo.
 
 ## Why local AI
 GupAi looks at close-up photos of a customer's face and hair and listens to their voice while they sit in the chair. Sending that to a cloud API would mean uploading biometric-adjacent personal data from a small shop that has no privacy officer and often no reliable internet. Running the vision model, language model, face landmarks, and speech recognition **on the shop laptop** keeps photos and audio inside the shop, in the spirit of the Data Privacy Act (RA 10173). It keeps working when the internet is down or the load runs out, and it costs nothing per consultation.
@@ -31,8 +31,8 @@ GupAi looks at close-up photos of a customer's face and hair and listens to thei
 
 **Needs internet:** only the one-time setup. See [DISCLOSURES.md](DISCLOSURES.md).
 
-## Verified v2 status
-The backend regression suite has **238 passing tests**. Production browser rehearsal evidence and real local model timings are recorded in [docs/MEASUREMENTS.md](docs/MEASUREMENTS.md) and the ignored `.local-backup/conversation-rehearsal/report.json`.
+## Verified status
+The backend regression suite (`pytest backend/tests`) has **294 passing tests**, and an end-to-end run of the full consultation against the real local models passed 51/51 checks. Production browser rehearsal evidence and real local model timings are recorded in [docs/MEASUREMENTS.md](docs/MEASUREMENTS.md) and the ignored `.local-backup/conversation-rehearsal/report.json`.
 
 CPU inference can take tens of seconds. The UI displays queued/running status, elapsed time, and cancellation. Do not present a five-second latency promise. Real phone certificate trust, camera, and microphone still require a physical-device check.
 
@@ -65,7 +65,7 @@ mkcert -cert-file certs/gupai.pem -key-file certs/gupai-key.pem localhost 127.0.
 
 3. Install the root CA from `mkcert -CAROOT` on the phone and trust it.
 
-**Offline speech setup:** faster-whisper `small` must already be cached. During one-time internet setup, run `.venv/Scripts/python -c "from faster_whisper import WhisperModel; WhisperModel('small', device='cpu', compute_type='int8')"`. Runtime speech loading explicitly uses `local_files_only=True`; a missing cache reports unavailable instead of downloading.
+**Offline speech setup:** faster-whisper `large-v3-turbo` (default, ~1.6 GB) or `small` (lighter fallback) must already be cached. During one-time internet setup, run `.venv/Scripts/python -c "from faster_whisper import WhisperModel; WhisperModel('large-v3-turbo', device='cpu', compute_type='int8')"`. Choose the model with `GUPAI_WHISPER=small` or `GUPAI_WHISPER=large-v3-turbo`; if turbo is not cached, `small` is used. Runtime speech loading uses `local_files_only=True`, so a missing cache reports unavailable instead of downloading. On an M-series Mac CPU a 5-second clip took about 1.2 s on `small` and 3.8 s on turbo.
 
 **Run on this prepared laptop (PowerShell):**
 

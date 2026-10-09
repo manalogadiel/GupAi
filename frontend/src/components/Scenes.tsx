@@ -15,6 +15,7 @@ import Icon, { type IconName } from './Icon'
 import SideProfile from './SideProfile'
 import Mirror from './Mirror'
 import Photo from './Photo'
+import PoseIcon, { POSE_INFO, POSES, type Pose } from './PoseIcon'
 import Talk from './Talk'
 import { Button, Chip, ErrorLine } from './ui'
 
@@ -29,7 +30,7 @@ export const STEPS: { stage: Stage; label: string }[] = [
   { stage: 'cutting', label: 'Gupit' }, { stage: 'done', label: 'Rating' },
 ]
 const PROMPT: Partial<Record<Stage, string>> = {
-  photos: 'Kunan muna natin ng harap at gilid.',
+  photos: 'Tatlong kuha lang: harap, kaliwa, kanan.',
   goal: 'Kwentuhan muna tayo.',
   reveal: 'Suriin natin ang mukha at buhok.',
   sides: 'Sa gilid muna tayo.',
@@ -40,7 +41,7 @@ const PROMPT: Partial<Record<Stage, string>> = {
 }
 /** Kuya Gup's instruction for the step. The live conversation lives only in the center thread. */
 const INSTRUCTION: Partial<Record<Stage, string>> = {
-  photos: 'Harap muna, tapos gilid. Kita dapat ang tenga at noo. Ayos lang kahit hindi perpekto ang anggulo.',
+  photos: 'Sundan lang ang guhit sa camera. May 3-2-1 bago kumuha, at kusa nang lilipat sa susunod na anggulo. Pindutin ang isang kuha kung gusto mong ulitin.',
   goal: 'Sagutin lang ang mga tanong ko sa usapan. Puwedeng mag-type, o pindutin ang mic. Sa Hands-free, magsalita ka lang at kusa itong magse-send.',
   reveal: 'Titingnan ko ang hugis ng mukha at uri ng buhok mo. Tantya lang ito ng AI, kaya kumpirmahin ng barbero.',
   sides: 'Kung may gusto ka na, piliin sa listahan. Kung wala pa, ako ang magsa-suggest batay sa napag-usapan natin.',
@@ -58,16 +59,19 @@ const PROBLEM_SAY: Record<ProblemId, string> = {
   grows_fast: 'Mabilis humaba ang buhok ko.', flat_top: 'Flat at walang volume sa ibabaw.', wide_forehead: 'Gusto kong matakpan nang kaunti ang noo ko.',
 }
 const shared = { type: 'spring', stiffness: 380, damping: 32 } as const
+const NO_TURNS: Consultation['state']['chat'] = []  // stable empty history, so effects don't re-run every render
 const PART_TL: Record<Part, string> = { sides: 'gilid', top: 'ibabaw' }
 
 /** Kuya Gup's interview agenda (mirrors backend conversation.next_slot): what he still needs to ask. */
-export type Slot = 'problem' | 'occasion' | 'desired_cut' | 'styling_minutes' | 'done'
+export type Slot = 'problem' | 'occasion' | 'desired_cut' | 'desired_impression' | 'keep_avoid' | 'styling_minutes' | 'done'
 export function interviewSlot(c: Consultation): Slot {
   const b = c.state.brief
   if (!(c.state.problems ?? []).length && !b?.problem_detail) return 'problem'
   if (!b?.occasion) return 'occasion'
   if (!b?.desired_cut) return 'desired_cut'
-  if (b?.styling_minutes == null) return 'styling_minutes'
+  if (!b?.desired_impression?.length) return 'desired_impression'
+  if (!b?.preferences) return 'keep_avoid'
+  if (b?.styling_minutes == null && !b?.maintenance_preference) return 'styling_minutes'
   return 'done'
 }
 
@@ -96,11 +100,12 @@ function Memory({ c }: { c: Consultation }) {
     { icon: 'warning', label: 'Problema', value: [...(s.problems ?? []).map(p => PROBLEM_LABEL[p]), b?.problem_detail ? `“${b.problem_detail}”` : ''].filter(Boolean).join(' · ') || null },
     { icon: 'star', label: 'Para saan', value: b?.occasion ?? null },
     { icon: 'scissors', label: 'Gusto na gupit', value: b?.desired_cut ?? null },
-    { icon: 'sparkle', label: 'Dating', value: b?.desired_impression?.join(', ') || null },
-    { icon: 'refresh', label: 'Routine', value: b?.styling_minutes != null ? `${b.styling_minutes} minuto mag-ayos` : null },
+    { icon: 'sparkle', label: 'Dating', value: b?.desired_impression?.length ? (b.desired_impression.join(', ') === 'wala' ? 'kahit ano' : b.desired_impression.join(', ')) : null },
+    { icon: 'refresh', label: 'Routine', value: b?.styling_minutes != null ? `${b.styling_minutes} minuto mag-ayos` : b?.maintenance_preference ?? null },
     { icon: 'face', label: 'Mukha', value: shape ? SHAPE_INFO[shape].name + (s.face_shape?.confirmed ? '' : ' (tantya)') : null },
     { icon: 'hair', label: 'Buhok', value: hair ? `${HAIR_TL[hair.density]}, ${HAIR_TL[hair.texture].toLowerCase()}${s.hair_profile?.confirmed ? '' : ' (tantya)'}` : null },
-    { icon: 'check', label: 'Iwan / iwasan', value: [...s.keep.map(k => `iwan: ${k}`), ...s.avoid.map(a => `iwasan: ${a}`)].join(' · ') || null },
+    { icon: 'check', label: 'Iwan / iwasan', value: [...s.keep.map(k => `iwan: ${k}`), ...s.avoid.map(a => `iwasan: ${a}`)].join(' · ')
+      || (b?.preferences === 'wala' ? 'wala' : b?.preferences ? `“${b.preferences}”` : null) },
     { icon: 'scissors', label: 'Gilid / ibabaw', value: [choice('sides'), choice('top')].filter(Boolean).join(' + ') || null },
   ]
   const known = rows.filter(r => r.value).length
@@ -124,7 +129,8 @@ function Memory({ c }: { c: Consultation }) {
 
 export function BarberPanel({ c, h, compact, recording }: SceneProps & { recording: boolean }) {
   const mood = moodOf(c, h, recording, useSpeaking())
-  const backgroundJob = h.jobs.find(j => j.type !== 'chat' && j.type !== 'transcribe') ?? null
+  const inChat = (t: string) => t === 'chat' || t === 'transcribe' || (t === 'observe' && c.stage !== 'reveal')
+  const backgroundJob = h.jobs.find(j => !inChat(j.type)) ?? null
   if (compact) {
     return (
       <div className="flex shrink-0 items-center gap-3">
@@ -166,12 +172,13 @@ export function BarberPanel({ c, h, compact, recording }: SceneProps & { recordi
 /* ---------------- the one conversation thread ---------------- */
 
 function ChatThread({ c, f, h, compact, quickReplies, placeholder, narrow }: SceneProps & { quickReplies?: React.ReactNode; placeholder?: string; narrow?: boolean }) {
-  const turns = c.state.chat ?? []
+  const turns = c.state.chat ?? NO_TURNS
   const job = h.chatJob
   const streaming = job?.type === 'chat' ? job.partial_text ?? '' : null
   const end = useRef<HTMLDivElement>(null)
   const speaking = useSpeaking()
   const tts = useTtsEnabled()
+  const reading = h.jobs.find(j => j.type === 'observe' && c.stage !== 'reveal') ?? null
   useEffect(() => { end.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }) }, [turns.length, streaming])
   // Speak each new Kuya Gup turn, never the history already on screen when the page opened.
   const spoken = useRef(turns.length)
@@ -189,19 +196,28 @@ function ChatThread({ c, f, h, compact, quickReplies, placeholder, narrow }: Sce
         </button>
       )}
       <div className="scroll-col min-h-0 flex-1 space-y-3 overflow-y-auto px-1 pb-2" aria-live="polite">
-        {turns.map((t, i) => <Bubble key={i} role={t.role} text={t.text} />)}
+        {turns.map((t, i) => <Bubble key={i} role={t.role} text={t.text} image={t.media_id ? c.photos.find(p => p.id === t.media_id)?.url : undefined} />)}
         {streaming !== null && <Bubble role="ai" text={streaming} streaming />}
         {job?.type === 'transcribe' && <p className="ml-auto w-fit rounded-full bg-subtle px-3 py-1.5 text-[13px] text-ink-2">Isinasalin ang boses mo…</p>}
+        {reading && <p className="w-fit rounded-full bg-subtle px-3 py-1.5 text-[13px] text-ink-2">Tinitingnan ni Kuya Gup ang reference photo… <span className="tabular-nums">{Math.round(reading.elapsed_s ?? 0)}s</span></p>}
         {!turns.length && streaming === null && <p className="py-6 text-center text-ink-2">Sandali, babatiin ka ni Kuya Gup…</p>}
         <div ref={end} />
       </div>
       {quickReplies && <div className="flex shrink-0 flex-wrap gap-1.5 pb-2">{quickReplies}</div>}
-      <div className="shrink-0"><Talk onSend={t => f.say(t)} onVoice={f.voice} busy={!!h.chatJob || speaking} placeholder={placeholder} micSize={compact || narrow ? 50 : 58} stacked={narrow} /></div>
+      <div className="shrink-0"><Talk onSend={t => f.say(t)} onVoice={f.voice} onAttach={f.reference} busy={!!h.chatJob || speaking || !!reading} placeholder={placeholder} micSize={compact || narrow ? 50 : 58} stacked={narrow || compact} /></div>
     </Card>
   )
 }
 
-function Bubble({ role, text, streaming }: { role: 'ai' | 'customer' | 'barber'; text: string; streaming?: boolean }) {
+function Bubble({ role, text, streaming, image }: { role: 'ai' | 'customer' | 'barber'; text: string; streaming?: boolean; image?: string }) {
+  if (image) {
+    return (
+      <motion.figure initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="ml-auto w-fit max-w-[60%] overflow-hidden rounded-[18px] rounded-br-[4px] bg-action p-1">
+        <img src={image} alt="Reference na gupit" className="max-h-56 rounded-[14px] object-cover" />
+        <figcaption className="px-2 py-1 text-[12px] text-on-action/85">Reference na gusto ko</figcaption>
+      </motion.figure>
+    )
+  }
   if (role === 'ai') {
     return (
       <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="flex max-w-[88%] items-end gap-2">
@@ -222,29 +238,53 @@ function Bubble({ role, text, streaming }: { role: 'ai' | 'customer' | 'barber';
   )
 }
 
-/* ---------------- photos ---------------- */
-export function PhotosScene({ c, f, h, role, compact }: SceneProps) {
-  const front = c.photos.filter(p => p.view === 'front').at(-1)
-  const side = c.photos.filter(p => p.view === 'side').at(-1)
+/* ---------------- photos: harap → kaliwa → kanan ---------------- */
+export function PhotosScene({ c, f, role, compact }: SceneProps) {
+  const latest = (pose: Pose) => c.photos.filter(p => p.view === pose).at(-1)
+  const [retake, setRetake] = useState<Pose | null>(null)
+  // The next missing pose is active, so each capture moves on by itself; tapping a card retakes that pose.
+  const active = retake ?? POSES.find(p => !latest(p)) ?? null
   const showMirror = role === 'customer' || !c.phone_paired
+  const done = POSES.filter(p => latest(p)).length
+  async function capture(blob: Blob) {
+    if (!active) return
+    await f.photo(blob, active)
+    setRetake(null)
+  }
   return (
-    <div className={`grid h-full min-h-0 gap-4 ${compact ? '' : 'grid-cols-[1.25fr_1fr]'}`}>
-      {showMirror ? <div className="min-h-0"><Mirror onCapture={f.photo} busy={!!h.runningJob} /></div> : (
-        <Card className="grid place-items-center p-8 text-center"><div><Icon name="phone" size={40} className="mx-auto mb-2 text-action" /><p className="font-display text-3xl">Nasa phone ng customer ang camera</p><p className="text-ink-2">Lalabas dito ang mga kuha.</p></div></Card>
-      )}
-      <div className={`grid min-h-0 content-start gap-3 ${compact ? 'grid-cols-2' : ''}`}>
-        {(['front', 'side'] as const).map(v => {
-          const p = v === 'front' ? front : side
+    <div className={`grid h-full min-h-0 gap-4 ${compact ? 'grid-rows-[1fr_auto]' : 'grid-cols-[1.3fr_1fr]'}`}>
+      {active && showMirror ? <div className="min-h-0"><Mirror pose={active} onCapture={capture} /></div>
+        : active ? (
+          <Card className="grid place-items-center p-8 text-center"><div className="space-y-2"><PoseIcon pose={active} size={140} /><p className="font-display text-3xl">Nasa phone ng customer ang camera</p><p className="text-ink-2">Kinukuha: {POSE_INFO[active].label}</p></div></Card>
+        ) : (
+          <Card className="grid place-items-center p-8 text-center">
+            <div className="space-y-3">
+              <div className="mx-auto flex w-fit gap-1">{POSES.map(p => <PoseIcon key={p} pose={p} size={96} />)}</div>
+              <p className="font-display text-4xl">Kumpleto ang photos</p>
+              <p className="text-ink-2">Pindutin ang isang kuha para ulitin, o tumuloy sa Usapan.</p>
+            </div>
+          </Card>
+        )}
+      <div className={`grid min-h-0 content-start gap-3 ${compact ? 'grid-cols-3' : ''}`}>
+        {!compact && <p className="flex items-baseline justify-between px-1"><span className="text-[13px] font-bold uppercase tracking-wider text-ink-2">Mga kuha</span><span className="tabular-nums text-[13px] text-ink-2">{done}/3</span></p>}
+        {POSES.map((pose, i) => {
+          const photo = latest(pose)
+          const isActive = active === pose
           return (
-            <Card key={v} className="flex min-h-0 items-center gap-3 p-3">
-              <div className="grid size-20 shrink-0 place-items-center overflow-hidden rounded-[16px] bg-subtle">
-                {p ? <img src={p.url} alt={`${v === 'front' ? 'Harap' : 'Gilid'} photo`} className="size-full object-cover" /> : <Icon name="camera" size={28} className="text-ink-2" />}
-              </div>
-              <div className="min-w-0">
-                <p className="flex items-center gap-1.5 font-semibold">{v === 'front' ? 'Harap' : 'Gilid'} {p && <Icon name="check" size={16} strokeWidth={2.6} className="text-action" />}</p>
-                <p className="text-[14px] text-ink-2">{p ? 'Naka-save' : 'Wala pa'}</p>
-              </div>
-            </Card>
+            <motion.button key={pose} type="button" layout onClick={() => setRetake(pose)} aria-pressed={isActive}
+              aria-label={photo ? `Kunan ulit: ${POSE_INFO[pose].label}` : `Kunan: ${POSE_INFO[pose].label}`}
+              className={`glass group flex min-h-0 items-center gap-3 rounded-[22px] p-2.5 text-left transition-shadow ${compact ? 'flex-col text-center' : ''} ${
+                isActive ? 'shadow-[0_0_0_3px_var(--color-action),var(--shadow-lift)]' : ''}`}>
+              <span className={`relative grid shrink-0 place-items-center overflow-hidden rounded-[16px] bg-peach/60 ${compact ? 'size-20' : 'size-[84px]'}`}>
+                {photo ? <img src={photo.url} alt={`${POSE_INFO[pose].label} photo`} className="size-full object-cover" /> : <PoseIcon pose={pose} size={compact ? 72 : 80} />}
+                {photo && <span className="absolute right-1 top-1 grid size-6 place-items-center rounded-full bg-action text-on-action"><Icon name="check" size={14} strokeWidth={2.8} /></span>}
+              </span>
+              <span className="min-w-0">
+                <span className="block font-semibold"><span className="text-ink-2">{i + 1}.</span> {POSE_INFO[pose].label}</span>
+                {!compact && <span className="block text-[13px] text-ink-2">{isActive ? (photo ? 'Kinukunan ulit…' : 'Ngayon na') : photo ? 'Naka-save · pindutin para ulitin' : POSE_INFO[pose].hint}</span>}
+              </span>
+              {photo && !compact && <span className="ml-auto flex items-center gap-1 rounded-full bg-subtle px-2.5 py-1 text-[12px] font-medium text-ink-2 opacity-0 transition-opacity group-hover:opacity-100"><Icon name="refresh" size={13} /> Ulitin</span>}
+            </motion.button>
           )
         })}
       </div>
@@ -265,7 +305,10 @@ export function GoalScene(props: SceneProps) {
   // One-tap answers for the question Kuya Gup is asking now; each phrase is captured by the backend without the model.
   const quick = slot === 'problem' ? [...(Object.keys(PROBLEM_LABEL) as ProblemId[]).map(p => chip(PROBLEM_LABEL[p], PROBLEM_SAY[p])), chip('Wala naman problema', 'Wala naman problema sa buhok ko.')]
     : slot === 'occasion' ? [chip('School', 'Para sa school.'), chip('Trabaho', 'Para sa trabaho.'), chip('May okasyon', 'May party ako.'), chip('Araw-araw', 'Para sa araw-araw lang.')]
-    : slot === 'desired_cut' ? [chip('Low fade', 'Gusto ko ng low fade.'), chip('Taper', 'Gusto ko ng taper.'), chip('Two block', 'Gusto ko ng two block.'), chip('Bahala na si Kuya Gup', 'Bahala ka na, Kuya.')]
+    : slot === 'desired_cut' ? [<Chip key="ref" className="min-h-9 px-3 text-[13px]" disabled={!!props.h.chatJob} onClick={() => document.getElementById('talk-attach')?.click()}><Icon name="image" size={15} /> May picture ako</Chip>,
+      chip('Low fade', 'Gusto ko ng low fade.'), chip('Taper', 'Gusto ko ng taper.'), chip('Two block', 'Gusto ko ng two block.'), chip('Bahala na si Kuya Gup', 'Bahala ka na, Kuya.')]
+    : slot === 'desired_impression' ? [chip('Malinis', 'Gusto ko malinis tingnan.'), chip('Pormal', 'Gusto ko pormal tingnan.'), chip('Astig', 'Gusto ko astig tingnan.'), chip('Bata tingnan', 'Gusto ko bata tingnan.'), chip('Kahit ano', 'Wala, kahit ano.')]
+    : slot === 'keep_avoid' ? [chip('Iwan ang bangs', 'Iwan mo yung bangs.'), chip('Iwan ang haba sa taas', 'Iwan mo yung haba sa taas.'), chip('Ayokong kita ang anit', 'Ayoko ng kita ang anit.'), chip('Wala', 'Wala naman.')]
     : slot === 'styling_minutes' ? [chip('Hilamos lang', 'Hilamos lang ako.'), chip('5 minuto', '5 minuto lang ako mag-ayos.'), chip('10 minuto', '10 minuto ako mag-ayos.'), chip('15+ minuto', '15 minuto ako mag-ayos.')]
     : null
   return (
@@ -301,25 +344,36 @@ export function RevealScene({ c, f, h, role, compact }: SceneProps) {
       </Card>
     )
   }
+  const job = h.jobs.find(j => j.type === 'observe' || j.type === 'faceshape')
+  const section = (title: string, status: string, body: React.ReactNode) => (
+    <section className="space-y-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className="text-[13px] font-bold uppercase tracking-wider text-ink-2">{title}</h3>
+        <span className="text-[13px] text-ink-2">{status}</span>
+      </div>
+      {body}
+    </section>
+  )
+  const fs = s.face_shape
   return (
-    <div className={`grid h-full min-h-0 gap-4 ${compact ? 'grid-rows-[auto_1fr]' : 'grid-cols-[0.9fr_1.1fr]'}`}>
+    <div className={`grid h-full min-h-0 gap-5 ${compact ? 'grid-rows-[auto_1fr]' : 'grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]'}`}>
       {front && (
-        <Card className={`relative flex min-h-0 flex-col items-center justify-center overflow-hidden ${compact ? 'p-2' : 'p-4'}`}>
-          <div className={`relative ${compact ? 'phone-face' : ''}`}>
-            <Photo src={front.url} label="Harap" face={face} scanning={scanning} />
-          </div>
-          {scanning && <p className="mt-2 flex items-center gap-2 text-[14px] text-action"><Icon name="sparkle" size={16} /> Sinusuri ang buhok…</p>}
-        </Card>
-      )}
-      <div className="scroll-col min-h-0 space-y-3 overflow-y-auto pr-1">
-        <div>
-          <p className="mb-2 flex items-baseline gap-2"><span className="font-display text-[30px] leading-none">Mukhang {shape ? SHAPE_INFO[shape].name.toLowerCase() : 'hindi tiyak'}</span>
-            <span className="text-[13px] text-ink-2">{s.face_shape?.confirmed ? 'kinumpirma ng barbero' : 'tantya ng AI'}</span></p>
-          {role === 'barber' ? <FaceShapePicker c={c} onPick={confirmed => f.contribute({ kind: 'face_shape', confirmed })} />
-            : shape && <p className="text-ink-2">{SHAPE_INFO[shape].trait}</p>}
+        // Solid card on purpose: Safari stops repainting animations inside backdrop-filter (glass) elements.
+        <div className={`flex min-h-0 flex-col items-center justify-center gap-3 rounded-[var(--radius-sheet)] bg-surface shadow-[var(--shadow-card)] ${compact ? 'p-2' : 'p-5'}`}>
+          <div className={compact ? 'phone-face' : ''}><Photo src={front.url} label="Harap" face={face} scanning={scanning} maxHeight={compact ? '80px' : '62dvh'} /></div>
+          {scanning && <p className="flex items-center gap-2 text-[14px] font-medium text-voice" aria-live="polite"><Icon name="sparkle" size={16} /> Sinusuri ang buhok… <span className="tabular-nums text-ink-2">{Math.round(job?.elapsed_s ?? 0)}s</span></p>}
         </div>
-        <HairProfile profile={s.hair_profile} scanning={scanning} editable={role === 'barber'} onConfirm={f.confirmHair} onScan={f.scanHair} />
-        <p className="text-[13px] text-ink-2">Gabay lang ang hugis at uri ng buhok. Ang gusto mo pa rin ang masusunod.</p>
+      )}
+      <div className="scroll-col min-h-0 space-y-7 overflow-y-auto px-1 py-2">
+        <div>
+          <p className="font-display text-[34px] leading-none">Mukhang {shape ? SHAPE_INFO[shape].name.toLowerCase() : 'hindi tiyak'}</p>
+          <p className="mt-1 text-[14px] text-ink-2">Gabay lang ang hugis at uri ng buhok. Ang gusto mo pa rin ang masusunod.</p>
+        </div>
+        {section('Hugis ng mukha', fs?.confirmed ? 'Kinumpirma' : fs?.suggested?.length ? `Tantya: ${fs.suggested.map(x => SHAPE_INFO[x].name).join(' o ')}` : 'Piliin ng barbero',
+          role === 'barber' ? <FaceShapePicker c={c} onPick={confirmed => f.contribute({ kind: 'face_shape', confirmed })} />
+            : <p className="text-ink-2">{shape ? SHAPE_INFO[shape].trait : '—'}</p>)}
+        {section('Uri ng buhok', s.hair_profile?.confirmed ? 'Kinumpirma' : s.hair_profile?.suggested ? 'Tantya mula sa photo' : scanning ? 'Sinusuri…' : '',
+          <HairProfile profile={s.hair_profile} scanning={scanning} editable={role === 'barber'} onConfirm={f.confirmHair} onScan={f.scanHair} />)}
       </div>
     </div>
   )
@@ -336,7 +390,7 @@ function SuggestionCard({ o, part, other, recommended, selected, onPick, big }: 
   return (
     <motion.article layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={shared}
       className={`glass flex min-h-0 flex-col gap-3 overflow-y-auto rounded-[22px] p-4 ${selected ? 'shadow-[0_0_0_3px_var(--color-action),var(--shadow-lift)]' : ''} ${big ? 'row-span-2' : ''}`}>
-      <div className={`flex gap-3 ${big ? 'flex-col items-center text-center' : 'items-center'}`}>
+      <div className={`flex gap-3 ${big ? 'flex-col items-center text-center' : 'flex-col items-start 2xl:flex-row 2xl:items-center'}`}>
         <div className="shrink-0 rounded-[18px] bg-peach/60 p-1">
           {part === 'sides' ? <SideProfile sides={sides} top={top} size={big ? 190 : 104} /> : <HaircutPreview sides={sides} top={top} size={big ? 190 : 104} />}
         </div>

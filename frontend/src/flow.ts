@@ -1,4 +1,5 @@
 import { api, ApiError, type Contribution, type Hair, type Part, type ProblemId, type Speaker, type Stage } from './api'
+import { toJpeg } from './components/Mirror'
 import type { useConsultation } from './useConsultation'
 
 type Hook = ReturnType<typeof useConsultation>
@@ -17,11 +18,11 @@ export function flow(id: string, h: Hook) {
 
   return {
     /** Upload → face shape (front) runs in the background; hair is scanned on Reveal. */
-    async photo(blob: Blob, view: 'front' | 'side') {
+    async photo(blob: Blob, view: 'front' | 'left' | 'right') {
       try {
         const media = await api.upload(id, blob, 'photo', view)
         await h.refresh()
-        if (view === 'front') await h.runJob('faceshape', media.id)
+        if (view === 'front') void h.runJob('faceshape', media.id)  // background: the next pose shouldn't wait
       } catch (e) { fail(e, 'Hindi na-upload ang photo.') }
     },
     /** One conversation turn: save the text, then Kuya Gup answers (streamed). */
@@ -37,6 +38,15 @@ export function flow(id: string, h: Hook) {
         if (text) return await say(text, 'voice')
         return false
       } catch (e) { fail(e, 'Hindi na-upload ang recording.'); return false }
+    },
+    /** A haircut picture the customer likes: Kuya Gup names the cut and it becomes the wanted cut. */
+    async reference(file: File) {
+      try {
+        const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' })
+        const media = await api.upload(id, await toJpeg(bmp, bmp.width, bmp.height), 'photo', 'reference')
+        await h.refresh()
+        await h.runJob('observe', media.id)
+      } catch (e) { fail(e, 'Hindi na-upload ang reference photo.') }
     },
     rate: (score: number, tags: string[]) => h.contribute({ kind: 'rating', score, tags }),
     problem: (pid: ProblemId, remove: boolean) => h.contribute({ kind: 'problem', id: pid, remove }),

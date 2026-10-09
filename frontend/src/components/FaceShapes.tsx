@@ -1,6 +1,5 @@
 import { motion } from 'motion/react'
 import type { Consultation, FaceShape } from '../api'
-import Icon from './Icon'
 
 /** Face outlines on a 100x120 grid, drawn to show each shape's defining proportion. */
 const OUTLINE: Record<FaceShape, string> = {
@@ -39,27 +38,26 @@ export function FaceShapeIcon({ shape, size = 56, active = false }: { shape: Fac
   )
 }
 
-/** Six visual cards. The AI estimate gets a ring and badge; the barber's confirmed shape is filled. */
+/** A quiet segmented row: outline + name. The AI estimate is a line of text, not a badge. */
 export function FaceShapePicker({ c, onPick, disabled }: { c: Consultation; onPick: (s: FaceShape) => void; disabled?: boolean }) {
   const fs = c.state.face_shape
+  const shown = fs?.confirmed ?? fs?.suggested?.[0]
   return (
-    <div role="radiogroup" aria-label="Hugis ng mukha" className="grid grid-cols-3 gap-2 xl:grid-cols-6">
-      {FACE_SHAPES.map(s => {
-        const confirmed = fs?.confirmed === s
-        const ai = fs?.suggested?.includes(s)
-        return (
-          <motion.button key={s} type="button" role="radio" aria-checked={confirmed} disabled={disabled} onClick={() => onPick(s)}
-            whileTap={{ scale: 0.96 }} transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-            className={`relative flex flex-col items-center gap-1 rounded-[18px] px-2 pb-2.5 pt-3 text-center transition-colors ${
-              confirmed ? 'bg-action text-on-action shadow-[var(--shadow-lift)]' : `bg-surface hover:bg-subtle ${ai ? 'shadow-[0_0_0_2px_var(--color-voice)]' : 'shadow-[var(--shadow-card)]'}`}`}>
-            {ai && !confirmed && <span className="absolute right-1.5 top-1.5 flex items-center gap-0.5 rounded-full bg-voice px-1.5 py-0.5 text-[10px] font-bold text-white"><Icon name="sparkle" size={10} strokeWidth={2.4} />AI</span>}
-            {confirmed && <span className="absolute right-1.5 top-1.5"><Icon name="check" size={16} strokeWidth={2.6} /></span>}
-            <FaceShapeIcon shape={s} size={40} active={confirmed} />
-            <span className="text-[14px] font-semibold leading-tight">{SHAPE_INFO[s].name}</span>
-            <span className={`text-[11px] leading-tight ${confirmed ? 'text-on-action/80' : 'text-ink-2'}`}>{SHAPE_INFO[s].trait}</span>
-          </motion.button>
-        )
-      })}
+    <div className="space-y-2">
+      <div role="radiogroup" aria-label="Hugis ng mukha" className="grid grid-cols-6 gap-1 rounded-[18px] bg-subtle/80 p-1">
+        {FACE_SHAPES.map(s => {
+          const on = fs?.confirmed === s
+          return (
+            <motion.button key={s} type="button" role="radio" aria-checked={on} disabled={disabled} onClick={() => onPick(s)}
+              whileTap={{ scale: 0.96 }} transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              className={`flex min-w-0 flex-col items-center gap-1 rounded-[14px] px-1 py-2.5 transition-colors ${on ? 'bg-surface text-ink shadow-[var(--shadow-card)]' : 'text-ink-2 hover:text-ink'}`}>
+              <span className={on ? '' : 'opacity-70'}><FaceShapeIcon shape={s} size={26} /></span>
+              <span className={`truncate text-[13px] ${on ? 'font-semibold' : 'font-medium'}`}>{SHAPE_INFO[s].name}</span>
+            </motion.button>
+          )
+        })}
+      </div>
+      {shown && <p className="px-1 text-[13px] text-ink-2"><span className="font-semibold text-ink">{SHAPE_INFO[shown].name}:</span> {SHAPE_INFO[shown].trait.toLowerCase()}.</p>}
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { api, ApiError, type Consultation, type Stage } from '../api'
 import { navigate } from '../App'
 import { BarberPanel, interviewSlot, Scene, STEPS } from '../components/Scenes'
@@ -17,8 +17,8 @@ const ORDER = STEPS.map(s => s.stage)
 function blocker(c: Consultation, skipped: boolean): string | null {
   const s = c.state
   switch (c.stage) {
-    case 'photos': return ['front', 'side'].every(v => c.photos.some(p => p.view === v)) ? null : 'Kumuha muna ng harap at gilid na photo.'
-    case 'goal': return c.active_job ? 'Hintayin o i-cancel muna ang pagsusuri.' : interviewSlot(c) !== 'done' && !skipped ? 'Sagutin muna ang mga tanong ni Kuya Gup.' : null
+    case 'photos': return ['front', 'left', 'right'].every(v => c.photos.some(p => p.view === v)) ? null : 'Kunan muna ang harap, kaliwa at kanan.'
+    case 'goal': return c.active_job ? 'Sandali, sumasagot pa si Kuya Gup.' : interviewSlot(c) !== 'done' && !skipped ? 'Sagutin muna ang mga tanong ni Kuya Gup.' : null
     case 'reveal': return !s.revealed ? 'I-reveal muna ang resulta.' : null
     case 'sides': return s.sides?.choice ? null : 'Pumili o mag-type muna ng gusto sa gilid.'
     case 'top': return s.top?.choice ? null : 'Pumili o mag-type muna ng gusto sa ibabaw.'
@@ -49,15 +49,23 @@ function PhoneLink({ c }: { c: Consultation }) {
   )
 }
 
+const wideQuery = typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)') : null
+/** Below 1024 px (tablets) the barber screen uses the tested phone layouts instead of a clipped two-column view. */
+function useWide() {
+  return useSyncExternalStore(cb => { wideQuery?.addEventListener('change', cb); return () => wideQuery?.removeEventListener('change', cb) }, () => wideQuery?.matches ?? true)
+}
+
 export default function Consult({ id }: { id: string }) {
   const h = useConsultation(id)
   const { c } = h
   const [dir, setDir] = useState(1)
   const completion = useRef<{ payload: string; key: string } | null>(null)
   const [skipped, setSkipped] = useState(false)
+  const wide = useWide()
   const speaking = useSpeaking()
   // Interview complete → Kuya Gup has said his closing line → go to the scan on his own.
-  const ready = c?.stage === 'goal' && interviewSlot(c) === 'done' && !h.chatJob && !speaking
+  const closed = !!c?.state.chat?.filter(t => t.role === 'ai').at(-1)?.text.includes('Kumpleto na')
+  const ready = c?.stage === 'goal' && interviewSlot(c) === 'done' && closed && !h.chatJob && !speaking
   const advanced = useRef(false)
   useEffect(() => {
     if (!ready || advanced.current) return
@@ -83,11 +91,11 @@ export default function Consult({ id }: { id: string }) {
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
-      <header className="mx-auto flex w-full max-w-[1500px] items-center gap-4 px-6 pb-2 pt-4">
+      <header className="mx-auto flex w-full max-w-[1500px] flex-wrap items-center gap-x-4 gap-y-2 px-4 pb-2 pt-4 lg:flex-nowrap lg:px-6">
         <a href="/" aria-label="GupAi home" className="no-underline"><Wordmark height={30} /></a>
         <span className="hidden truncate text-[15px] text-ink-2 xl:inline">{chair ?? 'Upuan'} · {c.customer?.display_name ?? 'Temporary'}</span>
-        <nav aria-label="Steps" className="mx-auto">
-          <ol className="glass flex gap-0.5 rounded-full p-1">
+        <nav aria-label="Steps" className="order-last w-full overflow-x-auto [scrollbar-width:none] lg:order-none lg:mx-auto lg:w-auto">
+          <ol className="glass mx-auto flex w-max gap-0.5 rounded-full p-1">
             {STEPS.map((x, i) => (
               <li key={x.stage}>
                 <button onClick={() => go(x.stage)} disabled={!canStep(i)} aria-current={i === at ? 'step' : undefined}
@@ -99,21 +107,21 @@ export default function Consult({ id }: { id: string }) {
             ))}
           </ol>
         </nav>
-        <PhoneLink c={c} />
+        <div className="ml-auto lg:ml-0"><PhoneLink c={c} /></div>
         <Button variant="quiet" className="min-h-10 rounded-full px-3 text-[15px]" onClick={async () => {
           if (!confirm('Itigil ang konsulta? Walang mase-save at buburahin ang photos.')) return
           try { await api.abandon(c.id); navigate('/') } catch (e) { h.setError(e instanceof ApiError ? e.message : 'Hindi naitigil.') }
         }}>Itigil</Button>
       </header>
 
-      <main className="mx-auto grid min-h-0 w-full max-w-[1500px] flex-1 grid-cols-[minmax(340px,0.78fr)_2.2fr] gap-6 px-6 pb-5 pt-3">
-        <section className="min-h-0"><BarberPanel c={c} f={f} h={h} role="barber" recording={false} /></section>
+      <main className={`mx-auto grid min-h-0 w-full max-w-[1500px] flex-1 gap-3 px-4 pb-4 pt-2 lg:gap-6 lg:px-6 lg:pb-5 lg:pt-3 ${wide ? 'grid-cols-[minmax(340px,0.78fr)_2.2fr]' : 'grid-rows-[auto_minmax(0,1fr)]'}`}>
+        <section className="min-h-0"><BarberPanel c={c} f={f} h={h} role="barber" recording={false} compact={!wide} /></section>
         <section className="relative grid min-h-0 grid-rows-[1fr_auto] gap-3">
           <AnimatePresence mode="wait" custom={dir} initial={false}>
             <motion.div key={c.stage} custom={dir} className="min-h-0"
               initial={{ opacity: 0, x: 40 * dir }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 * dir }}
               transition={{ duration: 0.28, ease: [0.23, 1, 0.32, 1] }}>
-              <Scene c={c} f={f} h={h} role="barber" onComplete={complete} />
+              <Scene c={c} f={f} h={h} role="barber" compact={!wide} onComplete={complete} />
             </motion.div>
           </AnimatePresence>
           {at <= ORDER.indexOf('summary') && (

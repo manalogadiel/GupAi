@@ -530,7 +530,7 @@ def test_migration_v1_keeps_related_rows_and_accepts_v2_writes(tmp_path):
     db.initialize(path)
     db.initialize(path)
     with db.connect(path) as conn:
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == 4
         assert list(conn.execute("PRAGMA foreign_key_check")) == []
         row = conn.execute("SELECT * FROM consultations").fetchone()
         assert row["phone_token_hash"] == "token" and row["revision"] == 7

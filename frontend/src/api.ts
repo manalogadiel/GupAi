@@ -33,12 +33,12 @@ export interface Option {
   stays: string[]; changes: string[]; effort: Effort; needs_barber_check: string[]
   face_shape_note: string | null; source_ids: string[]
 }
-export interface Brief { problem_detail?:string|null; occasion:string|null; desired_cut?:string|null; desired_impression:string[]; change_level:string|null; styling_minutes:number|null; maintenance_preference:string|null; dress_rules:string|null; inspiration:string|null; evidence:{field:string;source_text:string}[] }
+export interface Brief { problem_detail?:string|null; occasion:string|null; desired_cut?:string|null; preferences?:string|null; desired_impression:string[]; change_level:string|null; styling_minutes:number|null; maintenance_preference:string|null; dress_rules:string|null; inspiration:string|null; evidence:{field:string;source_text:string}[] }
 export interface ConsultState {
   brief?: Brief
   hair_profile?: { suggested: Hair | null; confirmed: Hair | null } | null
   rating: Rating | null
-  problems: ProblemId[]; chat: { role: 'customer' | 'barber' | 'ai'; text: string }[]; revealed: boolean
+  problems: ProblemId[]; chat: { role: 'customer' | 'barber' | 'ai'; text: string; media_id?: string }[]; revealed: boolean
   recommendations: { top_pick: Pick; alternatives: Pick[]; face_note: string | null } | null
   selected_style: string | null; sides: PartState; top: PartState
   checkpoints: { sides: Checkpoint | null; top: Checkpoint | null }
@@ -63,7 +63,7 @@ export interface Job {
 export interface CustomerRef { id: string; display_name: string; nickname: string | null }
 export interface Consultation {
   id: string; customer: CustomerRef | null; stage: Stage; status: 'active' | 'completed' | 'abandoned'
-  revision: number; state: ConsultState; photos: { id: string; view: 'front' | 'side'; url: string }[]
+  revision: number; state: ConsultState; photos: { id: string; view: 'front' | 'side' | 'left' | 'right' | 'reference'; url: string }[]
   agreement: Agreement | null; active_job: Job | null; recent_jobs?: Job[]; phone_paired: boolean
 }
 export interface CustomerRow extends CustomerRef { last_visit_at: string | null; preferred_visit_id: string | null }
@@ -133,7 +133,7 @@ export const api = {
   pair: (id: string) => request<{ url: string; qr_png_data_url: string; expires_at: string }>('POST', `/api/consultations/${id}/pair`, {}, idem()),
   contribute: (id: string, c: Contribution, expected_revision: number) =>
     request<Consultation>('POST', `/api/consultations/${id}/contributions`, { ...c, expected_revision }, idem()),
-  upload: (id: string, file: Blob, kind: 'photo' | 'audio', view?: 'front' | 'side') => {
+  upload: (id: string, file: Blob, kind: 'photo' | 'audio', view?: 'front' | 'side' | 'left' | 'right' | 'reference') => {
     const f = new FormData()
     f.append('file', file, kind === 'photo' ? 'photo.jpg' : 'clip.webm'); f.append('kind', kind); if (view) f.append('view', view)
     return request<{ id: string; kind: string; view: string | null; url: string }>('POST', `/api/consultations/${id}/media`, f, idem())
