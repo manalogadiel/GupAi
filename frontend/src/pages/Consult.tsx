@@ -126,7 +126,7 @@ export default function Consult({ id }: { id: string }) {
 
       <main className="grid gap-6 px-4 py-6 sm:px-8 lg:grid-cols-12">
         {/* Prompt column */}
-        <section className="space-y-5 lg:col-span-3">
+        <section className="space-y-5 lg:col-span-4 xl:col-span-3">
           <div className="flex items-start gap-3">
             <Mascot size={64} />
             <p className="text-[clamp(1.375rem,2vw,1.75rem)] font-semibold leading-tight">{PROMPT[c.stage]}</p>
@@ -169,7 +169,7 @@ export default function Consult({ id }: { id: string }) {
         </section>
 
         {/* Mirror column */}
-        <section className="space-y-5 lg:col-span-6">
+        <section className="space-y-5 lg:col-span-5 xl:col-span-6">
           {(c.stage === 'concern' || c.stage === 'photos') && !c.phone_paired && <Mirror onCapture={f.photo} busy={busy} />}
           {(c.stage === 'concern' || c.stage === 'photos') && c.phone_paired && (
             <Sheet><p className="text-ink-2">Kumukuha ng photo sa phone ng customer. Lalabas dito ang mga kuha.</p></Sheet>

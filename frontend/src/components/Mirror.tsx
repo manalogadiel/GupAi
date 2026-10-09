@@ -54,7 +54,7 @@ export default function Mirror({ onCapture, busy }: { onCapture: (b: Blob, view:
 
   return (
     <div className="space-y-3">
-      <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[var(--radius-mirror)] bg-subtle">
+      <div className="relative aspect-[4/5] max-h-[64dvh] w-full overflow-hidden rounded-[var(--radius-mirror)] bg-subtle">
         <video ref={video} autoPlay playsInline muted
           className={`h-full w-full -scale-x-100 object-cover ${state === 'live' ? '' : 'hidden'}`} />
         {state !== 'live' && (
