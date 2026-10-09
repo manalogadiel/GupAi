@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { api, ApiError, waitForJob, type Consultation, type Contribution, type FaceShapeResult, type Job, type JobType } from './api'
+import { api, ApiError, waitForJob, type Consultation, type Contribution, type FaceShapeResult, type Job, type JobType, type Part } from './api'
 
 export interface JobResults { faceshape?: FaceShapeResult; transcribe?: { text: string; language: string } }
 
@@ -28,7 +28,8 @@ export function useConsultation(id: string | null) {
       const aj = next.active_job
       if (aj && !seenJobs.current.has(aj.id)) {
         seenJobs.current.add(aj.id)
-        waitForJob(aj.id).then(absorbJob, () => {})
+        // Follow it live (thinking mascot + streamed text) on this device too.
+        waitForJob(aj.id, setRunningJob).then(j => { absorbJob(j); setRunningJob(null) }, () => setRunningJob(null))
       }
     } catch (e) {
       if (e instanceof ApiError && e.code === 'offline') setOffline(true)
@@ -57,14 +58,14 @@ export function useConsultation(id: string | null) {
   }, [id, c, refresh])
 
   // Jobs always start from the server's latest revision; a result for an older revision comes back `stale`.
-  const runJob = useCallback(async (type: JobType, mediaId?: string) => {
+  const runJob = useCallback(async (type: JobType, mediaId?: string, part?: Part) => {
     if (!id) return null
     try {
       let done: Job | null = null
       // A job queued behind another state change comes back `stale`; rerun it once on the new revision.
       for (let attempt = 0; attempt < 2 && (!done || done.status === 'stale'); attempt++) {
         const current = await api.consultation(id)
-        const job = await api.startJob(id, type, current.revision, mediaId)
+        const job = await api.startJob(id, type, current.revision, mediaId, part)
         seenJobs.current.add(job.id)
         setRunningJob(job)
         done = await waitForJob(job.id, setRunningJob)

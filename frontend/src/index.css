@@ -76,3 +76,18 @@ input, textarea, select { font-size: 16px; } /* stops iOS zoom on focus */
 
 /* Laptop app frame: columns scroll on their own with a quiet scrollbar. */
 .scroll-col { scrollbar-width: thin; scrollbar-color: var(--color-separator) transparent; }
+
+/* Ambient blurred blobs (Backdrop.tsx). Slow drift; frozen under reduced motion. */
+.backdrop .blob { position: absolute; border-radius: 9999px; filter: blur(80px); opacity: .55; will-change: transform; }
+.blob-peach { width: 46vw; height: 46vw; left: -12vw; top: -14vw; background: #F4C9AA; animation: drift-a 26s ease-in-out infinite alternate; }
+.blob-sage  { width: 40vw; height: 40vw; right: -10vw; bottom: -16vw; background: #B9CDB9; animation: drift-b 30s ease-in-out infinite alternate; }
+.blob-cream { width: 34vw; height: 34vw; right: 18vw; top: -10vw; background: #FBE7CF; opacity: .7; animation: drift-a 34s ease-in-out infinite alternate-reverse; }
+@keyframes drift-a { from { transform: translate3d(0,0,0) scale(1); } to { transform: translate3d(6vw,4vw,0) scale(1.08); } }
+@keyframes drift-b { from { transform: translate3d(0,0,0) scale(1.05); } to { transform: translate3d(-5vw,-3vw,0) scale(.96); } }
+@media (prefers-reduced-motion: reduce) { .backdrop .blob { animation: none; } }
+
+/* Frosted surface for cards over the blobs. */
+.glass { background: rgb(255 252 247 / .72); backdrop-filter: blur(18px) saturate(1.2); -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .7), var(--shadow-card); }
+@keyframes caret { 50% { opacity: 0; } }
+.caret::after { content: ""; display: inline-block; width: 2px; height: 1.05em; margin-left: 2px; vertical-align: -0.15em; background: currentColor; animation: caret 1s steps(1) infinite; }

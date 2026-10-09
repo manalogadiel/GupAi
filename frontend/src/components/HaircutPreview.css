@@ -1,0 +1,56 @@
+.hp-root {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  flex-shrink: 0;
+}
+.hp-ground { fill: #F4D9C4; }
+.hp-smock { fill: #FFFCF7; }
+.hp-skin, .hp-tone-4 { fill: #C68A64; }
+.hp-skin-shadow { fill: #A8704F; }
+.hp-collar { fill: #2F5443; }
+.hp-ink, .hp-hair, .hp-tone-0 { fill: #26241F; }
+.hp-hair-medium { fill: #51483C; }
+.hp-tone-1 { fill: #51483C; }
+.hp-tone-2 { fill: #826956; }
+.hp-tone-3 { fill: #AE8066; }
+.hp-smock-seam, .hp-ear-line, .hp-brows, .hp-face-line, .hp-chin, .hp-hair-detail {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.hp-smock-seam { stroke: #2F5443; stroke-width: 2; }
+.hp-ear-line, .hp-face-line { stroke: #975F40; stroke-width: 2.5; }
+.hp-brows { stroke: #26241F; stroke-width: 3; }
+.hp-chin { stroke: #A8704F; stroke-width: 2; }
+.hp-hair-detail { stroke: #72624F; stroke-width: 2; }
+.hp-side-variant, .hp-top-variant {
+  opacity: 0;
+  transition: opacity 250ms ease-out;
+  pointer-events: none;
+}
+.hp-active { opacity: 1; }
+.hp-fringe { transform-origin: 140px 90px; }
+.hp-fringe-trim .hp-fringe { transform: scaleY(.45); }
+.hp-fringe-up .hp-fringe { transform: scaleY(-.6); }
+.hp-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 24px;
+  padding: 24px;
+  color: #26241F;
+  background: #F6F1E9;
+  font-family: inherit;
+}
+.hp-preview-card {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  margin: 0;
+}
+.hp-preview-label { text-align: center; font-size: 14px; line-height: 1.5; }
+.hp-preview-label span { display: block; color: #5C564C; }
+@media (prefers-reduced-motion: reduce) {
+  .hp-side-variant, .hp-top-variant { transition: none; }
+}
+

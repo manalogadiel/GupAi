@@ -1,7 +1,13 @@
 // Typed client for docs/API.md (v1). Keep in sync with the contract, not with backend internals.
 
 export type Speaker = 'customer' | 'barber'
-export type Stage = 'concern' | 'photos' | 'observations' | 'options' | 'agreement' | 'cutting' | 'completed' | 'abandoned'
+export type Stage = 'photos' | 'goal' | 'reveal' | 'sides' | 'top' | 'summary' | 'cutting' | 'done' | 'completed' | 'abandoned'
+export type Part = 'sides' | 'top'
+export type ProblemId = 'puffy_sides' | 'cowlick' | 'hard_to_style' | 'grows_fast' | 'flat_top' | 'wide_forehead'
+export interface PartOption { id: string; name: string; pros: string[]; cons: string[]; why: string; maintenance: string }
+export interface PartState { options: PartOption[]; recommended_id: string | null; intro: string | null; choice: { id: string | null; custom: string | null } | null }
+export interface Pick { catalog_id: string; name: string; image: string; why: string }
+export interface Checkpoint { status: 'ok' | 'review' | 'insufficient'; note: string; media_id: string }
 export type FaceShape = 'oval' | 'round' | 'square' | 'oblong' | 'heart' | 'diamond'
 export type Region = 'top' | 'sides' | 'back' | 'fringe' | 'crown' | 'general'
 export type Effort = 'low' | 'medium' | 'high'
@@ -20,6 +26,10 @@ export interface Option {
   face_shape_note: string | null; source_ids: string[]
 }
 export interface ConsultState {
+  problems: ProblemId[]; chat: { role: 'customer' | 'barber' | 'ai'; text: string }[]; revealed: boolean
+  recommendations: { top_pick: Pick; alternatives: Pick[]; face_note: string | null } | null
+  selected_style: string | null; sides: PartState; top: PartState
+  checkpoints: { sides: Checkpoint | null; top: Checkpoint | null }
   goal: string; keep: string[]; change: string[]; avoid: string[]; styling_effort: Effort | null
   observations: Observation[]; face_shape: FaceShapeResult | null; options: Option[]
   selected_option_id: string | null; conflicts: { id: string; text: string }[]
@@ -30,8 +40,9 @@ export interface Agreement {
   plan: { keep: string[]; change: string[]; avoid: string[]; option: Option | null; face_shape: FaceShape | null; observations: string[]; barber_notes: string }
   customer_confirmed_at: string | null; barber_confirmed_at: string | null
 }
-export type JobType = 'transcribe' | 'observe' | 'faceshape' | 'propose'
+export type JobType = 'transcribe' | 'observe' | 'faceshape' | 'propose' | 'chat' | 'recommend' | 'suggest' | 'checkpoint'
 export interface Job {
+  partial_text?: string | null
   id: string; type: JobType; status: 'queued' | 'running' | 'done' | 'failed' | 'cancelled' | 'stale'
   requested_revision: number; started_at: string | null; finished_at: string | null; elapsed_s: number
   result: any; error: { code: string; message: string } | null // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -55,6 +66,10 @@ export type Contribution =
   | { kind: 'select_option'; option_id: string }
   | { kind: 'resolve_conflict'; conflict_id: string; keep: 'first' | 'second' }
   | { kind: 'stage'; stage: Stage }
+  | { kind: 'problem'; id: ProblemId; remove?: boolean }
+  | { kind: 'reveal' }
+  | { kind: 'pick_style'; catalog_id: string }
+  | { kind: 'choose_part'; part: Part; option_id?: string; custom?: string }
 
 export class ApiError extends Error {
   code: string; status: number; retryable: boolean; revision?: number
@@ -93,9 +108,10 @@ export const api = {
   createCustomer: (display_name: string, nickname: string | null) =>
     request<CustomerRef>('POST', '/api/customers', { display_name, nickname, retention_consent: true }, idem()),
   customer: (id: string) => request<{ customer: CustomerRef; preferred: Visit | null; visits: Visit[] }>('GET', `/api/customers/${id}`),
-  createConsultation: (customer_id?: string, from_visit_id?: string) =>
-    request<Consultation>('POST', '/api/consultations', { customer_id, from_visit_id }, idem()),
+  createConsultation: (customer_id?: string, from_visit_id?: string, chair_label?: string) =>
+    request<Consultation>('POST', '/api/consultations', { customer_id, from_visit_id, chair_label }, idem()),
   activeConsultation: () => request<Consultation | null>('GET', '/api/consultations/active'),
+  activeList: () => request<{ id: string; chair_label: string; customer: CustomerRef | null; stage: Stage; phone_paired: boolean; started_at: string }[]>('GET', '/api/consultations/active-list'),
   consultation: (id: string) => request<Consultation>('GET', `/api/consultations/${id}`),
   pair: (id: string) => request<{ url: string; qr_png_data_url: string; expires_at: string }>('POST', `/api/consultations/${id}/pair`, {}, idem()),
   contribute: (id: string, c: Contribution, expected_revision: number) =>
@@ -105,15 +121,15 @@ export const api = {
     f.append('file', file, kind === 'photo' ? 'photo.jpg' : 'clip.webm'); f.append('kind', kind); if (view) f.append('view', view)
     return request<{ id: string; kind: string; view: string | null; url: string }>('POST', `/api/consultations/${id}/media`, f, idem())
   },
-  startJob: (id: string, type: JobType, expected_revision: number, media_id?: string) =>
-    request<Job>('POST', `/api/consultations/${id}/jobs`, { type, media_id, expected_revision }, idem()),
+  startJob: (id: string, type: JobType, expected_revision: number, media_id?: string, part?: Part) =>
+    request<Job>('POST', `/api/consultations/${id}/jobs`, { type, media_id, part, expected_revision }, idem()),
   job: (jobId: string) => request<Job>('GET', `/api/jobs/${jobId}`),
   cancelJob: (jobId: string) => request<Job>('DELETE', `/api/jobs/${jobId}`),
   confirmAgreement: (id: string, role: Speaker, expected_revision: number, barber_notes?: string) =>
     request<Consultation>('POST', `/api/consultations/${id}/agreements/confirm`, { role, barber_notes, expected_revision }, idem()),
   abandon: (id: string) => request<{ id: string; status: string }>('POST', `/api/consultations/${id}/abandon`, {}, idem()),
-  complete: (id: string, actual_notes: string, save_as_preferred: boolean, keep_photos: boolean) =>
-    request<{ visit_id: string }>('POST', `/api/consultations/${id}/complete`, { actual_notes, save_as_preferred, keep_photos }, idem()),
+  complete: (id: string, actual_notes: string, save_as_preferred: boolean, keep_photos: boolean, rating?: { score: number; tags: string[] }) =>
+    request<{ visit_id: string }>('POST', `/api/consultations/${id}/complete`, { actual_notes, save_as_preferred, keep_photos, rating }, idem()),
 }
 
 /** Poll a job until it leaves queued/running. Resolves with the final job; `onTick` gets each poll. */
@@ -123,6 +139,6 @@ export async function waitForJob(jobId: string, onTick?: (j: Job) => void, signa
     const j = await api.job(jobId)
     onTick?.(j)
     if (j.status !== 'queued' && j.status !== 'running') return j
-    await new Promise(r => setTimeout(r, 1000))
+    await new Promise(r => setTimeout(r, j.type === 'chat' ? 350 : 1000))  // chat streams; poll faster
   }
 }

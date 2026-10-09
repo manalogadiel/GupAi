@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Backdrop from './components/Backdrop'
 import Home from './pages/Home'
 import Customers from './pages/Customers'
 import Consult from './pages/Consult'
@@ -19,6 +20,10 @@ export default function App() {
     return () => window.removeEventListener('popstate', on)
   }, [])
 
+  return <><Backdrop />{route(path)}</>
+}
+
+function route(path: string) {
   if (path.startsWith('/dev/mascot')) return <MascotStates />
   if (path.startsWith('/phone')) return <Phone />
   const consult = path.match(/^\/consult\/([\w-]+)/)

@@ -1,10 +1,11 @@
 import { motion } from 'motion/react'
 import { useEffect, useState } from 'react'
-import { api, ApiError, type Consultation, type Health } from '../api'
+import { api, ApiError, type Health, type Stage } from '../api'
 import { navigate } from '../App'
 import Character from '../components/Character'
 import { ErrorLine, Header, Pill } from '../components/ui'
 
+const STAGE_TL: Partial<Record<Stage, string>> = { photos: 'kumukuha ng photo', goal: 'nag-uusap', reveal: 'reveal', sides: 'gilid', top: 'ibabaw', summary: 'final check', cutting: 'ginugupitan', done: 'rating' }
 const today = () => new Date().toLocaleDateString('fil-PH', { weekday: 'long', month: 'long', day: 'numeric' })
 
 function Readiness({ health, failed }: { health: Health | null; failed: boolean }) {
@@ -38,7 +39,7 @@ function ActionCard({ title, body, onClick, primary, disabled }: { title: string
 export default function Home() {
   const [health, setHealth] = useState<Health | null>(null)
   const [healthFailed, setHealthFailed] = useState(false)
-  const [active, setActive] = useState<Consultation | null>(null)
+  const [chairs, setChairs] = useState<Awaited<ReturnType<typeof api.activeList>>>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notBarber, setNotBarber] = useState(false)
@@ -46,7 +47,10 @@ export default function Home() {
   useEffect(() => {
     api.health().then(setHealth, () => setHealthFailed(true))
     // Barber screens only work on the laptop itself; a phone gets 403 here and sees join instructions instead.
-    api.activeConsultation().then(setActive, e => { if (e instanceof ApiError && e.status === 403) setNotBarber(true) })
+    const load = () => api.activeList().then(setChairs, e => { if (e instanceof ApiError && e.status === 403) setNotBarber(true) })
+    load()
+    const t = setInterval(load, 4000)  // other chairs move on while this screen is open
+    return () => clearInterval(t)
   }, [])
 
   async function startTemporary() {
@@ -72,7 +76,7 @@ export default function Home() {
         <section className="flex min-w-0 flex-col items-center text-center lg:items-start lg:text-left">
           <div className="relative mb-4 lg:-ml-6">
             <div aria-hidden className="absolute inset-x-6 bottom-2 h-6 rounded-[50%] bg-ink/10 blur-md" />
-            <Character state="idle" size={240} />
+            <Character state="idle" size={210} />
           </div>
           <p className="fade-up text-[15px] font-medium capitalize text-action">{today()}</p>
           <h1 className="fade-up mt-2 font-display text-[clamp(2.75rem,5.5vw,4.75rem)] [animation-delay:60ms]">
@@ -84,10 +88,23 @@ export default function Home() {
         </section>
 
         <section className="min-w-0 space-y-3">
-          {active && (
-            <ActionCard primary title={`Ituloy: ${active.customer?.display_name ?? 'temporary session'}`} body="May konsultang nakabukas pa" onClick={() => navigate(`/consult/${active.id}`)} />
+          {chairs.length > 0 && (
+            <div className="glass space-y-1 rounded-[var(--radius-sheet)] p-3">
+              <p className="px-2 pb-1 text-[14px] font-semibold text-ink-2">Mga upuang may konsulta</p>
+              {chairs.map(ch => (
+                <button key={ch.id} onClick={() => navigate(`/consult/${ch.id}`)}
+                  className="flex min-h-14 w-full items-center gap-3 rounded-[16px] px-3 text-left transition-colors hover:bg-surface active:scale-[0.99]">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-[12px] bg-action font-semibold text-on-action">{(ch.chair_label ?? 'U').replace(/\D/g, '') || '•'}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">{ch.chair_label ?? 'Upuan'} · {ch.customer?.display_name ?? 'Temporary'}</span>
+                    <span className="block text-[14px] capitalize text-ink-2">{STAGE_TL[ch.stage] ?? ch.stage}{ch.phone_paired ? ' · phone konektado' : ''}</span>
+                  </span>
+                  <span aria-hidden className="text-ink-2">→</span>
+                </button>
+              ))}
+            </div>
           )}
-          <ActionCard primary={!active} title="Customer: bago o suki" body="Hanapin ang suki o mag-save ng bagong customer" onClick={() => navigate('/customers')} />
+          <ActionCard primary title="Customer: bago o suki" body="Hanapin ang suki o mag-save ng bagong customer" onClick={() => navigate('/customers')} />
           <ActionCard title="Temporary na konsulta" body="Walang ise-save. Buburahin ang photos pagkatapos." disabled={busy} onClick={startTemporary} />
           <ErrorLine message={error} />
         </section>
