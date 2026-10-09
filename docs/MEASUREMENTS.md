@@ -45,3 +45,16 @@ Pending rows: real-photo observe, propose, transcribe (10 s Taglish), faceshape,
 
 **Takeaway:** generation speed (~11 tok/s on CPU) dominates. The demo should expect about 18 s for observations and about 28 s for options. The UI shows real elapsed seconds and a Cancel button.
 Pending: real-face photo, transcription (10 s Taglish clip), peak RAM.
+
+## Full UI click-through (laptop, Oct 9 22:20–22:45)
+Run in the browser through the real screens and backend: customer → typed Taglish concern → photo via the upload fallback → barber confirms and rejects observations → face shape chip → two options → select → customer and barber confirm (agreement v1) → complete and save as preferred → return visit "Same as last time".
+**Result:** complete journey works. Bugs found and fixed during the run:
+- an earlier "huwag galawin" was lost when a later message followed;
+- photo jobs queued behind option generation came back stale (now rerun once);
+- stage tabs jumped multiple steps (server allows one step at a time);
+- a stale AI reply stayed visible after options were cleared;
+- replies were cut off mid-word;
+- the "Keep: fringe" quick button didn't show as selected;
+- the customer name was missing on the detail panel.
+
+Timings in this run: propose ≈ 28–30 s; observe ≈ 18–24 s (queued behind propose).

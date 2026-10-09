@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, ApiError, type CustomerRow, type Visit } from '../api'
+import { api, ApiError, type CustomerRef, type CustomerRow, type Visit } from '../api'
 import { navigate } from '../App'
 import { Button, ErrorLine, Header, Sheet } from '../components/ui'
 
@@ -41,7 +41,7 @@ function NewCustomer({ onDone }: { onDone: (id: string) => void }) {
 }
 
 function CustomerDetail({ id }: { id: string }) {
-  const [data, setData] = useState<{ preferred: Visit | null; visits: Visit[] } | null>(null)
+  const [data, setData] = useState<{ customer: CustomerRef; preferred: Visit | null; visits: Visit[] } | null>(null)
   const [error, setError] = useState<string | null>(null)
   useEffect(() => { api.customer(id).then(setData, e => setError(e.message)) }, [id])
   async function start(fromVisit?: string) {
@@ -53,6 +53,7 @@ function CustomerDetail({ id }: { id: string }) {
   const p = data.preferred?.agreement.plan
   return (
     <div className="space-y-4">
+      <h2 className="text-xl font-semibold">{data.customer.display_name}{data.customer.nickname && <span className="font-normal text-ink-2"> “{data.customer.nickname}”</span>}</h2>
       {p ? (
         <div className="space-y-2 rounded-[var(--radius-control)] bg-subtle p-4">
           <p className="text-[14px] text-ink-2">Preferred haircut · {fmt(data.preferred!.completed_at)}</p>

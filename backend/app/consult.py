@@ -153,6 +153,9 @@ def _edit_list(state, field, op, value):
 def _invalidate_options(state):
     state["options"] = []
     state["selected_option_id"] = None
+    # The reply described the old options; leaving it would point at cards that are gone.
+    state["reply"] = None
+    state["next_question"] = None
 
 
 def apply_contribution(state, c, expected_revision):

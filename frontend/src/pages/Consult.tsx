@@ -28,7 +28,7 @@ const PROMPT: Record<string, string> = {
   completed: 'Tapos na ang konsulta.',
 }
 const QUICK: { field: 'keep' | 'change' | 'avoid'; value: string; label: string }[] = [
-  { field: 'keep', value: 'haba ng fringe', label: 'Keep: fringe' },
+  { field: 'keep', value: 'fringe', label: 'Keep: fringe' },
   { field: 'keep', value: 'haba sa ibabaw', label: 'Keep: haba sa ibabaw' },
   { field: 'change', value: 'mas maikli sa gilid', label: 'Change: mas maikli sa gilid' },
   { field: 'change', value: 'linisin ang likod', label: 'Change: linis sa likod' },
@@ -106,7 +106,19 @@ export default function Consult({ id }: { id: string }) {
   const faceForPhoto = results.faceshape ?? s.face_shape
   const proposed = s.observations.filter(o => o.status === 'proposed' || o.status === 'unconfirmed')
   const agreementReady = !!s.selected_option_id && s.conflicts.length === 0
-  const go = (stage: Stage) => f.contribute({ kind: 'stage', stage })
+  // The server moves one step at a time; walk there so a tab can jump several steps.
+  async function go(stage: Stage) {
+    const target = STEPS.findIndex(x => x.stage === stage)
+    let cur: Consultation = c!
+    try {
+      for (let i = 0; i < STEPS.length; i++) {
+        const at = STEPS.findIndex(x => x.stage === cur.stage)
+        if (at === target || at < 0) break
+        cur = await api.contribute(cur.id, { kind: 'stage', stage: STEPS[at + Math.sign(target - at)].stage }, cur.revision)
+      }
+    } catch (e) { h.setError(e instanceof ApiError ? e.message : 'Hindi nakalipat ng step.') }
+    h.refresh()
+  }
 
   return (
     <div className="min-h-dvh">
@@ -123,8 +135,8 @@ export default function Consult({ id }: { id: string }) {
 
       <nav aria-label="Steps" className="flex gap-1 overflow-x-auto border-b border-separator px-4 sm:px-8">
         {STEPS.map((x, i) => (
-          <button key={x.stage} onClick={() => go(x.stage)} aria-current={i === stepIndex ? 'step' : undefined}
-            className={`min-h-12 whitespace-nowrap border-b-2 px-3 text-[15px] ${i === stepIndex ? 'border-action font-semibold text-ink' : 'border-transparent text-ink-2 hover:text-ink'}`}>
+          <button key={x.stage} onClick={() => go(x.stage)} disabled={x.stage === 'cutting' || c.stage === 'cutting'} aria-current={i === stepIndex ? 'step' : undefined}
+            className={`min-h-12 whitespace-nowrap border-b-2 px-3 text-[15px] ${i === stepIndex ? 'border-action font-semibold text-ink' : 'border-transparent text-ink-2 hover:text-ink'} disabled:cursor-default disabled:hover:text-ink-2`}>
             {i + 1}. {x.label}
           </button>
         ))}

@@ -215,6 +215,15 @@ def build_options(raw_options, candidates, sources, shape, revision):
     return options[:2]
 
 
+def _whole_sentences(text) -> str | None:
+    """maxLength can cut the model mid-word ("...Kung gusto mo pa ng ibn"); keep only finished sentences."""
+    text = str(text or "").strip()
+    if not text or text[-1] in ".?!":
+        return text or None
+    cut = max(text.rfind(". "), text.rfind("? "), text.rfind("! "))
+    return text[:cut + 1] if cut > 0 else text.rsplit(" ", 1)[0] + "…"
+
+
 def propose(state: dict, new_texts: list[str]) -> dict:
     """Two local calls: (1) extract edits from new speech/typing, (2) choose options from styles that still fit."""
     catalog, sources = load_catalog()
@@ -254,8 +263,8 @@ def propose(state: dict, new_texts: list[str]) -> dict:
             continue
         options = build_options(out.get("options"), candidates, sources, shape, state.get("revision", 0))
         if options:
-            result.update(options=options, reply=str(out.get("reply") or "").strip()[:280] or None,
-                          next_question=str(out.get("next_question") or "").strip()[:160] or None,
+            result.update(options=options, reply=_whole_sentences(out.get("reply")),
+                          next_question=_whole_sentences(out.get("next_question")),
                           uncertainties=[str(u)[:100] for u in out.get("uncertainties", [])][:3])
             return result
     result["reply"] = "Hindi ako sigurado sa options. Ano ang pinakamahalagang hindi dapat magbago sa buhok mo?"
