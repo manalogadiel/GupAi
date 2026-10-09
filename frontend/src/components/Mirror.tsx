@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Button } from './ui'
+import { Button, Segmented } from './ui'
 
 type View = 'front' | 'side'
 
@@ -54,7 +54,7 @@ export default function Mirror({ onCapture, busy }: { onCapture: (b: Blob, view:
 
   return (
     <div className="space-y-3">
-      <div className="relative mx-auto aspect-[4/5] max-h-[64dvh] w-full overflow-hidden rounded-[var(--radius-mirror)] bg-subtle shadow-[var(--shadow-lift)] ring-8 ring-surface">
+      <div className="relative mx-auto aspect-[4/5] max-h-[56dvh] w-full overflow-hidden rounded-[var(--radius-mirror)] bg-subtle shadow-[var(--shadow-lift)] ring-8 ring-surface">
         <video ref={video} autoPlay playsInline muted
           className={`h-full w-full -scale-x-100 object-cover ${state === 'live' ? '' : 'hidden'}`} />
         {state !== 'live' && (
@@ -69,18 +69,12 @@ export default function Mirror({ onCapture, busy }: { onCapture: (b: Blob, view:
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div role="radiogroup" aria-label="Photo view" className="flex rounded-[var(--radius-control)] border border-boundary p-1">
-          {(['front', 'side'] as View[]).map(v => (
-            <button key={v} role="radio" aria-checked={view === v} onClick={() => setView(v)}
-              className={`min-h-10 rounded-[8px] px-4 text-[15px] ${view === v ? 'bg-action text-on-action' : 'text-ink'}`}>
-              {v === 'front' ? 'Harap' : 'Gilid'}
-            </button>
-          ))}
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Segmented id="view" label="Photo view" value={view} onChange={setView}
+          options={[{ value: 'front', label: 'Harap' }, { value: 'side', label: 'Gilid' }]} />
         {state === 'live'
-          ? <Button variant="primary" disabled={busy} onClick={captureLive}>Kunan ng photo</Button>
-          : <Button variant="primary" disabled={busy} onClick={() => fileInput.current?.click()}>Kumuha / pumili ng photo</Button>}
+          ? <Button variant="primary" className="rounded-full" disabled={busy} onClick={captureLive}>📸 Kunan ng photo</Button>
+          : <Button variant="primary" className="rounded-full" disabled={busy} onClick={() => fileInput.current?.click()}>📸 Kumuha ng photo</Button>}
         <input ref={fileInput} type="file" accept="image/*" capture="user" hidden
           onChange={e => { const f = e.target.files?.[0]; if (f) captureFile(f); e.target.value = '' }} />
       </div>
