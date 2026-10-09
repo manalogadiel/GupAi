@@ -7,7 +7,8 @@ set -euo pipefail
 ID="${1:?task id, e.g. C1}"; EXTRA="${2:-}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 mkdir -p "$ROOT/docs/agents"
-codex exec -C "$ROOT" --approve-for-me -m gpt-6.1-sol -c model_reasoning_effort="${EFFORT:-medium}" \
+# Hard limit: a C6 run hung 40+ min on a sandbox error and kept writing files after its shell was stopped.
+timeout --kill-after=30s "${LIMIT:-25m}" codex exec -C "$ROOT" --approve-for-me -m gpt-6.1-sol -c model_reasoning_effort="${EFFORT:-medium}" \
   -o "$ROOT/docs/agents/$ID.md" \
   "You are the Codex worker on GupAi. Read AGENTS.md, docs/PRD.md, docs/API.md and docs/TASKS.md.
 Do ONLY task $ID from docs/TASKS.md: set its status to doing, implement it within its Files column,
