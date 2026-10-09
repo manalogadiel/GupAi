@@ -31,3 +31,8 @@
                            C6 ──┘   (after C3 + C5)
 21:15  K1 ──► K2 ──► K3 ──► K4 ──► K5 ──► K6   (claude; frontend mocks API.md until the backend lands)
 ```
+
+## UI revamp (Oct 9 night)
+| ID | Owner | Status | Task | Files | Verify | Story |
+|---|---|---|---|---|---|---|
+| D1 | codex | todo | Animated vector barber mascot (see prompt) | `frontend/src/components/BarberMascot.tsx`, `frontend/src/dev/MascotStates.tsx` | `npm --prefix frontend run build` passes | UI |
