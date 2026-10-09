@@ -1,10 +1,10 @@
-"""Consultation creation, history prefill, and scoped polling (C2)."""
+"""Consultation creation, polling, contributions, agreements, and completion."""
 import json
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, ConfigDict
-from . import db
+from . import consult, db, media
 from .auth import require_barber, require_scope
 from .customers import agreement_dict
 from .errors import APIError
@@ -30,7 +30,7 @@ def consultation_dict(conn, row):
     photos = [{"id": photo["id"], "view": photo["view"], "url": "/api/media/" + photo["id"]}
               for photo in conn.execute("SELECT id, view FROM media WHERE consultation_id=? AND kind='photo' ORDER BY created_at, id", (cid,))]
     agreement = conn.execute("SELECT * FROM agreements WHERE consultation_id=? ORDER BY version DESC LIMIT 1", (cid,)).fetchone()
-    job = conn.execute("SELECT * FROM jobs WHERE consultation_id=? AND status IN ('queued','running') ORDER BY rowid LIMIT 1", (cid,)).fetchone()
+    job = conn.execute("SELECT * FROM jobs WHERE consultation_id=? AND status IN ('queued','running') ORDER BY rowid DESC LIMIT 1", (cid,)).fetchone()
     active_job = None
     if job:
         elapsed = 0.0
@@ -95,3 +95,118 @@ def get(consultation_id: str, request: Request):
     row = require_scope(consultation_id, request)
     with db.connect() as conn:
         return consultation_dict(conn, row)
+
+
+class ConfirmationInput(consult.Input):
+    role: consult.Speaker
+    barber_notes: str = ""
+    expected_revision: int
+
+
+class CompletionInput(consult.Input):
+    actual_notes: str
+    save_as_preferred: bool
+    keep_photos: bool
+
+
+def _state(row):
+    return {**json.loads(row["state_json"]), "revision": row["revision"],
+            "stage": row["stage"], "consultation_id": row["id"]}
+
+
+def _save_state(conn, cid, state):
+    value = {key: item for key, item in state.items() if key not in ("stage", "consultation_id")}
+    conn.execute("UPDATE consultations SET revision=?, stage=?, state_json=? WHERE id=?",
+                 (state["revision"], state["stage"], json.dumps(value), cid))
+
+
+def _write(consultation_id, request, action, payload):
+    """Scope and replay checks occur under the same lock as every C3 write."""
+    key = request.headers.get("Idempotency-Key", "")
+    if not key.strip() or len(key) > 128:
+        raise APIError("invalid_input", "An Idempotency-Key of 1-128 characters is required.")
+    event_id = consult._id([consultation_id, "idempotency", key])
+    cleanup = []
+    with db.connect() as conn:
+        # shortcut: one chair, SQLite write lock; revisit if multiple chairs are added.
+        conn.execute("BEGIN IMMEDIATE")
+        require_scope(consultation_id, request)
+        row = conn.execute("SELECT * FROM consultations WHERE id=?", (consultation_id,)).fetchone()
+        event = conn.execute("SELECT text FROM contributions WHERE id=? AND consultation_id=?", (event_id, consultation_id)).fetchone()
+        if event:
+            saved = json.loads(event["text"])
+            if saved["action"] != action or saved["payload"] != payload:
+                raise APIError("invalid_input", "Use a new Idempotency-Key for a different request.")
+            response = saved["response"]
+            if action == "complete":
+                cleanup = list(conn.execute("SELECT * FROM media WHERE consultation_id=? AND keep=0", (consultation_id,)))
+        else:
+            if row["status"] != "active":
+                raise APIError("not_found", "Active consultation not found.")
+            now = datetime.now(timezone.utc).isoformat()
+            speaker, input_type = "barber", "chip"
+            if action == "contribution":
+                contribution = {name: value for name, value in payload.items() if name != "expected_revision"}
+                out = consult.apply_contribution(_state(row), contribution, payload.get("expected_revision"))
+                _save_state(conn, consultation_id, out)
+                # Confirmed versions are immutable; edits invalidate only pending drafts.
+                conn.execute("DELETE FROM agreements WHERE consultation_id=? AND (customer_confirmed_at IS NULL OR barber_confirmed_at IS NULL)", (consultation_id,))
+                speaker = contribution.get("speaker", "barber")
+                input_type = contribution.get("input_type", contribution["kind"])
+                # C6 consumes real typed/voice text, including its original negation.
+                text = contribution["text"] if contribution["kind"] == "text" else json.dumps(contribution)
+                conn.execute("INSERT INTO contributions VALUES (?,?,?,?,?,?)", (consult._id([event_id, "input"]),
+                    consultation_id, speaker, input_type, text, now))
+            elif action == "confirm":
+                agreement = conn.execute("SELECT * FROM agreements WHERE consultation_id=? ORDER BY version DESC LIMIT 1", (consultation_id,)).fetchone()
+                out, draft = consult.confirm_agreement(_state(row), agreement_dict(agreement) if agreement else None,
+                    payload["role"], payload["barber_notes"], payload["expected_revision"], now)
+                conn.execute("INSERT INTO agreements VALUES (?,?,?,?,?,?) ON CONFLICT(consultation_id,version) DO UPDATE SET "
+                    "plan_json=excluded.plan_json, customer_confirmed_at=excluded.customer_confirmed_at, barber_confirmed_at=excluded.barber_confirmed_at "
+                    "WHERE agreements.customer_confirmed_at IS NULL OR agreements.barber_confirmed_at IS NULL",
+                    (draft["id"], consultation_id, draft["version"], json.dumps(draft["plan"]), draft["customer_confirmed_at"], draft["barber_confirmed_at"]))
+                _save_state(conn, consultation_id, out)
+                speaker = payload["role"]
+            else:
+                response, cleanup = consult.complete_visit(conn, row, payload["actual_notes"], payload["save_as_preferred"], payload["keep_photos"], now)
+            if action != "complete":
+                response = consultation_dict(conn, conn.execute("SELECT * FROM consultations WHERE id=?", (consultation_id,)).fetchone())
+            # shortcut: durable replay envelopes use stage bookkeeping rows in the
+            # existing contributions table (C6 should read typed/voice input rows);
+            # give idempotency its own table if schema v2 or multiple chairs are needed.
+            conn.execute("INSERT INTO contributions VALUES (?,?,?,?,?,?)", (event_id, consultation_id, "barber", "stage",
+                json.dumps({"action": action, "payload": payload, "response": response}), now))
+    # shortcut: filesystem deletion cannot share SQLite's transaction. Keep unkept
+    # rows until deletion succeeds, so the same completion key retries cleanup.
+    for item in cleanup:
+        try:
+            media.delete_media(item["id"])
+        except OSError:
+            raise APIError("invalid_input", "Visit saved, but media cleanup failed. Retry the same completion request.", retryable=True) from None
+    return response
+
+
+@router.post("/{consultation_id}/contributions")
+def contribute(consultation_id: str, request: Request, body: dict):
+    require_scope(consultation_id, request)
+    contribution = consult.validate_contribution({name: value for name, value in body.items() if name != "expected_revision"})
+    if contribution["kind"] in {"observation", "observation_add", "face_shape", "stage"}:
+        require_barber(request)
+    return _write(consultation_id, request, "contribution", body)
+
+
+@router.post("/{consultation_id}/agreements/confirm")
+def confirm(consultation_id: str, request: Request, body: ConfirmationInput):
+    require_scope(consultation_id, request)
+    if body.role == "barber" or body.barber_notes:
+        require_barber(request)
+    if len(body.barber_notes) > 4000:
+        raise APIError("invalid_input", "Cutting notes are too long.")
+    return _write(consultation_id, request, "confirm", body.model_dump())
+
+
+@router.post("/{consultation_id}/complete", dependencies=[Depends(require_barber)])
+def complete(consultation_id: str, request: Request, body: CompletionInput):
+    if len(body.actual_notes) > 4000:
+        raise APIError("invalid_input", "Actual cut notes are too long.")
+    return _write(consultation_id, request, "complete", body.model_dump())
