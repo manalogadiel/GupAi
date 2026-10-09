@@ -80,7 +80,7 @@ interface Job { id: string; type: "transcribe" | "observe" | "faceshape" | "prop
 | 6 | GET | `/api/consultations/active` | B | — | Consultation \| `null` |
 | 7 | GET | `/api/consultations/{id}` | P | — | Consultation (polled every 1.5 s) |
 | 8 | POST | `/api/consultations/{id}/pair` | B | — | `{ url, qr_png_data_url, expires_at }` (code: 128-bit, single use, 10 min) |
-| 9 | GET | `/pair?code=` | any | — | Sets cookie, **302 → `/phone`**; `410 pair_expired` page on a bad or used code |
+| 9 | GET | `/pair?code=` | any | — | Sets cookie, **302 → `/phone?c=<consultation_id>`** (the id alone grants nothing without the cookie); `410 pair_expired` page on a bad or used code |
 | 10 | POST | `/api/consultations/{id}/contributions` | P | `Contribution` (below) + `expected_revision` | Consultation (revision + 1) |
 | 11 | POST | `/api/consultations/{id}/media` | P | multipart: `file`, `kind`=`photo`\|`audio`, `view`=`front`\|`side` (photo) | `{ id, kind, view, url }` |
 | 12 | POST | `/api/consultations/{id}/jobs` | P | `{ type, media_id?, expected_revision }` | Job (queued) |

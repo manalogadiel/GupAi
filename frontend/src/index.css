@@ -1,0 +1,43 @@
+@import "tailwindcss";
+@import "@fontsource-variable/figtree";
+
+/* GupAi tokens (PRD §9). Flat, cream and ink, deep green action. Light theme only for the hackathon. */
+@theme {
+  --font-sans: "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
+  --color-canvas: #F6F3EC;
+  --color-surface: #FFFDFA;
+  --color-subtle: #EAE5DA;
+  --color-ink: #252821;
+  --color-ink-2: #5A5C54;      /* darkened from #62645C so it stays ≥4.5:1 on subtle */
+  --color-action: #365846;
+  --color-action-hover: #2C4A3A;
+  --color-on-action: #FFFFFF;
+  --color-separator: #D8D2C6;
+  --color-boundary: #77796F;
+  --color-focus: #285EAE;
+  --color-error: #A52B2B;
+  --radius-control: 10px;
+  --radius-sheet: 16px;
+  --radius-mirror: 28px;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-tap-highlight-color: transparent;
+}
+#root { min-height: 100dvh; }
+
+:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+button, a, [role="button"] { touch-action: manipulation; }
+input, textarea, select { font-size: 16px; } /* stops iOS zoom on focus */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
