@@ -79,6 +79,9 @@ def synthesize(text):
     # shortcut: short consultation turns only; use streaming audio for long narration.
     if not text or len(text) > 600:
         raise APIError("invalid_input", "Masyadong mahaba o walang laman ang sasabihin.")
+    cached = _cache.get(text)
+    if cached is not None:
+        return cached
     if not _lock.acquire(timeout=45):
         raise APIError("in_use", "Nagsasalita pa ang lokal na boses.", retryable=True)
     try:
@@ -90,7 +93,7 @@ def synthesize(text):
         import torch
         with torch.inference_mode(), torch.random.fork_rng(devices=[]):
             torch.manual_seed(42)
-            audio = model.generate(text=text, language="fil", voice_clone_prompt=_voice_prompt, num_step=8)[0]
+            audio = model.generate(text=text, language="fil", voice_clone_prompt=_voice_prompt, num_step=4)[0]
         frames = (np.clip(audio, -1, 1) * 32767).astype("<i2").tobytes()
         output = io.BytesIO()
         with wave.open(output, "wb") as wav:

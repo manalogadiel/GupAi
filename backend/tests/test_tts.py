@@ -122,3 +122,14 @@ def test_synthesis_uses_fixed_reference_and_reuses_audio(monkeypatch):
     second = tts.synthesize("Magandang umaga!")
     assert first == second
     assert len(calls) == 1
+
+
+def test_cached_audio_does_not_wait_for_busy_model(monkeypatch):
+    from backend.app import tts
+    from collections import OrderedDict
+    monkeypatch.setattr(tts, '_cache', OrderedDict({'Kumusta': b'cached-wav'}))
+    class BusyLock:
+        def acquire(self, **kwargs):
+            raise AssertionError('Cached speech must not wait for inference')
+    monkeypatch.setattr(tts, '_lock', BusyLock())
+    assert tts.synthesize('Kumusta') == b'cached-wav'
