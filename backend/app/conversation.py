@@ -1,7 +1,7 @@
 """Evidence-backed customer brief and JSON reply streaming; no network or database I/O."""
 import json
 
-FIELDS=('problem_detail','occasion','desired_impression','change_level','styling_minutes','maintenance_preference','dress_rules','inspiration')
+FIELDS=('problem_detail','occasion','desired_cut','desired_impression','change_level','styling_minutes','maintenance_preference','dress_rules','inspiration')
 VERBATIM=('problem_detail','dress_rules','maintenance_preference','inspiration')
 def brief_defaults():
     return {**{field:None for field in FIELDS},'desired_impression':[],'evidence':[]}
@@ -28,12 +28,15 @@ def validate_brief_updates(updates, source_turns):
     return valid
 
 def next_slot(brief, problems):
-    """Kuya Gup's interview agenda: problem, purpose, impression, routine, then keep/avoid."""
+    """Kuya Gup's interview agenda: problem, occasion, the cut they want, routine. Then the scan."""
     if not problems and not brief.get('problem_detail'): return 'problem'
     if not brief.get('occasion'): return 'occasion'
-    if not brief.get('desired_impression'): return 'desired_impression'
+    if not brief.get('desired_cut'): return 'desired_cut'
     if brief.get('styling_minutes') is None: return 'styling_minutes'
-    return 'keep_avoid'
+    return 'done'
+
+def interview_complete(brief, problems):
+    return next_slot(brief, problems)=='done'
 
 def merge_brief(brief, updates):
     out={**brief_defaults(),**(brief or {})}
@@ -76,6 +79,17 @@ def reply_prefix(buffer):
     return ''
 
 
+def _cut_pattern():
+    """Every catalog cut name, plus everyday words, longest first so 'low fade' beats 'fade'."""
+    import re
+    from pathlib import Path
+    parts=json.loads((Path(__file__).resolve().parents[2]/'knowledge/parts.json').read_text(encoding='utf-8-sig'))
+    names={o['id'].replace('_',' ') for g in parts.values() for o in g}
+    names|={re.sub(r"\s*\(.*\)","",o['name']).casefold() for g in parts.values() for o in g}
+    names|={'fade','kalbo','semi-kalbo','crew cut','mohawk','mullet'}
+    return r"\b(?:"+"|".join(re.escape(n) for n in sorted(names,key=len,reverse=True))+r")\b"
+CUT_PATTERN=_cut_pattern()
+
 def explicit_brief_updates(turns):
     """Recover stated facts only, never map an occasion to a haircut."""
     import re
@@ -83,12 +97,23 @@ def explicit_brief_updates(turns):
     for turn in turns:
         if turn.get('speaker')!='customer': continue
         text=turn['text']
-        for match in re.finditer(r"\b(school|work|birthday|interview|everyday)\b",text,re.I):
+        if re.search(r"\bwala(?:ng| naman)?\s+(?:naman\s+)?problema",text,re.I):
+            updates.append({'field':'problem_detail','value':'wala','source_text':'wala'})
+        for match in re.finditer(r"\b(school|eskwela|work|trabaho|opisina|birthday|kasal|party|date|graduation|interview|everyday|araw-araw)\b",text,re.I):
             before=text[max(0,match.start()-25):match.start()].casefold()
             if re.search(r"(?:hindi|not|ayaw|no)\b[^.!?]*$",before): continue
             updates.append({'field':'occasion','value':match.group().casefold(),'source_text':match.group()})
         for match in re.finditer(r"\b(\d{1,2})\s*(?:minutes?|mins?|minuto)\b",text,re.I):
             updates.append({'field':'styling_minutes','value':int(match.group(1)),'source_text':match.group()})
+        if re.search(r"\b(?:hilamos lang|hindi ako nag-?aayos|walang ayos)\b",text,re.I):
+            phrase=re.search(r"hilamos lang|hindi ako nag-?aayos|walang ayos",text,re.I).group()
+            updates.append({'field':'styling_minutes','value':0,'source_text':phrase})
+        cuts=[m.group() for m in re.finditer(CUT_PATTERN,text,re.I)]
+        if cuts:
+            updates.append({'field':'desired_cut','value':', '.join(dict.fromkeys(c.casefold() for c in cuts)),'source_text':cuts[0]})
+        elif re.search(r"\b(?:bahala (?:ka|na)|ikaw na(?:ng)? bahala|kahit ano|wala pa(?:ng)? (?:naiisip|plano))",text,re.I):
+            phrase=re.search(r"bahala (?:ka|na)|ikaw na(?:ng)? bahala|kahit ano|wala pa(?:ng)? (?:naiisip|plano)",text,re.I).group()
+            updates.append({'field':'desired_cut','value':'bahala si Kuya Gup','source_text':phrase})
         match=re.search(r"(?:gusto ko|want(?: a)?)\s+(?:na\s+)?([^.!?,]{1,60}?)\s+(?:look|tingnan|dating)\b",text,re.I)
         if match: updates.append({'field':'desired_impression','value':match.group(1).strip(),'source_text':match.group()})
     latest={update['field']:update for update in updates}

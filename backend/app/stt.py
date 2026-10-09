@@ -30,6 +30,12 @@ def _load():
     return _model
 
 
+# Primes Whisper with the words customers actually say in a barbershop (Taglish + cut names).
+VOCAB = ("Kuya Gup, gupit, gilid, ibabaw, likod, patilya, bangs, umaalsa, pumupuff, puyo, makapal, manipis, "
+         "low fade, mid fade, high fade, skin fade, taper, undercut, two block, textured crop, side part, "
+         "wax, pomade, school, trabaho, kasal, minuto, bahala ka na.")
+
+
 def _decode_audio(path: Path):
     """Use public PyAV APIs; v19 removed faster-whisper's metadata_errors argument."""
     import av
@@ -51,7 +57,8 @@ def transcribe(path: Path) -> dict:
     model = _load()
     try:
         # shortcut: fixed Tagalog decoding handles Taglish better than auto-detect in our samples; re-test per release.
-        segments, info = model.transcribe(_decode_audio(path), language="tl", beam_size=1, vad_filter=True)
+        segments, info = model.transcribe(_decode_audio(path), language="tl", beam_size=3, vad_filter=True,
+                                          initial_prompt=VOCAB)
         text = " ".join(s.text.strip() for s in segments).strip()
     except Exception as exc:  # corrupt or video-only container
         raise APIError("invalid_input", "Hindi mabasa ang recording. Subukan ulit o mag-type.") from exc

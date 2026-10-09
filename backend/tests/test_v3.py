@@ -35,16 +35,60 @@ def test_problem_detail_is_a_quoted_customer_fact():
     assert validate_brief_updates([{"field": "problem_detail", "value": "balding", "source_text": "lalo sa umaga"}], turns) == []
 
 
-def test_interview_asks_problem_then_purpose_then_impression_then_routine():
+def test_interview_asks_problem_then_occasion_then_cut_then_routine():
+    from backend.app.conversation import interview_complete
     brief = brief_defaults()
     assert next_slot(brief, []) == "problem"
     assert next_slot(brief, ["puffy_sides"]) == "occasion"
     brief["occasion"] = "school"
-    assert next_slot(brief, ["puffy_sides"]) == "desired_impression"
-    brief["desired_impression"] = ["malinis"]
+    assert next_slot(brief, ["puffy_sides"]) == "desired_cut"
+    brief["desired_cut"] = "low fade"
     assert next_slot(brief, ["puffy_sides"]) == "styling_minutes"
-    brief["styling_minutes"] = 5
-    assert next_slot(brief, ["puffy_sides"]) == "keep_avoid"
+    assert not interview_complete(brief, ["puffy_sides"])
+    brief["styling_minutes"] = 0
+    assert next_slot(brief, ["puffy_sides"]) == "done" and interview_complete(brief, ["puffy_sides"])
+
+
+def test_answers_are_captured_without_the_model():
+    from backend.app.conversation import explicit_brief_updates
+    def capture(text):
+        return {u["field"]: u["value"] for u in explicit_brief_updates([{"id": "a", "speaker": "customer", "text": text}])}
+    assert capture("Wala naman problema sa buhok ko.")["problem_detail"] == "wala"
+    assert capture("Para sa trabaho.")["occasion"] == "trabaho"
+    assert capture("May kasal ako sa Sabado.")["occasion"] == "kasal"
+    assert "occasion" not in capture("Hindi para sa trabaho.")
+    assert capture("Gusto ko ng two block tapos low fade.")["desired_cut"] == "two block, low fade"
+    assert capture("Bahala ka na, Kuya.")["desired_cut"] == "bahala si Kuya Gup"
+    assert capture("Hilamos lang ako.")["styling_minutes"] == 0
+
+
+def test_complete_interview_closes_and_sends_to_the_scan(monkeypatch):
+    state = {**consult.empty_state(), "stage": "goal", "problems": ["puffy_sides"]}
+    state["brief"] = {**brief_defaults(), "occasion": "school", "desired_cut": "low fade"}
+    state["chat"] = [{"role": "customer", "text": "10 minuto lang ako mag-ayos."}]
+    monkeypatch.setattr(ai, "stream_json", lambda *a, **k: {"reply": "Ayos! May iba pa?", "brief_updates": [], "proposed_changes": []})
+    out = ai.chat_reply(state, ["10 minuto lang ako mag-ayos."], lambda t: None)
+    assert out["reply"].endswith(ai.CLOSING) and "10 minuto" in out["reply"]
+
+
+def test_named_cut_leads_the_suggestions():
+    state = consult.empty_state()
+    state["brief"] = {**brief_defaults(), "desired_cut": "burst fade"}
+    assert ai.shortlist_parts(ai.load_parts()["sides"], state)[0]["id"] == "burst_fade"
+
+
+def test_transcription_is_primed_with_barber_vocabulary(monkeypatch, tmp_path):
+    from backend.app import stt
+    seen = {}
+    class Model:
+        def transcribe(self, audio, **kw):
+            seen.update(kw)
+            class Info: language = "tl"
+            return [type("S", (), {"text": " low fade sa gilid"})()], Info()
+    monkeypatch.setattr(stt, "_load", lambda: Model())
+    monkeypatch.setattr(stt, "_decode_audio", lambda path: [0.0])
+    assert stt.transcribe(tmp_path / "x.wav")["text"] == "low fade sa gilid"
+    assert "gilid" in seen["initial_prompt"] and seen["beam_size"] == 3
 
 
 def test_opener_greets_and_asks_problem_without_a_model_call(monkeypatch):
@@ -124,7 +168,7 @@ def test_repeated_reply_and_answered_question_are_replaced(monkeypatch):
     monkeypatch.setattr(ai, "stream_json", fake)
     out = ai.chat_reply(state, [state["chat"][3]["text"]], lambda t: None)
     assert out["reply"] != state["chat"][2]["text"] and "Para saan" not in out["reply"]
-    assert out["reply"].endswith(ai.SLOT_QUESTIONS["keep_avoid"])
+    assert out["reply"].endswith(ai.SLOT_QUESTIONS["desired_cut"])
     # earlier Kuya Gup replies are not handed back to the model to copy
     assert all(t.get("role") != "ai" for t in seen[0]["history"])
 

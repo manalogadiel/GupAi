@@ -431,20 +431,28 @@ OPENERS = {
 SLOT_HINTS = {
     "problem": "ask what bothers them about their hair now (umaalsa, mahirap i-style, puyo, flat, mabilis humaba, noo)",
     "occasion": "ask what the haircut is for: school, work, an event, or everyday",
-    "desired_impression": "ask what look or dating they want people to notice (malinis, pormal, astig, bata tingnan)",
+    "desired_cut": "ask if they have a specific haircut in mind (name, photo or reference); if not, offer to choose for them",
     "styling_minutes": "ask how many minutes they spend fixing their hair daily and whether they use wax or pomade",
-    "keep_avoid": "ask if there is anything they want kept or avoided (fringe, haba sa taas, ayaw makita ang anit)",
+    "done": "everything needed is known; acknowledge their last answer warmly",
 }
 SLOT_QUESTIONS = {
     "problem": "Ano ang pinaka-ayaw mo sa buhok mo ngayon?",
     "occasion": "Para saan ang gupit na ito: school, work, o may okasyon?",
-    "desired_impression": "Anong dating ang gusto mong makita ng iba?",
+    "desired_cut": "May specific ka bang gupit na gusto, o picture? Kung wala, ako na ang bahala.",
     "styling_minutes": "Ilang minuto ka nag-aayos ng buhok araw-araw?",
-    "keep_avoid": "May gusto ka bang iwan o iwasan sa gupit?",
 }
+CLOSING = "Kumpleto na ang kwento natin! Tara, i-scan natin ang mukha at buhok mo."
+_ACK = {"problem_detail": lambda v: "walang problema" if v == "wala" else f"“{v}”", "occasion": lambda v: f"para sa {v}",
+        "desired_cut": lambda v: v, "styling_minutes": lambda v: "walang ayos araw-araw" if v == 0 else f"{v} minuto sa pag-aayos"}
 
 
-_ASKED = {"problem": r"problema", "occasion": r"para saan|school, work", "desired_impression": r"anong dating|anong look",
+def _ack(updates):
+    """A short acknowledgement built from what the customer just told us, never a canned repeat."""
+    parts = [_ACK[u["field"]](u["value"]) for u in updates if u["field"] in _ACK]
+    return "Noted: " + ", ".join(parts) + "." if parts else "Sige, noted."
+
+
+_ASKED = {"problem": r"problema", "occasion": r"para saan|school, work", "desired_cut": r"anong gupit|specific na gupit",
           "styling_minutes": r"ilang minuto"}
 
 
@@ -454,7 +462,7 @@ def _repeats(reply, state, brief, problems):
     if any(SequenceMatcher(None, reply, t["text"]).ratio() > 0.8 for t in state.get("chat", []) if t.get("role") == "ai"):
         return True
     filled = {"problem": bool(problems or brief.get("problem_detail")), "occasion": bool(brief.get("occasion")),
-              "desired_impression": bool(brief.get("desired_impression")), "styling_minutes": brief.get("styling_minutes") is not None}
+              "desired_cut": bool(brief.get("desired_cut")), "styling_minutes": brief.get("styling_minutes") is not None}
     return any(filled[slot] and re.search(rx, reply, re.I) for slot, rx in _ASKED.items())
 
 
@@ -505,9 +513,11 @@ def chat_reply(state: dict, new_texts: list[str], on_token) -> dict:
     updates += [u for u in explicit if u['field'] not in present]
     current_brief=merge_brief(brief,updates)
     slot_now=next_slot(current_brief,problems)
-    if _repeats(reply,state,current_brief,problems):
-        reply='Sige, noted.'; on_token('\n')
-    if '?' not in reply:
+    if slot_now=='done':  # everything is known: close deterministically so the app can move to the scan
+        reply=_ack(updates)+' '+CLOSING; on_token('\n')
+    elif _repeats(reply,state,current_brief,problems):
+        reply=_ack(updates); on_token('\n')
+    if '?' not in reply and slot_now!='done':
         question=SLOT_QUESTIONS[slot_now]
         reply+=' '+question; on_token(' '+question)
     changes=out.get('proposed_changes',[])
@@ -650,6 +660,9 @@ def _fit_score(option, state):
     score = _FACE_SCORE.get(((option.get("face_shape_fit") or {}).get(shape) or {}).get("fit"), 0) if shape else 0
     score += sum(_PART_FIT.get(((option.get("problem_fit") or {}).get(p) or {}).get("fit"), 0) for p in state.get("problems") or [])
     score += sum(_HAIR_SCORE.get(((option.get("hair_fit") or {}).get(k) or {}).get("fit"), 0) for k in _hair_keys(_hair(state)))
+    wanted = ((state.get("brief") or {}).get("desired_cut") or "").casefold()
+    if wanted and (option["id"].replace("_", " ") in wanted or re.sub(r"\s*\(.*\)", "", option["name"]).casefold() in wanted):
+        score += 3  # the cut the customer asked for leads; fit still orders the rest
     return score
 
 

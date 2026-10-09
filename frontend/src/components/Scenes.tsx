@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CatalogItem, Consultation, Part, PartOption, ProblemId, Stage } from '../api'
 import { cutName, useCatalog } from '../catalog'
+import { setEnabled, speak, ttsAvailable, useSpeaking, useTtsEnabled } from '../speech'
 import type { flow } from '../flow'
 import type { useConsultation } from '../useConsultation'
 import BarberMascot from './BarberMascot'
@@ -59,9 +60,20 @@ const PROBLEM_SAY: Record<ProblemId, string> = {
 const shared = { type: 'spring', stiffness: 380, damping: 32 } as const
 const PART_TL: Record<Part, string> = { sides: 'gilid', top: 'ibabaw' }
 
-export function moodOf(c: Consultation, h: Hook, recording: boolean): CharacterState {
+/** Kuya Gup's interview agenda (mirrors backend conversation.next_slot): what he still needs to ask. */
+export type Slot = 'problem' | 'occasion' | 'desired_cut' | 'styling_minutes' | 'done'
+export function interviewSlot(c: Consultation): Slot {
+  const b = c.state.brief
+  if (!(c.state.problems ?? []).length && !b?.problem_detail) return 'problem'
+  if (!b?.occasion) return 'occasion'
+  if (!b?.desired_cut) return 'desired_cut'
+  if (b?.styling_minutes == null) return 'styling_minutes'
+  return 'done'
+}
+
+export function moodOf(c: Consultation, h: Hook, recording: boolean, speaking = false): CharacterState {
   if (recording || h.chatJob?.type === 'transcribe') return 'listening'
-  if (h.chatJob?.type === 'chat' && h.chatJob.partial_text) return 'talking'
+  if (speaking || (h.chatJob?.type === 'chat' && h.chatJob.partial_text)) return 'talking'
   if (h.runningJob) return 'thinking'
   const agreed = !!(c.agreement?.customer_confirmed_at && c.agreement?.barber_confirmed_at)
   return agreed || c.stage === 'done' ? 'happy' : 'idle'
@@ -83,6 +95,7 @@ function Memory({ c }: { c: Consultation }) {
   const rows: { icon: IconName; label: string; value: string | null }[] = [
     { icon: 'warning', label: 'Problema', value: [...(s.problems ?? []).map(p => PROBLEM_LABEL[p]), b?.problem_detail ? `“${b.problem_detail}”` : ''].filter(Boolean).join(' · ') || null },
     { icon: 'star', label: 'Para saan', value: b?.occasion ?? null },
+    { icon: 'scissors', label: 'Gusto na gupit', value: b?.desired_cut ?? null },
     { icon: 'sparkle', label: 'Dating', value: b?.desired_impression?.join(', ') || null },
     { icon: 'refresh', label: 'Routine', value: b?.styling_minutes != null ? `${b.styling_minutes} minuto mag-ayos` : null },
     { icon: 'face', label: 'Mukha', value: shape ? SHAPE_INFO[shape].name + (s.face_shape?.confirmed ? '' : ' (tantya)') : null },
@@ -110,7 +123,7 @@ function Memory({ c }: { c: Consultation }) {
 }
 
 export function BarberPanel({ c, h, compact, recording }: SceneProps & { recording: boolean }) {
-  const mood = moodOf(c, h, recording)
+  const mood = moodOf(c, h, recording, useSpeaking())
   const backgroundJob = h.jobs.find(j => j.type !== 'chat' && j.type !== 'transcribe') ?? null
   if (compact) {
     return (
@@ -157,9 +170,24 @@ function ChatThread({ c, f, h, compact, quickReplies, placeholder, narrow }: Sce
   const job = h.chatJob
   const streaming = job?.type === 'chat' ? job.partial_text ?? '' : null
   const end = useRef<HTMLDivElement>(null)
+  const speaking = useSpeaking()
+  const tts = useTtsEnabled()
   useEffect(() => { end.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }) }, [turns.length, streaming])
+  // Speak each new Kuya Gup turn, never the history already on screen when the page opened.
+  const spoken = useRef(turns.length)
+  useEffect(() => {
+    const last = turns.at(-1)
+    if (turns.length > spoken.current && last?.role === 'ai') speak(last.text)
+    spoken.current = turns.length
+  }, [turns])
   return (
-    <Card className={`flex h-full min-h-0 flex-col ${compact ? 'p-2.5' : 'p-4'}`}>
+    <Card className={`relative flex h-full min-h-0 flex-col ${compact ? 'p-2.5' : 'p-4'}`}>
+      {ttsAvailable && (
+        <button type="button" onClick={() => setEnabled(!tts)} aria-pressed={tts} aria-label={tts ? 'I-mute si Kuya Gup' : 'Pasalitain si Kuya Gup'}
+          className="absolute right-3 top-3 z-10 grid size-9 place-items-center rounded-full bg-surface text-ink-2 shadow-[var(--shadow-card)] hover:text-ink">
+          <Icon name={tts ? 'volume' : 'mute'} size={18} />
+        </button>
+      )}
       <div className="scroll-col min-h-0 flex-1 space-y-3 overflow-y-auto px-1 pb-2" aria-live="polite">
         {turns.map((t, i) => <Bubble key={i} role={t.role} text={t.text} />)}
         {streaming !== null && <Bubble role="ai" text={streaming} streaming />}
@@ -168,7 +196,7 @@ function ChatThread({ c, f, h, compact, quickReplies, placeholder, narrow }: Sce
         <div ref={end} />
       </div>
       {quickReplies && <div className="flex shrink-0 flex-wrap gap-1.5 pb-2">{quickReplies}</div>}
-      <div className="shrink-0"><Talk onSend={t => f.say(t)} onVoice={f.voice} busy={!!h.chatJob} placeholder={placeholder} micSize={compact || narrow ? 50 : 58} stacked={narrow} /></div>
+      <div className="shrink-0"><Talk onSend={t => f.say(t)} onVoice={f.voice} busy={!!h.chatJob || speaking} placeholder={placeholder} micSize={compact || narrow ? 50 : 58} stacked={narrow} /></div>
     </Card>
   )
 }
@@ -232,11 +260,14 @@ export function GoalScene(props: SceneProps) {
   useEffect(() => {
     if (role === 'barber' && !asked.current && !(c.state.chat ?? []).length && !props.h.chatJob) { asked.current = true; void f.opener() }
   }, [role, c.state.chat, f, props.h.chatJob])
-  const problems = c.state.problems ?? []
-  const early = (c.state.chat ?? []).filter(t => t.role !== 'ai').length < 2
-  const quick = early ? (Object.keys(PROBLEM_LABEL) as ProblemId[]).filter(p => !problems.includes(p)).map(p => (
-    <Chip key={p} className="min-h-9 px-3 text-[13px]" onClick={() => f.say(PROBLEM_SAY[p])}>{PROBLEM_LABEL[p]}</Chip>
-  )) : null
+  const slot = interviewSlot(c)
+  const chip = (label: string, say: string) => <Chip key={label} className="min-h-9 px-3 text-[13px]" disabled={!!props.h.chatJob} onClick={() => f.say(say)}>{label}</Chip>
+  // One-tap answers for the question Kuya Gup is asking now; each phrase is captured by the backend without the model.
+  const quick = slot === 'problem' ? [...(Object.keys(PROBLEM_LABEL) as ProblemId[]).map(p => chip(PROBLEM_LABEL[p], PROBLEM_SAY[p])), chip('Wala naman problema', 'Wala naman problema sa buhok ko.')]
+    : slot === 'occasion' ? [chip('School', 'Para sa school.'), chip('Trabaho', 'Para sa trabaho.'), chip('May okasyon', 'May party ako.'), chip('Araw-araw', 'Para sa araw-araw lang.')]
+    : slot === 'desired_cut' ? [chip('Low fade', 'Gusto ko ng low fade.'), chip('Taper', 'Gusto ko ng taper.'), chip('Two block', 'Gusto ko ng two block.'), chip('Bahala na si Kuya Gup', 'Bahala ka na, Kuya.')]
+    : slot === 'styling_minutes' ? [chip('Hilamos lang', 'Hilamos lang ako.'), chip('5 minuto', '5 minuto lang ako mag-ayos.'), chip('10 minuto', '10 minuto ako mag-ayos.'), chip('15+ minuto', '15 minuto ako mag-ayos.')]
+    : null
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
       <div className="min-h-0 flex-1"><ChatThread {...props} quickReplies={quick} placeholder="Sagutin si Kuya Gup…" /></div>
@@ -273,10 +304,9 @@ export function RevealScene({ c, f, h, role, compact }: SceneProps) {
   return (
     <div className={`grid h-full min-h-0 gap-4 ${compact ? 'grid-rows-[auto_1fr]' : 'grid-cols-[0.9fr_1.1fr]'}`}>
       {front && (
-        <Card className={`relative min-h-0 overflow-hidden ${compact ? 'p-2' : 'grid place-items-center p-4'}`}>
+        <Card className={`relative flex min-h-0 flex-col items-center justify-center overflow-hidden ${compact ? 'p-2' : 'p-4'}`}>
           <div className={`relative ${compact ? 'phone-face' : ''}`}>
-            <Photo src={front.url} label="Harap" face={face} />
-            {scanning && <div aria-hidden className="scan-line pointer-events-none absolute inset-x-0 top-0 h-full" />}
+            <Photo src={front.url} label="Harap" face={face} scanning={scanning} />
           </div>
           {scanning && <p className="mt-2 flex items-center gap-2 text-[14px] text-action"><Icon name="sparkle" size={16} /> Sinusuri ang buhok…</p>}
         </Card>

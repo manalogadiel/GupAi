@@ -33,7 +33,7 @@ export interface Option {
   stays: string[]; changes: string[]; effort: Effort; needs_barber_check: string[]
   face_shape_note: string | null; source_ids: string[]
 }
-export interface Brief { problem_detail?:string|null; occasion:string|null; desired_impression:string[]; change_level:string|null; styling_minutes:number|null; maintenance_preference:string|null; dress_rules:string|null; inspiration:string|null; evidence:{field:string;source_text:string}[] }
+export interface Brief { problem_detail?:string|null; occasion:string|null; desired_cut?:string|null; desired_impression:string[]; change_level:string|null; styling_minutes:number|null; maintenance_preference:string|null; dress_rules:string|null; inspiration:string|null; evidence:{field:string;source_text:string}[] }
 export interface ConsultState {
   brief?: Brief
   hair_profile?: { suggested: Hair | null; confirmed: Hair | null } | null

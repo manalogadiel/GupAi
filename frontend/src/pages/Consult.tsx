@@ -1,22 +1,24 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api, ApiError, type Consultation, type Stage } from '../api'
 import { navigate } from '../App'
-import { BarberPanel, Scene, STEPS } from '../components/Scenes'
+import { BarberPanel, interviewSlot, Scene, STEPS } from '../components/Scenes'
 import Icon from '../components/Icon'
 import { Button, ErrorLine } from '../components/ui'
 import Wordmark from '../components/Wordmark'
 import { flow } from '../flow'
+import { useSpeaking } from '../speech'
 import { useConsultation } from '../useConsultation'
 
 const ORDER = STEPS.map(s => s.stage)
 
 /** What must be true before the barber can move forward from each stage (mirrors the server gates). */
-function blocker(c: Consultation): string | null {
+// shortcut: the interview gate is client-side (only the barber laptop can change stage); add a server check if other clients gain stage control.
+function blocker(c: Consultation, skipped: boolean): string | null {
   const s = c.state
   switch (c.stage) {
     case 'photos': return ['front', 'side'].every(v => c.photos.some(p => p.view === v)) ? null : 'Kumuha muna ng harap at gilid na photo.'
-    case 'goal': return c.active_job ? 'Hintayin o i-cancel muna ang pagsusuri.' : null
+    case 'goal': return c.active_job ? 'Hintayin o i-cancel muna ang pagsusuri.' : interviewSlot(c) !== 'done' && !skipped ? 'Sagutin muna ang mga tanong ni Kuya Gup.' : null
     case 'reveal': return !s.revealed ? 'I-reveal muna ang resulta.' : null
     case 'sides': return s.sides?.choice ? null : 'Pumili o mag-type muna ng gusto sa gilid.'
     case 'top': return s.top?.choice ? null : 'Pumili o mag-type muna ng gusto sa ibabaw.'
@@ -52,12 +54,22 @@ export default function Consult({ id }: { id: string }) {
   const { c } = h
   const [dir, setDir] = useState(1)
   const completion = useRef<{ payload: string; key: string } | null>(null)
+  const [skipped, setSkipped] = useState(false)
+  const speaking = useSpeaking()
+  // Interview complete → Kuya Gup has said his closing line → go to the scan on his own.
+  const ready = c?.stage === 'goal' && interviewSlot(c) === 'done' && !h.chatJob && !speaking
+  const advanced = useRef(false)
+  useEffect(() => {
+    if (!ready || advanced.current) return
+    const t = setTimeout(() => { advanced.current = true; setDir(1); void flow(c!.id, h).go('reveal') }, 1200)
+    return () => clearTimeout(t)
+  }, [ready]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!c) return <main className="grid min-h-dvh place-items-center text-ink-2">{h.error ?? 'Loading consultation…'}</main>
 
   const f = flow(c.id, h)
   const at = Math.max(0, ORDER.indexOf(c.stage))
-  const block = blocker(c)
+  const block = blocker(c, skipped)
   const go = (stage: Stage) => { setDir(ORDER.indexOf(stage) >= at ? 1 : -1); f.go(stage) }
   const canStep = (i: number) => c.stage !== 'cutting' && c.stage !== 'done' && i <= ORDER.indexOf('summary') && (i < at || (i === at + 1 && !block))
   const chair = (c as Consultation & { chair_label?: string | null }).chair_label
@@ -107,7 +119,9 @@ export default function Consult({ id }: { id: string }) {
           {at <= ORDER.indexOf('summary') && (
             <div className="flex items-center justify-between gap-3">
               <Button variant="quiet" className="rounded-full" disabled={at === 0} onClick={() => go(ORDER[at - 1])}><Icon name="left" size={18} /> Bumalik</Button>
-              {block && <p className="text-[14px] text-ink-2">{block}</p>}
+              {block && <p className="text-[14px] text-ink-2">{block}{c.stage === 'goal' && interviewSlot(c) !== 'done' && (
+                <> · <button type="button" className="underline decoration-dotted underline-offset-2 hover:text-ink" onClick={() => setSkipped(true)}>Laktawan</button></>
+              )}</p>}
               {c.stage !== 'summary' && (
                 <Button variant="primary" className="rounded-full px-6" disabled={!!block} onClick={() => go(ORDER[at + 1])}>Susunod: {STEPS[at + 1].label} <Icon name="right" size={18} /></Button>
               )}
