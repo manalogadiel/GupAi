@@ -27,10 +27,26 @@ export default function Home() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const [notBarber, setNotBarber] = useState(false)
+
   useEffect(() => {
     api.health().then(setHealth, () => setHealthFailed(true))
-    api.activeConsultation().then(setActive, () => {})
+    // Barber screens only work on the laptop itself; a phone gets 403 here and sees join instructions instead.
+    api.activeConsultation().then(setActive, e => { if (e instanceof ApiError && e.status === 403) setNotBarber(true) })
   }, [])
+
+  if (notBarber) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-5 p-8 text-center">
+        <Mascot size={72} />
+        <h1 className="text-2xl font-semibold">Para sa customer ang phone na ito</h1>
+        <p className="max-w-[34ch] text-lg text-ink-2">
+          I-scan ang QR code na ipapakita ng barbero sa laptop para makasali sa konsulta.
+        </p>
+        <p className="max-w-[34ch] text-[14px] text-ink-2">Ang listahan ng customers ay makikita lang sa laptop ng barbero.</p>
+      </div>
+    )
+  }
 
   async function startTemporary() {
     setBusy(true); setError(null)
