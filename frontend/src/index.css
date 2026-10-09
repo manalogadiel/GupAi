@@ -73,3 +73,6 @@ input, textarea, select { font-size: 16px; } /* stops iOS zoom on focus */
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
   .draw-on { stroke-dashoffset: 0; }
 }
+
+/* Laptop app frame: columns scroll on their own with a quiet scrollbar. */
+.scroll-col { scrollbar-width: thin; scrollbar-color: var(--color-separator) transparent; }

@@ -10,8 +10,8 @@ export default function Photo({ src, label, face }: { src: string; label: string
   const outline = face?.face_found ? face.outline : null
   return (
     <figure className="space-y-2">
-      <div className="relative overflow-hidden rounded-[var(--radius-sheet)] bg-subtle shadow-[var(--shadow-card)]">
-        <img src={src} alt={`${label} photo of the customer`} className="block h-auto w-full" />
+      <div className="relative mx-auto w-fit max-w-full overflow-hidden rounded-[var(--radius-sheet)] bg-subtle shadow-[var(--shadow-card)]">
+        <img src={src} alt={`${label} photo of the customer`} className="block h-auto max-h-[42dvh] w-auto max-w-full" />
         {outline && outline.length > 2 && (
           <svg viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden className="pointer-events-none absolute inset-0 h-full w-full">
             <polygon pathLength={1} className="draw-on" points={outline.map(([x, y]) => `${x},${y}`).join(' ')}

@@ -126,7 +126,7 @@ export default function Consult({ id }: { id: string }) {
   const mood: CharacterState = recording ? 'listening' : busy ? 'thinking' : agreed ? 'happy' : 'idle'
 
   return (
-    <div className="min-h-dvh pb-10">
+    <div className="min-h-dvh pb-10 lg:flex lg:h-dvh lg:flex-col lg:overflow-hidden lg:pb-0">
       <Header
         sub={<span className="hidden sm:inline">{c.customer ? c.customer.display_name : 'Temporary session'} · {c.customer ? 'saved customer' : 'walang ise-save'}</span>}
         right={<>
@@ -152,14 +152,14 @@ export default function Consult({ id }: { id: string }) {
         </ol>
       </nav>
 
-      <main className="mx-auto grid max-w-[1440px] gap-6 px-4 pt-6 sm:px-8 lg:grid-cols-12">
+      <main className="mx-auto grid w-full max-w-[1440px] gap-6 px-4 pt-5 sm:px-8 lg:min-h-0 lg:flex-1 lg:grid-cols-12">
         {/* Prompt column */}
-        <section className="min-w-0 space-y-5 lg:col-span-4">
+        <section className="scroll-col min-w-0 space-y-5 lg:col-span-4 lg:overflow-y-auto lg:pb-6 lg:pr-1">
           <div className="flex items-end gap-3">
-            <Character state={mood} size={96} />
+            <Character state={mood} size={84} />
             <AnimatePresence mode="wait">
               <motion.h1 key={c.stage} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
-                className="pb-2 font-display text-[clamp(1.9rem,2.6vw,2.6rem)]">{PROMPT[c.stage]}</motion.h1>
+                className="pb-2 font-display text-[clamp(1.75rem,2.3vw,2.4rem)]">{PROMPT[c.stage]}</motion.h1>
             </AnimatePresence>
           </div>
           <AnimatePresence>
@@ -211,7 +211,7 @@ export default function Consult({ id }: { id: string }) {
         </section>
 
         {/* Mirror column */}
-        <section className="min-w-0 space-y-5 lg:col-span-5">
+        <section className="scroll-col min-w-0 space-y-5 lg:col-span-5 lg:overflow-y-auto lg:pb-0">
           {(c.stage === 'concern' || c.stage === 'photos') && !c.phone_paired && <Mirror onCapture={f.photo} busy={busy} />}
           {(c.stage === 'concern' || c.stage === 'photos') && c.phone_paired && !front && !side && (
             <div className="grid aspect-[4/3] place-items-center rounded-[var(--radius-mirror)] bg-subtle p-8 text-center">
@@ -253,7 +253,7 @@ export default function Consult({ id }: { id: string }) {
           )}
           {c.stage === 'cutting' && <Sheet><CompleteForm c={c} /></Sheet>}
 
-          <div className="flex justify-between gap-2 pt-1">
+          <div className="flex justify-between gap-2 bg-canvas/90 py-3 backdrop-blur-sm lg:sticky lg:bottom-0">
             <Button variant="quiet" disabled={stepIndex === 0} onClick={() => go(STEPS[stepIndex - 1].stage)}>← Bumalik</Button>
             {stepIndex < STEPS.length - 2 && (
               <Button variant="primary" onClick={() => go(STEPS[stepIndex + 1].stage)}>Susunod: {STEPS[stepIndex + 1].label} →</Button>
@@ -262,7 +262,7 @@ export default function Consult({ id }: { id: string }) {
         </section>
 
         {/* Agreement column */}
-        <aside className="min-w-0 space-y-5 lg:col-span-3">
+        <aside className="scroll-col min-w-0 space-y-5 lg:col-span-3 lg:overflow-y-auto lg:pb-6">
           <Sheet className="relative overflow-hidden"><AgreementSummary c={c} /></Sheet>
           {c.stage === 'agreement' && (
             <Sheet className="space-y-3">
