@@ -1,0 +1,858 @@
+{
+  "sides": [
+    {
+      "id": "skin_fade",
+      "name": "Skin fade",
+      "pros": [
+        "May feel less bulky",
+        "May give strong contrast"
+      ],
+      "cons": [
+        "Regrowth may show quickly",
+        "Exposes more of the side outline"
+      ],
+      "maintenance": "Book regular touch-ups if you want to keep the close contrast.",
+      "face_shape_fit": {
+        "oval": {
+          "fit": "suggested",
+          "note": "Tidy sides are commonly suggested for oval faces because many outlines can work if a close finish is wanted; customer preference comes first."
+        },
+        "round": {
+          "fit": "suggested",
+          "note": "Close sides are commonly suggested for round faces because they may emphasize top height if a longer-looking outline is wanted; customer preference comes first."
+        },
+        "square": {
+          "fit": "suggested",
+          "note": "Classic short sides are commonly suggested for square faces because they can echo the jawline if a defined outline is wanted; customer preference comes first."
+        },
+        "oblong": {
+          "fit": "care",
+          "note": "Side fullness is commonly suggested for oblong faces because it may limit apparent length, while sources disagree on side width and very short sides so the barber should check this close finish; customer preference comes first."
+        },
+        "heart": {
+          "fit": "care",
+          "note": "Some side fullness is commonly suggested for heart faces because it may soften the contrast with a wider forehead if that is the goal; customer preference comes first."
+        },
+        "diamond": {
+          "fit": "care",
+          "note": "Lower side fullness is commonly suggested for diamond faces because it may balance cheekbone width, which very close sides can emphasize; customer preference comes first."
+        }
+      },
+      "problem_fit": {
+        "puffy_sides": {
+          "fit": "helps",
+          "note": "Very close sides may reduce visible puffiness if you want that outline."
+        },
+        "cowlick": {
+          "fit": "neutral",
+          "note": "A sides-only choice may not change a crown cowlick; ask the barber to check its location and growth direction."
+        },
+        "hard_to_style": {
+          "fit": "helps",
+          "note": "Less side bulk may simplify daily styling if the top also suits your routine."
+        },
+        "grows_fast": {
+          "fit": "worse",
+          "note": "Fast growth may make a close outline look less distinct sooner; discuss how often you want a trim."
+        },
+        "flat_top": {
+          "fit": "neutral",
+          "note": "Changing the sides may alter contrast but does not create top lift on its own."
+        },
+        "wide_forehead": {
+          "fit": "neutral",
+          "note": "A sides-only choice does not add forehead coverage; discuss top and fringe separately."
+        }
+      },
+      "source_ids": [
+        "opentextbc_consultation",
+        "pall_mall_face_shapes",
+        "manual_face_shapes",
+        "gentlemans_gazette_face_shapes"
+      ]
+    },
+    {
+      "id": "low_fade",
+      "name": "Low fade",
+      "pros": [
+        "May reduce lower-side bulk",
+        "Keeps more fullness above"
+      ],
+      "cons": [
+        "Fade may need touch-ups",
+        "Upper sides may still feel bulky"
+      ],
+      "maintenance": "Ask for touch-ups when the low blend grows out beyond your preferred outline.",
+      "face_shape_fit": {
+        "oval": {
+          "fit": "suggested",
+          "note": "Tidy sides are commonly suggested for oval faces because many outlines can work if a close finish is wanted; customer preference comes first."
+        },
+        "round": {
+          "fit": "suggested",
+          "note": "Close sides are commonly suggested for round faces because they may emphasize top height if a longer-looking outline is wanted; customer preference comes first."
+        },
+        "square": {
+          "fit": "suggested",
+          "note": "Classic short sides are commonly suggested for square faces because they can echo the jawline if a defined outline is wanted; customer preference comes first."
+        },
+        "oblong": {
+          "fit": "care",
+          "note": "Side fullness is commonly suggested for oblong faces because it may limit apparent length, while sources disagree on side width and very short sides so the barber should check this close finish; customer preference comes first."
+        },
+        "heart": {
+          "fit": "care",
+          "note": "Some side fullness is commonly suggested for heart faces because it may soften the contrast with a wider forehead if that is the goal; customer preference comes first."
+        },
+        "diamond": {
+          "fit": "care",
+          "note": "Lower side fullness is commonly suggested for diamond faces because it may balance cheekbone width, which very close sides can emphasize; customer preference comes first."
+        }
+      },
+      "problem_fit": {
+        "puffy_sides": {
+          "fit": "helps",
+          "note": "A low fade may reduce lower puffiness, but upper-side bulk needs a barber check."
+        },
+        "cowlick": {
+          "fit": "neutral",
+          "note": "A sides-only choice may not change a crown cowlick; ask the barber to check its location and growth direction."
+        },
+        "hard_to_style": {
+          "fit": "helps",
+          "note": "Less side bulk may simplify daily styling if the top also suits your routine."
+        },
+        "grows_fast": {
+          "fit": "worse",
+          "note": "Fast growth may make a close outline look less distinct sooner; discuss how often you want a trim."
+        },
+        "flat_top": {
+          "fit": "neutral",
+          "note": "Changing the sides may alter contrast but does not create top lift on its own."
+        },
+        "wide_forehead": {
+          "fit": "neutral",
+          "note": "A sides-only choice does not add forehead coverage; discuss top and fringe separately."
+        }
+      },
+      "source_ids": [
+        "opentextbc_consultation",
+        "pall_mall_face_shapes",
+        "manual_face_shapes",
+        "gentlemans_gazette_face_shapes"
+      ]
+    },
+    {
+      "id": "mid_fade",
+      "name": "Mid fade",
+      "pros": [
+        "May reduce side bulk",
+        "May define the top contrast"
+      ],
+      "cons": [
+        "Regrowth may change the blend",
+        "Removes more side fullness"
+      ],
+      "maintenance": "Plan regular touch-ups if you want the mid-level blend to stay distinct.",
+      "face_shape_fit": {
+        "oval": {
+          "fit": "suggested",
+          "note": "Tidy sides are commonly suggested for oval faces because many outlines can work if a close finish is wanted; customer preference comes first."
+        },
+        "round": {
+          "fit": "suggested",
+          "note": "Close sides are commonly suggested for round faces because they may emphasize top height if a longer-looking outline is wanted; customer preference comes first."
+        },
+        "square": {
+          "fit": "suggested",
+          "note": "Classic short sides are commonly suggested for square faces because they can echo the jawline if a defined outline is wanted; customer preference comes first."
+        },
+        "oblong": {
+          "fit": "care",
+          "note": "Side fullness is commonly suggested for oblong faces because it may limit apparent length, while sources disagree on side width and very short sides so the barber should check this close finish; customer preference comes first."
+        },
+        "heart": {
+          "fit": "care",
+          "note": "Some side fullness is commonly suggested for heart faces because it may soften the contrast with a wider forehead if that is the goal; customer preference comes first."
+        },
+        "diamond": {
+          "fit": "care",
+          "note": "Lower side fullness is commonly suggested for diamond faces because it may balance cheekbone width, which very close sides can emphasize; customer preference comes first."
+        }
+      },
+      "problem_fit": {
+        "puffy_sides": {
+          "fit": "helps",
+          "note": "A mid fade may reduce side puffiness if the barber confirms where the bulk sits."
+        },
+        "cowlick": {
+          "fit": "neutral",
+          "note": "A sides-only choice may not change a crown cowlick; ask the barber to check its location and growth direction."
+        },
+        "hard_to_style": {
+          "fit": "helps",
+          "note": "Less side bulk may simplify daily styling if the top also suits your routine."
+        },
+        "grows_fast": {
+          "fit": "worse",
+          "note": "Fast growth may make a close outline look less distinct sooner; discuss how often you want a trim."
+        },
+        "flat_top": {
+          "fit": "neutral",
+          "note": "Changing the sides may alter contrast but does not create top lift on its own."
+        },
+        "wide_forehead": {
+          "fit": "neutral",
+          "note": "A sides-only choice does not add forehead coverage; discuss top and fringe separately."
+        }
+      },
+      "source_ids": [
+        "opentextbc_consultation",
+        "pall_mall_face_shapes",
+        "manual_face_shapes",
+        "gentlemans_gazette_face_shapes"
+      ]
+    },
+    {
+      "id": "taper",
+      "name": "Taper",
+      "pros": [
+        "May tidy the edges",
+        "Keeps side fullness"
+      ],
+      "cons": [
+        "May leave upper-side bulk",
+        "Edges may grow out quickly"
+      ],
+      "maintenance": "Refresh the edges when needed if you want the taper to stay tidy.",
+      "face_shape_fit": {
+        "oval": {
+          "fit": "suggested",
+          "note": "Soft side shaping is commonly suggested for oval faces because many outlines can work if some fullness is wanted; customer preference comes first."
+        },
+        "round": {
+          "fit": "neutral",
+          "note": "Controlled side width is commonly suggested for round faces because excess fullness may add apparent width, so the barber can adjust this softer finish; customer preference comes first."
+        },
+        "square": {
+          "fit": "suggested",
+          "note": "Soft side shaping is commonly suggested for square faces because it may soften the outline if that is wanted; customer preference comes first."
+        },
+        "oblong": {
+          "fit": "suggested",
+          "note": "Side fullness is commonly suggested for oblong faces because it may limit apparent length, while sources disagree on side width and very short sides so the barber should check the balance; customer preference comes first."
+        },
+        "heart": {
+          "fit": "suggested",
+          "note": "Some side fullness is commonly suggested for heart faces because it may soften the contrast with a wider forehead if that is the goal; customer preference comes first."
+        },
+        "diamond": {
+          "fit": "suggested",
+          "note": "Lower side fullness is commonly suggested for diamond faces because it may balance cheekbone width if that is the goal; customer preference comes first."
+        }
+      },
+      "problem_fit": {
+        "puffy_sides": {
+          "fit": "neutral",
+          "note": "A taper may tidy the edges while leaving upper-side puffiness; ask where bulk should stay."
+        },
+        "cowlick": {
+          "fit": "neutral",
+          "note": "A taper may leave a cowlick unchanged; ask the barber to follow its growth direction."
+        },
+        "hard_to_style": {
+          "fit": "helps",
+          "note": "Tidy edges with retained fullness may simplify styling if the existing shape works for you."
+        },
+        "grows_fast": {
+          "fit": "neutral",
+          "note": "Retained fullness may make regrowth less abrupt, but edges may still need touch-ups."
+        },
+        "flat_top": {
+          "fit": "neutral",
+          "note": "A taper does not add top lift; discuss the top separately."
+        },
+        "wide_forehead": {
+          "fit": "neutral",
+          "note": "A taper does not add forehead coverage; discuss fringe separately."
+        }
+      },
+      "source_ids": [
+        "opentextbc_consultation",
+        "pall_mall_face_shapes",
+        "manual_face_shapes",
+        "gentlemans_gazette_face_shapes"
+      ]
+    },
+    {
+      "id": "scissor_over_comb",
+      "name": "Gunting lang (scissor-over-comb)",
+      "pros": [
+        "May soften the outline",
+        "Allows selective bulk shaping"
+      ],
+      "cons": [
+        "May need daily shaping",
+        "Can leave more side fullness"
+      ],
+      "maintenance": "Comb as needed and trim when the retained side shape becomes harder to manage.",
+      "face_shape_fit": {
+        "oval": {
+          "fit": "suggested",
+          "note": "Soft side shaping is commonly suggested for oval faces because many outlines can work if some fullness is wanted; customer preference comes first."
+        },
+        "round": {
+          "fit": "neutral",
+          "note": "Controlled side width is commonly suggested for round faces because excess fullness may add apparent width, so the barber can adjust this softer finish; customer preference comes first."
+        },
+        "square": {
+          "fit": "suggested",
+          "note": "Soft side shaping is commonly suggested for square faces because it may soften the outline if that is wanted; customer preference comes first."
+        },
+        "oblong": {
+          "fit": "suggested",
+          "note": "Side fullness is commonly suggested for oblong faces because it may limit apparent length, while sources disagree on side width and very short sides so the barber should check the balance; customer preference comes first."
+        },
+        "heart": {
+          "fit": "suggested",
+          "note": "Some side fullness is commonly suggested for heart faces because it may soften the contrast with a wider forehead if that is the goal; customer preference comes first."
+        },
+        "diamond": {
+          "fit": "suggested",
+          "note": "Lower side fullness is commonly suggested for diamond faces because it may balance cheekbone width if that is the goal; customer preference comes first."
+        }
+      },
+      "problem_fit": {
+        "puffy_sides": {
+          "fit": "helps",
+          "note": "Selective scissor shaping may reduce puffiness while keeping wanted fullness; ask the barber to check growth direction."
+        },
+        "cowlick": {
+          "fit": "helps",
+          "note": "Retained length may help a side cowlick lie with its growth direction, but too little length may make it stick out."
+        },
+        "hard_to_style": {
+          "fit": "neutral",
+          "note": "A softer side shape may still need combing depending on texture and length."
+        },
+        "grows_fast": {
+          "fit": "helps",
+          "note": "A softer outline may make regrowth less obvious if you prefer fewer sharp transitions."
+        },
+        "flat_top": {
+          "fit": "neutral",
+          "note": "Side shaping does not create top lift; discuss the top separately."
+        },
+        "wide_forehead": {
+          "fit": "neutral",
+          "note": "Side shaping does not add forehead coverage; discuss fringe separately."
+        }
+      },
+      "source_ids": [
+        "opentextbc_consultation",
+        "pall_mall_face_shapes",
+        "manual_face_shapes",
+        "gentlemans_gazette_face_shapes"
+      ]
+    },
+    {
+      "id": "uniform",
+      "name": "Pantay ang sides (uniform)",
+      "pros": [
+        "May give an even outline",
+        "May need little side styling"
+      ],
+      "cons": [
+        "May expose growth direction",
+        "No gradual fade contrast"
+      ],
+      "maintenance": "Trim when the even side length grows beyond the outline you want.",
+      "face_shape_fit": {
+        "oval": {
+          "fit": "suggested",
+          "note": "Tidy sides are commonly suggested for oval faces because many outlines can work if a close finish is wanted; customer preference comes first."
+        },
+        "round": {
+          "fit": "suggested",
+          "note": "Close sides are commonly suggested for round faces because they may emphasize top height if a longer-looking outline is wanted; customer preference comes first."
+        },
+        "square": {
+          "fit": "suggested",
+          "note": "Classic short sides are commonly suggested for square faces because they can echo the jawline if a defined outline is wanted; customer preference comes first."
+        },
+        "oblong": {
+          "fit": "care",
+          "note": "Side fullness is commonly suggested for oblong faces because it may limit apparent length, while sources disagree on side width and very short sides so the barber should check this close finish; customer preference comes first."
+        },
+        "heart": {
+          "fit": "care",
+          "note": "Some side fullness is commonly suggested for heart faces because it may soften the contrast with a wider forehead if that is the goal; customer preference comes first."
+        },
+        "diamond": {
+          "fit": "care",
+          "note": "Lower side fullness is commonly suggested for diamond faces because it may balance cheekbone width, which very close sides can emphasize; customer preference comes first."
+        }
+      },
+      "problem_fit": {
+        "puffy_sides": {
+          "fit": "helps",
+          "note": "An even short length may reduce puffiness if the barber checks how the sides stand at that length."
+        },
+        "cowlick": {
+          "fit": "neutral",
+          "note": "An even cut may expose a side cowlick or leave it standing; ask the barber to check the chosen length."
+        },
+        "hard_to_style": {
+          "fit": "helps",
+          "note": "An even short side length may need little styling if it follows your growth pattern."
+        },
+        "grows_fast": {
+          "fit": "neutral",
+          "note": "Regrowth may look even but the outline can still need regular trims."
+        },
+        "flat_top": {
+          "fit": "neutral",
+          "note": "Even sides do not add top lift; discuss the top separately."
+        },
+        "wide_forehead": {
+          "fit": "neutral",
+          "note": "Even sides do not add forehead coverage; discuss fringe separately."
+        }
+      },
+      "source_ids": [
+        "opentextbc_consultation",
+        "pall_mall_face_shapes",
+        "manual_face_shapes",
+        "gentlemans_gazette_face_shapes"
+      ]
+    }
+  ],
+  "top": [
+    {
+      "id": "textured_crop",
+      "name": "Textured crop",
+      "pros": [
+        "May give soft texture",
+        "Fringe may cover the forehead"
+      ],
+      "cons": [
+        "Texture may need product",
+        "Needs enough fringe length"
+      ],
+      "maintenance": "Shape the texture as needed and trim when the fringe reaches an unwanted length.",
+      "face_shape_fit": {
+        "oval": {
+          "fit": "suggested",
+          "note": "Textured crop is commonly suggested for oval faces only if it matches your goal because many outlines can work if a textured finish is wanted; customer preference comes first."
+        },
+        "round": {
+          "fit": "suggested",
+          "note": "Textured crop is commonly suggested for round faces only if it matches your goal because texture with some lift may add apparent length if that is the goal; customer preference comes first."
+        },
+        "square": {
+          "fit": "suggested",
+          "note": "Textured crop is commonly suggested for square faces only if it matches your goal because texture may soften a defined jawline if that is wanted; customer preference comes first."
+        },
+        "oblong": {
+          "fit": "suggested",
+          "note": "Textured crop is commonly suggested for oblong faces only if it matches your goal because a low top and fringe may limit apparent length if that is the goal, while sources disagree on side width and very short sides so the barber should check the combined outline; customer preference comes first."
+        },
+        "heart": {
+          "fit": "suggested",
+          "note": "Textured crop is commonly suggested for heart faces only if it matches your goal because a fringe may soften forehead width if enough length is available; customer preference comes first."
+        },
+        "diamond": {
+          "fit": "suggested",
+          "note": "Textured crop is commonly suggested for diamond faces only if it matches your goal because a fringe may add apparent forehead width if that is wanted; customer preference comes first."
+        }
+      },
+      "problem_fit": {
+        "puffy_sides": {
+          "fit": "neutral",
+          "note": "A top crop does not remove side puffiness; choose the sides separately."
+        },
+        "cowlick": {
+          "fit": "neutral",
+          "note": "Texture may blend a cowlick, but shortening against its growth may make it stand; ask the barber to check."
+        },
+        "hard_to_style": {
+          "fit": "helps",
+          "note": "A short textured top may simplify styling if your texture settles with little product."
+        },
+        "grows_fast": {
+          "fit": "neutral",
+          "note": "Short texture may grow out evenly, but fringe coverage can change between trims."
+        },
+        "flat_top": {
+          "fit": "helps",
+          "note": "Textured lift may make the top look less flat if enough length and styling time are available."
+        },
+        "wide_forehead": {
+          "fit": "helps",
+          "note": "A forward fringe may add forehead coverage if that is wanted and enough length is available."
+        }
+      },
+      "source_ids": [
+        "opentextbc_consultation",
+        "pall_mall_face_shapes",
+        "manual_face_shapes",
+        "gentlemans_gazette_face_shapes"
+      ]
+    },
+    {
+      "id": "side_part",
+      "name": "Side part",
+      "pros": [
+        "May give a clear direction",
+        "Can keep a soft sweep"
+      ],
+      "cons": [
+        "May need daily combing",
+        "Part may fight growth direction"
+      ],
+      "maintenance": "Comb along the agreed part as needed and trim when the sweep becomes hard to manage.",
+      "face_shape_fit": {
+        "oval": {
+          "fit": "suggested",
+          "note": "Side part is commonly suggested for oval faces only if it matches your goal because many outlines can work if a parted finish is wanted; customer preference comes first."
+        },
+        "round": {
+          "fit": "suggested",
+          "note": "Side part is commonly suggested for round faces only if it matches your goal because a diagonal part and modest lift may add angles if that is the goal; customer preference comes first."
+        },
+        "square": {
+          "fit": "suggested",
+          "note": "Side part is commonly suggested for square faces only if it matches your goal because a classic parted outline may complement a defined jawline if that is wanted; customer preference comes first."
+        },
+        "oblong": {
+          "fit": "suggested",
+          "note": "Side part is commonly suggested for oblong faces only if it matches your goal because a low part with side fullness may limit apparent length if that is the goal, while sources disagree on side width and very short sides so the barber should check the combined outline; customer preference comes first."
+        },
+        "heart": {
+          "fit": "suggested",
+          "note": "Side part is commonly suggested for heart faces only if it matches your goal because a soft sweep may soften forehead width if enough length is available; customer preference comes first."
+        },
+        "diamond": {
+          "fit": "neutral",
+          "note": "Side part is commonly suggested for diamond faces only if it matches your goal because a soft sweep may add forehead width if the part does not remove too much fullness; customer preference comes first."
+        }
+      },
+      "problem_fit": {
+        "puffy_sides": {
+          "fit": "neutral",
+          "note": "A top part does not remove side puffiness; choose the sides separately."
+        },
+        "cowlick": {
+          "fit": "helps",
+          "note": "A part following the natural cowlick may be easier to arrange; the barber should check its direction."
+        },
+        "hard_to_style": {
+          "fit": "neutral",
+          "note": "A side part may need daily combing or product depending on texture."
+        },
+        "grows_fast": {
+          "fit": "neutral",
+          "note": "A longer sweep may tolerate some regrowth, but the part can become harder to keep."
+        },
+        "flat_top": {
+          "fit": "helps",
+          "note": "A lifted sweep may add apparent top volume if enough length and styling time are available."
+        },
+        "wide_forehead": {
+          "fit": "helps",
+          "note": "A soft sweep may give partial forehead coverage if that is wanted."
+        }
+      },
+      "source_ids": [
+        "opentextbc_consultation",
+        "pall_mall_face_shapes",
+        "manual_face_shapes",
+        "gentlemans_gazette_face_shapes"
+      ]
+    },
+    {
+      "id": "quiff",
+      "name": "Quiff (angat sa harap)",
+      "pros": [
+        "May add top height",
+        "May create a lifted front"
+      ],
+      "cons": [
+        "May need daily styling",
+        "Opens up the forehead"
+      ],
+      "maintenance": "Restyle the lift as needed and trim when the front becomes too heavy to hold.",
+      "face_shape_fit": {
+        "oval": {
+          "fit": "suggested",
+          "note": "Quiff (angat sa harap) is commonly suggested for oval faces only if it matches your goal because many outlines can work if top height is wanted; customer preference comes first."
+        },
+        "round": {
+          "fit": "suggested",
+          "note": "Quiff (angat sa harap) is commonly suggested for round faces only if it matches your goal because top height may add apparent length if that is the goal; customer preference comes first."
+        },
+        "square": {
+          "fit": "suggested",
+          "note": "Quiff (angat sa harap) is commonly suggested for square faces only if it matches your goal because lift with texture may soften the outline if that is wanted; customer preference comes first."
+        },
+        "oblong": {
+          "fit": "care",
+          "note": "Quiff (angat sa harap) is commonly suggested for oblong faces only if it matches your goal because a low top is commonly preferred when extra apparent length is unwanted, so a tall quiff may work against that goal, while sources disagree on side width and very short sides so the barber should check the combined outline; customer preference comes first."
+        },
+        "heart": {
+          "fit": "care",
+          "note": "Quiff (angat sa harap) is commonly suggested for heart faces only if it matches your goal because a soft fringe is commonly preferred when forehead width is unwanted, so an exposed forehead may work against that goal; customer preference comes first."
+        },
+        "diamond": {
+          "fit": "care",
+          "note": "Quiff (angat sa harap) is commonly suggested for diamond faces only if it matches your goal because forehead and lower-side fullness may balance cheekbone width, so a tall quiff with tight sides needs a barber check; customer preference comes first."
+        }
+      },
+      "problem_fit": {
+        "puffy_sides": {
+          "fit": "neutral",
+          "note": "A quiff does not remove side puffiness; choose the sides separately."
+        },
+        "cowlick": {
+          "fit": "neutral",
+          "note": "A cowlick may support or oppose the lift; ask the barber to check its direction."
+        },
+        "hard_to_style": {
+          "fit": "worse",
+          "note": "A quiff may take more daily styling if you want the front to stay lifted."
+        },
+        "grows_fast": {
+          "fit": "worse",
+          "note": "Fast growth may make the lifted front heavier and require more frequent shaping."
+        },
+        "flat_top": {
+          "fit": "helps",
+          "note": "A quiff may add visible top height if length, texture and styling time allow it."
+        },
+        "wide_forehead": {
+          "fit": "worse",
+          "note": "A lifted front may expose more forehead if your goal is coverage."
+        }
+      },
+      "source_ids": [
+        "opentextbc_consultation",
+        "pall_mall_face_shapes",
+        "manual_face_shapes",
+        "gentlemans_gazette_face_shapes"
+      ]
+    },
+    {
+      "id": "curtains",
+      "name": "Curtains (hati sa gitna)",
+      "pros": [
+        "May keep a longer fringe",
+        "May give a soft frame"
+      ],
+      "cons": [
+        "Needs enough front length",
+        "May need parting each day"
+      ],
+      "maintenance": "Arrange the part as needed and trim when the fringe falls beyond your preferred length.",
+      "face_shape_fit": {
+        "oval": {
+          "fit": "suggested",
+          "note": "Curtains (hati sa gitna) is commonly suggested for oval faces only if it matches your goal because many outlines can work if a parted fringe is wanted; customer preference comes first."
+        },
+        "round": {
+          "fit": "care",
+          "note": "Curtains (hati sa gitna) is commonly suggested for round faces only if it matches your goal because lift is commonly preferred when added apparent length is wanted, so flat curtains may add width instead; customer preference comes first."
+        },
+        "square": {
+          "fit": "suggested",
+          "note": "Curtains (hati sa gitna) is commonly suggested for square faces only if it matches your goal because a soft parted fringe may soften the outline if that is wanted; customer preference comes first."
+        },
+        "oblong": {
+          "fit": "suggested",
+          "note": "Curtains (hati sa gitna) is commonly suggested for oblong faces only if it matches your goal because a low top and fringe may limit apparent length if that is the goal, while sources disagree on side width and very short sides so the barber should check the combined outline; customer preference comes first."
+        },
+        "heart": {
+          "fit": "suggested",
+          "note": "Curtains (hati sa gitna) is commonly suggested for heart faces only if it matches your goal because a parted fringe may soften forehead width if enough length is available; customer preference comes first."
+        },
+        "diamond": {
+          "fit": "suggested",
+          "note": "Curtains (hati sa gitna) is commonly suggested for diamond faces only if it matches your goal because fringe fullness may add apparent forehead width if that is wanted; customer preference comes first."
+        }
+      },
+      "problem_fit": {
+        "puffy_sides": {
+          "fit": "neutral",
+          "note": "Curtains do not remove side puffiness; choose the sides separately."
+        },
+        "cowlick": {
+          "fit": "neutral",
+          "note": "The natural cowlick may suit or resist the center part; ask the barber to check."
+        },
+        "hard_to_style": {
+          "fit": "worse",
+          "note": "Keeping the split fringe arranged may take daily styling if it does not settle naturally."
+        },
+        "grows_fast": {
+          "fit": "neutral",
+          "note": "Extra length may tolerate regrowth, but the fringe may need reshaping."
+        },
+        "flat_top": {
+          "fit": "worse",
+          "note": "Flat curtains may leave the top looking flat if visible lift is your goal."
+        },
+        "wide_forehead": {
+          "fit": "helps",
+          "note": "A parted fringe may soften the forehead outline if enough length and side coverage are available."
+        }
+      },
+      "source_ids": [
+        "opentextbc_consultation",
+        "pall_mall_face_shapes",
+        "manual_face_shapes",
+        "gentlemans_gazette_face_shapes"
+      ]
+    },
+    {
+      "id": "keep_length",
+      "name": "Keep length (haba muna)",
+      "pros": [
+        "Keeps the length you want",
+        "Leaves styling choices open"
+      ],
+      "cons": [
+        "Current bulk may remain",
+        "Does not guarantee a new shape"
+      ],
+      "maintenance": "Keep your current routine and discuss small shaping trims only if you want them.",
+      "face_shape_fit": {
+        "oval": {
+          "fit": "suggested",
+          "note": "Keep length (haba muna) is commonly suggested for oval faces only if it matches your goal because many outlines can work if retaining current length is wanted; customer preference comes first."
+        },
+        "round": {
+          "fit": "neutral",
+          "note": "Keep length (haba muna) is commonly suggested for round faces only if it matches your goal because top lift and controlled side width may add apparent length, depending on the current outline; customer preference comes first."
+        },
+        "square": {
+          "fit": "neutral",
+          "note": "Keep length (haba muna) is commonly suggested for square faces only if it matches your goal because soft texture may soften the jawline, depending on the current outline; customer preference comes first."
+        },
+        "oblong": {
+          "fit": "neutral",
+          "note": "Keep length (haba muna) is commonly suggested for oblong faces only if it matches your goal because a low top and side fullness may limit apparent length, depending on the current outline, while sources disagree on side width and very short sides so the barber should check the combined outline; customer preference comes first."
+        },
+        "heart": {
+          "fit": "neutral",
+          "note": "Keep length (haba muna) is commonly suggested for heart faces only if it matches your goal because a fringe may soften forehead width, depending on the current length; customer preference comes first."
+        },
+        "diamond": {
+          "fit": "neutral",
+          "note": "Keep length (haba muna) is commonly suggested for diamond faces only if it matches your goal because fringe and lower fullness may balance cheekbone width, depending on the current outline; customer preference comes first."
+        }
+      },
+      "problem_fit": {
+        "puffy_sides": {
+          "fit": "neutral",
+          "note": "Keeping top length does not remove side puffiness; choose the sides separately."
+        },
+        "cowlick": {
+          "fit": "helps",
+          "note": "Retained length may weigh down a cowlick if its growth direction allows it; ask the barber to check."
+        },
+        "hard_to_style": {
+          "fit": "neutral",
+          "note": "Keeping length may preserve the current styling effort rather than reduce it."
+        },
+        "grows_fast": {
+          "fit": "neutral",
+          "note": "Hair will still grow, so discuss how much extra length you want between visits."
+        },
+        "flat_top": {
+          "fit": "neutral",
+          "note": "Current top flatness may remain unless you want a styling or shaping change."
+        },
+        "wide_forehead": {
+          "fit": "neutral",
+          "note": "Existing fringe coverage may stay if present, but retained length alone does not guarantee coverage."
+        }
+      },
+      "source_ids": [
+        "opentextbc_consultation",
+        "pall_mall_face_shapes",
+        "manual_face_shapes",
+        "gentlemans_gazette_face_shapes"
+      ]
+    },
+    {
+      "id": "buzz",
+      "name": "Buzz (maikli, pantay)",
+      "pros": [
+        "May need little daily styling",
+        "May feel less bulky on top"
+      ],
+      "cons": [
+        "Removes fringe coverage",
+        "Regrowth may show quickly"
+      ],
+      "maintenance": "Trim regularly if you want to keep the top evenly short.",
+      "face_shape_fit": {
+        "oval": {
+          "fit": "suggested",
+          "note": "Buzz (maikli, pantay) is commonly suggested for oval faces only if it matches your goal because many outlines can work if an even short finish is wanted; customer preference comes first."
+        },
+        "round": {
+          "fit": "care",
+          "note": "Buzz (maikli, pantay) is commonly suggested for round faces only if it matches your goal because top height is commonly preferred when extra apparent length is wanted, which a very short top may not provide; customer preference comes first."
+        },
+        "square": {
+          "fit": "suggested",
+          "note": "Buzz (maikli, pantay) is commonly suggested for square faces only if it matches your goal because an even short outline may echo a defined jawline if that is wanted; customer preference comes first."
+        },
+        "oblong": {
+          "fit": "care",
+          "note": "Buzz (maikli, pantay) is commonly suggested for oblong faces only if it matches your goal because a low top with side fullness may limit apparent length, while a very short combined cut may remove that fullness, while sources disagree on side width and very short sides so the barber should check the combined outline; customer preference comes first."
+        },
+        "heart": {
+          "fit": "care",
+          "note": "Buzz (maikli, pantay) is commonly suggested for heart faces only if it matches your goal because medium length and fringe may soften forehead width, which a very short top may expose; customer preference comes first."
+        },
+        "diamond": {
+          "fit": "care",
+          "note": "Buzz (maikli, pantay) is commonly suggested for diamond faces only if it matches your goal because fringe and lower fullness may balance cheekbone width, which a very short combined cut may remove; customer preference comes first."
+        }
+      },
+      "problem_fit": {
+        "puffy_sides": {
+          "fit": "neutral",
+          "note": "A short top does not remove side puffiness; choose the sides separately."
+        },
+        "cowlick": {
+          "fit": "neutral",
+          "note": "A very short top may reduce the length that sticks up but expose the growth pattern; the barber should check."
+        },
+        "hard_to_style": {
+          "fit": "helps",
+          "note": "An evenly short top may need little daily styling if you want minimal effort."
+        },
+        "grows_fast": {
+          "fit": "worse",
+          "note": "Fast growth may change the short outline quickly if you want it to stay close."
+        },
+        "flat_top": {
+          "fit": "worse",
+          "note": "A buzz leaves little length for lift if visible top height is your goal."
+        },
+        "wide_forehead": {
+          "fit": "worse",
+          "note": "A very short top removes fringe coverage if your goal is to cover the forehead."
+        }
+      },
+      "source_ids": [
+        "opentextbc_consultation",
+        "pall_mall_face_shapes",
+        "manual_face_shapes",
+        "gentlemans_gazette_face_shapes"
+      ]
+    }
+  ]
+}
