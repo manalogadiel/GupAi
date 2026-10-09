@@ -164,5 +164,5 @@ def test_static_assets_and_phone_fallback_do_not_hide_api_errors(client, monkeyp
     assert client.get("/assets/app.js").text == "console.log('local')"
     assert client.get("/assets/missing.js").status_code == 404
     assert client.get("/api/missing").json()["code"] == "not_found"
-    assert client.get("/pair").status_code == 404
+    assert client.get("/pair").status_code == 410  # real route since C2: missing code is expired
     assert client.get("/%2e%2e/docs/PRD.md").status_code == 404

@@ -49,19 +49,26 @@ for module in (health, customers, consultations, pairing, media, jobs):
 class FrontendFiles(StaticFiles):
     async def get_response(self, path, scope):
         path = path.replace("\\", "/")
-        # Never substitute the SPA for missing API, pairing, or private media routes.
-        if path == "api" or path.startswith("api/") or path == "pair":
+        # Never substitute the SPA for API, pairing, or private media routes.
+        if path.split("/", 1)[0] in {"api", "pair", "media"}:
             raise HTTPException(404)
         if scope["method"] not in {"GET", "HEAD"}:
             raise HTTPException(405)
         if not FRONTEND_DIST.is_dir():
             raise HTTPException(404)
-        if path in {".", "phone"} or path.startswith("phone/"):
-            index = FRONTEND_DIST / "index.html"
-            if index.is_file():
-                return FileResponse(index, media_type="text/html")
+        root = FRONTEND_DIST.resolve()
+        candidate = (root / path).resolve()
+        if not candidate.is_relative_to(root):
             raise HTTPException(404)
-        return await StaticFiles(directory=FRONTEND_DIST).get_response(path, scope)
+        if candidate.is_file():
+            return await StaticFiles(directory=root).get_response(path, scope)
+        # Missing files (anything with an extension) stay 404; only app routes get the SPA.
+        if path != "." and "." in path.rsplit("/", 1)[-1]:
+            raise HTTPException(404)
+        index = root / "index.html"
+        if index.is_file():
+            return FileResponse(index, media_type="text/html")
+        raise HTTPException(404)
 
 
 # check_dir=False keeps the API available before the lead builds the frontend.
