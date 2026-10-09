@@ -32,7 +32,7 @@ def next_slot(brief, problems):
     if not problems and not brief.get('problem_detail'): return 'problem'
     if not brief.get('occasion'): return 'occasion'
     if not brief.get('desired_cut'): return 'desired_cut'
-    if brief.get('styling_minutes') is None: return 'styling_minutes'
+    if brief.get('styling_minutes') is None and not brief.get('maintenance_preference'): return 'styling_minutes'
     return 'done'
 
 def interview_complete(brief, problems):

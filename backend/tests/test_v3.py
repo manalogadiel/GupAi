@@ -186,3 +186,61 @@ def test_ayoko_phrase_becomes_an_avoid_even_if_the_model_misses_it(monkeypatch):
     assert {"field": "avoid", "op": "add", "value": "sobrang kita ang anit", "negated": False} in out["proposed_changes"]
     out = ai.chat_reply({**consult.empty_state(), "stage": "goal"}, ["Hindi ayoko, okay lang."], lambda t: None)
     assert not [c for c in out["proposed_changes"] if c["field"] == "avoid"]
+
+
+def test_off_agenda_question_is_replaced_but_the_acknowledgement_stays(monkeypatch):
+    state = {**consult.empty_state(), "stage": "goal", "problems": ["puffy_sides"],
+             "chat": [{"role": "customer", "text": "Para sa school."}]}
+    monkeypatch.setattr(ai, "stream_json", lambda *a, **k: {
+        "reply": "Okay lang sa school. Ang puffy sides yung issue? Kailan 'yan nangyayari?", "brief_updates": [], "proposed_changes": []})
+    out = ai.chat_reply(state, ["Para sa school."], lambda t: None)
+    assert out["reply"] == "Okay lang sa school. " + ai.SLOT_QUESTIONS["desired_cut"]
+
+
+def test_a_wanted_cut_is_not_misfiled_as_keep(monkeypatch):
+    state = {**consult.empty_state(), "stage": "goal", "problems": ["puffy_sides"],
+             "chat": [{"role": "customer", "text": "Gusto ko ng low fade."}]}
+    state["brief"] = {**brief_defaults(), "occasion": "school"}
+    monkeypatch.setattr(ai, "stream_json", lambda *a, **k: {"reply": "Ayos.", "brief_updates": [],
+        "proposed_changes": [{"field": "keep", "op": "add", "value": "low fade", "negated": False}]})
+    out = ai.chat_reply(state, ["Gusto ko ng low fade."], lambda t: None)
+    assert out["proposed_changes"] == [] and out["brief_updates"][0]["value"] == "low fade"
+
+
+SCREENSHOT = ["hindi ko alam kung pano aayusin dahil maganda pag bagong gupit pero pag pinapahaba ay napangit",
+              "ang problema ko ay pag nahaba ay napangit", "Hirap akong i-style ang buhok ko."]
+
+
+@pytest.mark.parametrize("text", SCREENSHOT + ["May puyo ako na ayaw sumunod.", "Mabilis humaba ang buhok ko.",
+                                               "Gusto kong matakpan nang kaunti ang noo ko."])
+def test_real_problem_answers_are_recognised(text):
+    assert ai.detect_problems([text])
+
+
+def _turn(state, text, reply, monkeypatch):
+    monkeypatch.setattr(ai, "stream_json", lambda *a, **k: {"reply": reply, "brief_updates": [], "proposed_changes": []})
+    state["chat"].append({"role": "customer", "text": text})
+    out = ai.chat_reply(state, [text], lambda t: None)
+    merged = consult.merge_job_result({**state, "revision": 0}, "chat", out)
+    merged.pop("revision")
+    return merged, out["reply"]
+
+
+def test_screenshot_conversation_moves_on_after_the_first_answer(monkeypatch):
+    state = {**consult.empty_state(), "stage": "goal", "chat": [{"role": "ai", "text": ai.OPENERS["goal"]}]}
+    state, reply = _turn(state, SCREENSHOT[0], "Hindi ko alam kung ano ang problema. Ano ang problema?", monkeypatch)
+    assert "hindi ko alam" not in reply.lower()
+    assert reply.endswith(ai.SLOT_QUESTIONS["occasion"]) and ai.SLOT_QUESTIONS["problem"] not in reply
+
+
+def test_free_text_answers_fill_the_slot_that_was_asked(monkeypatch):
+    state = {**consult.empty_state(), "stage": "goal", "chat": [{"role": "ai", "text": ai.OPENERS["goal"]}]}
+    state, reply = _turn(state, "parang buhaghag lagi pag gising", "Sige.", monkeypatch)
+    assert state["brief"]["problem_detail"] == "parang buhaghag lagi pag gising"
+    state, reply = _turn(state, "para sa reunion namin", "Ayos.", monkeypatch)
+    assert state["brief"]["occasion"] == "para sa reunion namin"
+    state, reply = _turn(state, "yung parang kay idol sa basketball", "Ayos.", monkeypatch)
+    assert state["brief"]["desired_cut"] == "yung parang kay idol sa basketball"
+    state, reply = _turn(state, "mabilisan lang tuwing umaga", "Ayos.", monkeypatch)
+    assert state["brief"]["maintenance_preference"] == "mabilisan lang tuwing umaga"
+    assert reply.endswith(ai.CLOSING)

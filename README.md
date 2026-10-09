@@ -76,6 +76,18 @@ mkcert -cert-file certs/gupai.pem -key-file certs/gupai-key.pem localhost 127.0.
 
 The launcher prints readiness, sets a LAN pairing origin, and starts HTTPS. If a server already runs, it reports that fact; restart its existing terminal after code changes. Both devices must share the same reachable local network. To select another adapter, pass `-PhoneIP <laptop-ip>` and regenerate the certificate for that IP. Never share the private HTTPS key.
 
+**Run on macOS:**
+
+```bash
+brew install python@3.12 mkcert && mkcert -install
+mkcert -cert-file certs/gupai.pem -key-file certs/gupai-key.pem localhost 127.0.0.1 <laptop-ip>
+scripts/start-demo.sh
+```
+
+Open `https://localhost:8443` on the laptop and allow the macOS firewall prompt for Python. The QR code then points the phone to `https://<laptop-ip>:8443`. Before scanning, the phone must trust the mkcert root CA, `rootCA.pem` in `mkcert -CAROOT`.
+- **iPhone:** AirDrop the file and install the profile. Then go to Settings › General › About › Certificate Trust Settings and turn it on.
+- **Android:** Settings › Security › Install a certificate › CA certificate.
+
 **Manual run:**
 
 ```bash
