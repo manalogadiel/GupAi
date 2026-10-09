@@ -15,5 +15,5 @@ Do ONLY task $ID from docs/TASKS.md: set its status to doing, implement it withi
 verify with its Verify column (run the tests and paste the output), then set its status to review.
 Never run git commit, push, reset, checkout or stash. Use the superpowers test-driven-development,
 ponytail and vibesec skills. End with the report format from AGENTS.md. $EXTRA" \
-  > "$ROOT/docs/agents/$ID.log" 2>&1
+  < /dev/null > "$ROOT/docs/agents/$ID.log" 2>&1  # closed stdin: codex otherwise waits for piped input forever
 echo "Codex finished $ID -> docs/agents/$ID.md (full log: docs/agents/$ID.log)"
