@@ -1,24 +1,31 @@
 @import "tailwindcss";
 @import "@fontsource-variable/figtree";
+@import "@fontsource/instrument-serif/400.css";
 
-/* GupAi tokens (PRD §9). Flat, cream and ink, deep green action. Light theme only for the hackathon. */
+/* GupAi tokens: docs/DESIGN.md. Pal.Do warmth + barbershop green; orange is reserved for voice. */
 @theme {
   --font-sans: "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
-  --color-canvas: #F6F3EC;
-  --color-surface: #FFFDFA;
-  --color-subtle: #EAE5DA;
-  --color-ink: #252821;
-  --color-ink-2: #5A5C54;      /* darkened from #62645C so it stays ≥4.5:1 on subtle */
-  --color-action: #365846;
-  --color-action-hover: #2C4A3A;
+  --font-display: "Instrument Serif", ui-serif, Georgia, serif;
+  --color-canvas: #F6F1E9;
+  --color-surface: #FFFCF7;
+  --color-subtle: #EFE7DB;
+  --color-peach: #F4D9C4;
+  --color-ink: #26241F;
+  --color-ink-2: #5C564C;
+  --color-action: #2F5443;
+  --color-action-hover: #264537;
   --color-on-action: #FFFFFF;
-  --color-separator: #D8D2C6;
-  --color-boundary: #77796F;
+  --color-voice: #D9673A;
+  --color-voice-hover: #C65A30;
+  --color-separator: #E3D9CB;
+  --color-boundary: #8A8274;
   --color-focus: #285EAE;
   --color-error: #A52B2B;
-  --radius-control: 10px;
-  --radius-sheet: 16px;
-  --radius-mirror: 28px;
+  --radius-control: 12px;
+  --radius-sheet: 24px;
+  --radius-mirror: 32px;
+  --shadow-card: 0 1px 2px rgb(74 52 30 / .06), 0 10px 30px -8px rgb(74 52 30 / .14);
+  --shadow-lift: 0 2px 4px rgb(74 52 30 / .08), 0 18px 40px -12px rgb(74 52 30 / .22);
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
@@ -31,13 +38,38 @@ body {
   font-size: 16px;
   line-height: 1.5;
   -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
 }
-#root { min-height: 100dvh; }
+/* Faint paper grain so the cream never reads as flat digital beige. Inline SVG noise: no network. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: .35;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .45 0 0 0 0 .35 0 0 0 0 .25 0 0 0 .08 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+#root { position: relative; z-index: 1; min-height: 100dvh; }
+
+.font-display { font-family: var(--font-display); font-weight: 400; letter-spacing: -0.01em; line-height: 1.02; text-wrap: balance; }
+h1, h2, h3 { text-wrap: balance; }
+p { text-wrap: pretty; }
 
 :focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
-button, a, [role="button"] { touch-action: manipulation; }
+button, a, [role="button"] { touch-action: manipulation; -webkit-user-select: none; user-select: none; }
 input, textarea, select { font-size: 16px; } /* stops iOS zoom on focus */
 
+/* One-time face-outline draw (pathLength=1 on the polygon). */
+@keyframes draw-on { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+.draw-on { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw-on 700ms var(--ease-out) forwards; }
+
+@keyframes fade-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.fade-up { animation: fade-up 240ms var(--ease-out) both; }
+
+@media (hover: none) { .hover-only { display: none; } }
+
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+  .draw-on { stroke-dashoffset: 0; }
 }

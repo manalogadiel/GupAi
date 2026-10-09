@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Speaker } from '../api'
-import { Button } from './ui'
+import MicButton from './MicButton'
+import { Button, Segmented } from './ui'
 
 const MAX_S = 30
 
@@ -8,13 +9,15 @@ const MAX_S = 30
  * Voice + typing dock. Voice: tap to record (≤30 s) → local transcription → editable transcript → Send.
  * Typing always works; the mic is optional and never listens unless the Talk button was pressed.
  */
-export default function Talk({ speakerLocked, onSend, onAudio, transcript, busy, placeholder }: {
+export default function Talk({ speakerLocked, onSend, onAudio, transcript, busy, placeholder, onRecordingChange, micSize = 76 }: {
   speakerLocked?: Speaker
   onSend: (text: string, speaker: Speaker, inputType: 'typed' | 'voice') => Promise<void> | void
   onAudio?: (clip: Blob) => Promise<void> | void
   transcript?: string | null
   busy?: boolean
   placeholder?: string
+  onRecordingChange?: (recording: boolean) => void
+  micSize?: number
 }) {
   const [speaker, setSpeaker] = useState<Speaker>(speakerLocked ?? 'customer')
   const [text, setText] = useState('')
@@ -28,6 +31,7 @@ export default function Talk({ speakerLocked, onSend, onAudio, transcript, busy,
   // A finished transcription lands in the box for review; it is never sent automatically.
   useEffect(() => { if (transcript) { setText(transcript); setFromVoice(true) } }, [transcript])
   useEffect(() => () => stop(true), []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { onRecordingChange?.(recording) }, [recording, onRecordingChange])
 
   const canRecord = !!onAudio && window.isSecureContext && !!navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== 'undefined'
 
@@ -85,39 +89,36 @@ export default function Talk({ speakerLocked, onSend, onAudio, transcript, busy,
   return (
     <div className="space-y-3">
       {!speakerLocked && (
-        <div role="radiogroup" aria-label="Sino ang nagsasalita" className="inline-flex rounded-[var(--radius-control)] border border-boundary p-1">
-          {(['customer', 'barber'] as Speaker[]).map(s => (
-            <button key={s} role="radio" aria-checked={speaker === s} onClick={() => setSpeaker(s)}
-              className={`min-h-10 rounded-[8px] px-4 text-[15px] ${speaker === s ? 'bg-action text-on-action' : 'text-ink'}`}>
-              {s === 'customer' ? 'Customer' : 'Barbero'}
-            </button>
-          ))}
-        </div>
+        <Segmented id="speaker" label="Sino ang nagsasalita" value={speaker} onChange={setSpeaker}
+          options={[{ value: 'customer', label: 'Customer' }, { value: 'barber', label: 'Barbero' }]} />
       )}
 
-      {recording ? (
-        <div className="flex items-center gap-3 rounded-[var(--radius-control)] bg-subtle px-4 py-3">
-          <span aria-hidden className="h-3 w-3 rounded-full bg-error" />
-          <div aria-hidden className="h-2 flex-1 overflow-hidden rounded-full bg-separator">
-            <div className="h-full bg-action transition-[width] duration-75" style={{ width: `${Math.round(level * 100)}%` }} />
-          </div>
-          <span className="tabular-nums text-[15px]" aria-live="off">{MAX_S - seconds}s</span>
-          <Button variant="primary" className="min-h-11" onClick={() => stop(false)}>Stop</Button>
-          <Button variant="quiet" className="min-h-11" onClick={() => stop(true)}>Discard</Button>
-        </div>
-      ) : (
-        <form className="flex gap-2" onSubmit={e => { e.preventDefault(); send() }}>
+      <form className="flex items-center gap-2" onSubmit={e => { e.preventDefault(); send() }}>
+        <div className="flex min-h-14 flex-1 items-center gap-2 rounded-full bg-subtle py-1.5 pl-5 pr-1.5">
           <label className="sr-only" htmlFor="talk-input">Sabihin o i-type</label>
-          <textarea id="talk-input" rows={2} value={text} onChange={e => setText(e.target.value)} maxLength={500}
-            placeholder={placeholder ?? 'Hal. “Maikli sa gilid pero huwag galawin ang fringe”'}
-            className="min-h-12 flex-1 resize-none rounded-[var(--radius-control)] border border-boundary bg-surface px-3 py-2" />
-          <div className="flex flex-col gap-2">
-            {canRecord && <Button type="button" variant={text ? 'secondary' : 'primary'} disabled={busy} onClick={start} aria-label="Magsalita (record)">🎙 Talk</Button>}
-            <Button type="submit" variant={text ? 'primary' : 'secondary'} disabled={busy || !text.trim()}>Send</Button>
-          </div>
-        </form>
-      )}
-      {fromVoice && text && <p className="text-[14px] text-ink-2">Galing sa boses. I-edit kung may mali bago i-send.</p>}
+          {recording ? (
+            <p className="flex-1 text-[15px] text-ink" aria-live="polite">
+              <span aria-hidden className="mr-2 inline-block size-2.5 rounded-full bg-voice align-middle" />
+              Nakikinig… <span className="tabular-nums text-ink-2">{MAX_S - seconds}s</span>
+            </p>
+          ) : (
+            <textarea id="talk-input" rows={1} value={text} onChange={e => setText(e.target.value)} maxLength={500}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
+              placeholder={placeholder ?? 'Hal. “Maikli sa gilid pero huwag galawin ang fringe”'}
+              className="max-h-28 min-h-8 flex-1 resize-none bg-transparent py-1 leading-snug outline-none placeholder:text-ink-2" />
+          )}
+          {recording ? (
+            <Button type="button" variant="quiet" className="min-h-11 rounded-full px-4" onClick={() => stop(true)}>Discard</Button>
+          ) : (
+            <Button type="submit" variant={text.trim() ? 'primary' : 'quiet'} className="min-h-11 rounded-full px-5" disabled={busy || !text.trim()}>Send</Button>
+          )}
+        </div>
+        {canRecord && (
+          <MicButton recording={recording} level={level} size={micSize} disabled={busy && !recording}
+            label={recording ? 'Itigil at isalin ang recording' : 'Magsalita (record)'} onPress={() => (recording ? stop(false) : start())} />
+        )}
+      </form>
+      {fromVoice && text && <p className="fade-up text-[14px] text-ink-2">Galing sa boses. I-edit kung may mali bago i-send.</p>}
       {micError && <p className="text-[14px] text-error">{micError}</p>}
     </div>
   )

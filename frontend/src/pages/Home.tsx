@@ -1,22 +1,37 @@
+import { motion } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { api, ApiError, type Consultation, type Health } from '../api'
 import { navigate } from '../App'
-import { Button, ErrorLine, Header } from '../components/ui'
-import Mascot from '../components/Mascot'
+import Character from '../components/Character'
+import { ErrorLine, Header, Pill } from '../components/ui'
+
+const today = () => new Date().toLocaleDateString('fil-PH', { weekday: 'long', month: 'long', day: 'numeric' })
 
 function Readiness({ health, failed }: { health: Health | null; failed: boolean }) {
-  if (failed) return <p className="text-[15px] text-error">⚠ Hindi maabot ang GupAi server sa laptop.</p>
-  if (!health) return <p className="text-[15px] text-ink-2">Checking local models…</p>
+  if (failed) return <Pill tone="error">⚠ Hindi maabot ang GupAi server sa laptop</Pill>
+  if (!health) return <Pill>Sinusuri ang local models…</Pill>
   const missing = [
     !health.ollama && 'Ollama',
     !health.vision_model && 'vision model',
     !health.whisper && 'speech model',
     !health.face_landmarker && 'face model',
   ].filter(Boolean)
-  return missing.length === 0 ? (
-    <p className="text-[15px] text-ink-2"><span className="text-action">●</span> Models ready on this laptop · {health.vision_model} · no internet needed</p>
-  ) : (
-    <p className="text-[15px] text-error">⚠ Not ready: {missing.join(', ')}. Typing and notes still work.</p>
+  return missing.length === 0
+    ? <Pill tone="ok">Local AI handa<span className="hidden sm:inline"> · {health.vision_model}</span> · walang internet</Pill>
+    : <Pill tone="error">⚠ Hindi pa handa: {missing.join(', ')}. Gumagana pa rin ang pag-type.</Pill>
+}
+
+function ActionCard({ title, body, onClick, primary, disabled }: { title: string; body: string; onClick: () => void; primary?: boolean; disabled?: boolean }) {
+  return (
+    <motion.button onClick={onClick} disabled={disabled} whileTap={{ scale: 0.98 }}
+      className={`group flex w-full items-center justify-between gap-4 rounded-[var(--radius-sheet)] p-5 text-left transition-shadow duration-200 disabled:opacity-50 sm:p-6 ${
+        primary ? 'bg-action text-on-action shadow-[0_14px_34px_-14px_rgb(38_60_48/.6)]' : 'bg-surface text-ink shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-lift)]'}`}>
+      <span>
+        <span className="block text-lg font-semibold">{title}</span>
+        <span className={`mt-0.5 block text-[15px] ${primary ? 'text-on-action/85' : 'text-ink-2'}`}>{body}</span>
+      </span>
+      <span aria-hidden className={`grid size-11 shrink-0 place-items-center rounded-full text-xl transition-transform duration-200 ease-[var(--ease-out)] group-hover:translate-x-1 ${primary ? 'bg-white/15' : 'bg-subtle'}`}>→</span>
+    </motion.button>
   )
 }
 
@@ -26,7 +41,6 @@ export default function Home() {
   const [active, setActive] = useState<Consultation | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
   const [notBarber, setNotBarber] = useState(false)
 
   useEffect(() => {
@@ -35,55 +49,48 @@ export default function Home() {
     api.activeConsultation().then(setActive, e => { if (e instanceof ApiError && e.status === 403) setNotBarber(true) })
   }, [])
 
-  if (notBarber) {
-    return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-5 p-8 text-center">
-        <Mascot size={72} />
-        <h1 className="text-2xl font-semibold">Para sa customer ang phone na ito</h1>
-        <p className="max-w-[34ch] text-lg text-ink-2">
-          I-scan ang QR code na ipapakita ng barbero sa laptop para makasali sa konsulta.
-        </p>
-        <p className="max-w-[34ch] text-[14px] text-ink-2">Ang listahan ng customers ay makikita lang sa laptop ng barbero.</p>
-      </div>
-    )
-  }
-
   async function startTemporary() {
     setBusy(true); setError(null)
     try { navigate(`/consult/${(await api.createConsultation()).id}`) }
     catch (e) { setError(e instanceof ApiError ? e.message : 'Hindi nakapagsimula.'); setBusy(false) }
   }
 
+  if (notBarber) {
+    return (
+      <main className="flex min-h-dvh flex-col items-center justify-center gap-6 px-6 text-center">
+        <Character state="idle" size={180} />
+        <h1 className="font-display text-[44px]">Para sa customer ang phone na ito</h1>
+        <p className="max-w-[32ch] text-lg text-ink-2">I-scan ang QR code na ipapakita ng barbero sa laptop para makasali sa konsulta.</p>
+      </main>
+    )
+  }
+
   return (
     <div className="min-h-dvh">
-      <Header />
-      <main className="mx-auto grid max-w-5xl gap-10 px-4 py-12 sm:px-8 md:grid-cols-[1fr_1fr] md:items-center md:py-20">
-        <div className="space-y-6">
-          <Mascot size={80} />
-          <h1 className="text-[clamp(2rem,4vw,3rem)] font-semibold leading-[1.1] tracking-tight">
+      <Header right={<Readiness health={health} failed={healthFailed} />} />
+      <main className="mx-auto grid max-w-[1180px] grid-cols-1 items-center gap-10 px-4 pb-16 pt-6 sm:px-8 lg:min-h-[calc(100dvh-80px)] lg:grid-cols-[1.05fr_1fr] lg:gap-16">
+        <section className="flex min-w-0 flex-col items-center text-center lg:items-start lg:text-left">
+          <div className="relative mb-4 lg:-ml-6">
+            <div aria-hidden className="absolute inset-x-6 bottom-2 h-6 rounded-[50%] bg-ink/10 blur-md" />
+            <Character state="idle" size={240} />
+          </div>
+          <p className="fade-up text-[15px] font-medium capitalize text-action">{today()}</p>
+          <h1 className="fade-up mt-2 font-display text-[clamp(2.75rem,5.5vw,4.75rem)] [animation-delay:60ms]">
             Para bago gumupit, nagkaintindihan muna.
           </h1>
-          <p className="max-w-[46ch] text-lg text-ink-2">
-            Agree on the haircut before the first cut, with AI that runs on this laptop.
+          <p className="fade-up mt-4 max-w-[44ch] text-lg text-ink-2 [animation-delay:120ms]">
+            Magkasundo ang barbero at customer sa gupit bago ang unang gupit, gamit ang AI na tumatakbo sa laptop na ito.
           </p>
-          <Readiness health={health} failed={healthFailed} />
-        </div>
+        </section>
 
-        <div className="space-y-3">
+        <section className="min-w-0 space-y-3">
           {active && (
-            <Button variant="primary" className="w-full justify-between text-lg" onClick={() => navigate(`/consult/${active.id}`)}>
-              <span>Ituloy: {active.customer?.display_name ?? 'temporary session'}</span><span aria-hidden>→</span>
-            </Button>
+            <ActionCard primary title={`Ituloy: ${active.customer?.display_name ?? 'temporary session'}`} body="May konsultang nakabukas pa" onClick={() => navigate(`/consult/${active.id}`)} />
           )}
-          <Button variant={active ? 'secondary' : 'primary'} className="w-full justify-between text-lg" onClick={() => navigate('/customers')}>
-            <span>Customer: bago o suki</span><span aria-hidden>→</span>
-          </Button>
-          <Button className="w-full justify-between text-lg" disabled={busy} onClick={startTemporary}>
-            <span>Temporary consultation</span><span aria-hidden>→</span>
-          </Button>
-          <p className="pt-1 text-[14px] text-ink-2">Temporary consultations save nothing. To remember a haircut for next time, start from a customer's name.</p>
+          <ActionCard primary={!active} title="Customer: bago o suki" body="Hanapin ang suki o mag-save ng bagong customer" onClick={() => navigate('/customers')} />
+          <ActionCard title="Temporary na konsulta" body="Walang ise-save. Buburahin ang photos pagkatapos." disabled={busy} onClick={startTemporary} />
           <ErrorLine message={error} />
-        </div>
+        </section>
       </main>
     </div>
   )
