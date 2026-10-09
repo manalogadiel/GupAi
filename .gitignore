@@ -1,0 +1,11 @@
+.venv/
+node_modules/
+frontend/dist/
+data/
+certs/
+*.pem
+__pycache__/
+.pytest_cache/
+docs/agents/*.log
+knowledge/models/*.task
+.env
