@@ -1,3 +1,5 @@
+import './BarberMascot.css'
+
 export default function BarberMascot({
   state = 'idle',
   size = 120,
@@ -7,43 +9,6 @@ export default function BarberMascot({
 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 200 200" aria-hidden="true" focusable="false" className="bm-root">
-      <style>{`
-        .bm-root { display: block; overflow: visible; }
-        .bm-root g { transform-box: fill-box; transform-origin: center; }
-        .bm-pose { opacity: 0; transition: opacity 180ms cubic-bezier(.23,1,.32,1); }
-        .bm-pose.bm-active { opacity: 1; }
-        .bm-root .bm-head { transform-origin: 50% 90%; }
-        .bm-listening .bm-head { transform: rotate(6deg); }
-        .bm-listening .bm-eyes { transform: scale(1.12); }
-        .bm-thinking .bm-eyes { transform: translate(2px,-2px); }
-        .bm-thinking .bm-brows { transform: translateY(-3px); }
-        .bm-root .bm-arm { transform-origin: 12% 20%; }
-        .bm-happy .bm-arm { transform: rotate(-65deg); }
-        .bm-eyelids { opacity: 0; }
-        .bm-idle.bm-active .bm-breathe { animation: bm-breathe 3.5s ease-in-out infinite; }
-        .bm-idle.bm-active .bm-eyes { animation: bm-blink 4s linear infinite; }
-        .bm-idle.bm-active .bm-eyelids { animation: bm-lids 4s linear infinite; }
-        .bm-listening.bm-active .bm-sound { animation: bm-pulse 1.4s ease-in-out infinite; }
-        .bm-listening.bm-active .bm-sound-second { animation-delay: .18s; }
-        .bm-thinking.bm-active .bm-dot { animation: bm-dot 1.2s ease-in-out infinite; }
-        .bm-thinking.bm-active .bm-dot-second { animation-delay: .15s; }
-        .bm-thinking.bm-active .bm-dot-third { animation-delay: .3s; }
-        .bm-happy.bm-active .bm-hop { animation: bm-hop 480ms cubic-bezier(.23,1,.32,1) both; }
-        .bm-happy.bm-active .bm-sway { animation: bm-sway 3s ease-in-out 480ms infinite; }
-        .bm-happy.bm-active .bm-sparkle { animation: bm-sparkle 1.8s ease-in-out infinite; }
-        @keyframes bm-breathe { 0%,100% { transform: translateY(0); } 50% { transform: translateY(1.5px); } }
-        @keyframes bm-blink { 0%,92%,100% { transform: scaleY(1); } 94%,96% { transform: scaleY(.05); } }
-        @keyframes bm-lids { 0%,92%,98%,100% { opacity: 0; } 94%,96% { opacity: 1; } }
-        @keyframes bm-pulse { 0%,100% { opacity: .35; transform: scale(.94); } 50% { opacity: 1; transform: scale(1); } }
-        @keyframes bm-dot { 0%,65%,100% { transform: translateY(0); } 30% { transform: translateY(-3px); } }
-        @keyframes bm-hop { 0%,100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }
-        @keyframes bm-sway { 0%,100% { transform: rotate(0); } 30% { transform: rotate(-1.5deg); } 70% { transform: rotate(1.5deg); } }
-        @keyframes bm-sparkle { 0%,100% { opacity: .4; transform: scale(.8); } 50% { opacity: 1; transform: scale(1); } }
-        @media (prefers-reduced-motion: reduce) {
-          .bm-root g { animation: none !important; }
-          .bm-pose { transition: none; }
-        }
-      `}</style>
       <path fill="#F4D9C4" d="M24 119C17 86 35 49 67 41c31-9 48-2 66 6 31 13 49 37 47 68-2 37-30 67-77 68-43 1-71-22-79-64Z" />
       {(['idle', 'listening', 'thinking', 'happy'] as const).map((pose) => (
         <g key={pose} className={`bm-pose bm-${pose}${state === pose ? ' bm-active' : ''}`}>
