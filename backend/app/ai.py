@@ -171,7 +171,15 @@ def extract(texts: list[str]) -> dict:
 
 def _with_rule_keeps(changes, texts):
     """Rule-detected keeps win: drop model edits that would change/remove that same part."""
-    keeps = _negated_keeps(texts[-1:])
+    # Every new message counts, oldest first; a later message that names the same part without a
+    # negation (e.g. "sige, paikliin na ang fringe") releases the earlier keep.
+    keeps = []
+    for i, text in enumerate(texts):
+        for k in _negated_keeps([text]):
+            regions = consult._regions(k["value"])
+            later = [t for t in texts[i + 1:] if not _negated_keeps([t]) and consult._regions(t) & regions & set(consult.REGIONS)]
+            if not later:
+                keeps.append(k)
     if not keeps:
         return changes
     protected = set().union(*(consult._regions(k["value"]) for k in keeps))

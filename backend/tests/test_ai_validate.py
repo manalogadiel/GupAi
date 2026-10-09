@@ -124,3 +124,12 @@ def test_negation_rule_protects_part_even_if_model_misreads(monkeypatch):
     assert {"field": "keep", "op": "add", "value": "fringe", "negated": True} in out["proposed_changes"]
     assert not any(c["field"] == "change" and "fringe" in c["value"] for c in out["proposed_changes"])
     assert [k["value"] for k in ai._negated_keeps(["wag mo gupitin yung bangs", "ayoko ng mahaba"])] == ["bangs"]
+
+
+def test_negation_from_an_earlier_message_still_protects(monkeypatch):
+    monkeypatch.setattr(ai, "chat", lambda *a, **k: {"goal": "g", "proposed_changes": [
+        {"field": "change", "op": "add", "value": "medyo maikli sa likod", "negated": False}]})
+    out = ai.extract(["Gusto ko maikli sa gilid pero huwag galawin ang fringe", "Medyo maikli lang sa likod"])
+    assert any(c["field"] == "keep" and c["value"] == "fringe" for c in out["proposed_changes"])
+    released = ai.extract(["Huwag galawin ang fringe", "Sige, paikliin na rin ang fringe"])
+    assert not any(c["field"] == "keep" and c["value"] == "fringe" for c in released["proposed_changes"])

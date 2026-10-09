@@ -60,11 +60,16 @@ export function useConsultation(id: string | null) {
   const runJob = useCallback(async (type: JobType, mediaId?: string) => {
     if (!id) return null
     try {
-      const current = await api.consultation(id)
-      const job = await api.startJob(id, type, current.revision, mediaId)
-      seenJobs.current.add(job.id)
-      setRunningJob(job)
-      const done = await waitForJob(job.id, setRunningJob)
+      let done: Job | null = null
+      // A job queued behind another state change comes back `stale`; rerun it once on the new revision.
+      for (let attempt = 0; attempt < 2 && (!done || done.status === 'stale'); attempt++) {
+        const current = await api.consultation(id)
+        const job = await api.startJob(id, type, current.revision, mediaId)
+        seenJobs.current.add(job.id)
+        setRunningJob(job)
+        done = await waitForJob(job.id, setRunningJob)
+      }
+      if (!done) return null
       absorbJob(done)
       if (done.status === 'failed') setError(done.error?.message ?? 'Hindi natapos ang AI job.')
       await refresh()
