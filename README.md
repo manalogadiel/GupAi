@@ -1,117 +1,316 @@
-# GupAi
+<p align="center">
+  <img src="frontend/public/favicon.svg" alt="GupAi scissors logo" width="112" height="112">
+</p>
+<h1 align="center">GupAi</h1>
+<p align="center"><strong>Para bago gumupit, nagkaintindihan muna.</strong><br>Agree on the haircut before the first cut.</p>
+<p align="center">An offline AI consultation assistant for Filipino barbershops.</p>
 
-**Para bago gumupit, nagkaintindihan muna.** *(So that before the cut, we understand each other first.)*
+GupAi helps a barber and customer turn “ganito sana” into a shared haircut plan. **Kuya Gup**, the app’s barber assistant, asks about preferences, reviews reference photos, and helps choose the sides and top. Both people approve the same plan before cutting begins. With consent, a saved visit makes “same as last time” easier next time.
 
-GupAi is an offline barbershop consultation assistant. A barber and customer use local vision, speech, and language models to agree on a haircut **before** the first cut. The shop keeps that agreement so the next visit can start from "same as last time".
+Built for **AppBuildersPH Hackathon 2026 — Local AI**. AI inference runs on the shop laptop; a paired phone connects over the same local network. Internet is needed for initial installation and model downloads, not for normal consultations afterward.
 
-Built for the **AppBuildersPH Hackathon 2026: Local AI**.
+## What it does
 
-## The problem
-A customer shows a reference photo but can't say which parts they actually want. The barber reads the photo differently. A haircut can't be undone, so the customer quietly lives with a result they didn't expect.
+- **Guided Tagalog/Taglish consultation:** type, use answer chips, dictate, or attach a haircut reference. Kuya Gup asks one question at a time and builds a shared brief.
+- **A consistent male voice:** optional local OmniVoice speech uses the included Kuya Gup reference voice. Mute and **Pakinggan** replay controls are available.
+- **Phone pairing:** scan a chair’s single-use QR code to join its consultation. Multiple chairs can share the laptop.
+- **Guided photos:** capture front, left, and right views with framing guidance and a countdown.
+- **Face and hair observations:** local models suggest face shape and hair characteristics for the barber to confirm.
+- **Sides and top selection:** illustrated choices and explanations based on the customer’s preferences and the haircut catalog.
+- **Shared agreement:** the barber and customer approve the same plan version before cutting. Optional photo checkpoints provide advisory feedback.
+- **Return visits:** ratings, consented customer records, saved preferred haircuts, and customer deletion.
 
-## What GupAi does
-1. Pair a phone to a named chair with a single-use QR over local HTTPS. Multiple chairs share one local inference queue.
-2. Take three guided photos (Harap, Kaliwa, Kanan) with a pose outline and a 3-2-1 countdown; each capture moves on to the next view, and any view can be retaken.
-3. Talk with **Kuya Gup** by typing, tapping answer chips, voice (tap-to-talk or hands-free), or a reference photo. He leads one question at a time: problem → occasion → wanted cut → dating (look) → keep/avoid → routine, explains why a problem happens, and reads his replies aloud with an on-device voice. The Scan step opens only after every answer is in.
-4. Scan: face shape (six outlines) and hair profile (density, strand, texture, hairline) are AI estimates the barber confirms.
-5. Choose sides and top separately from 10 sides and 13 tops, each drawn (side profile for fades). Suggestions are ranked by problem, face shape, hair type and the wanted cut, with the reasons shown.
-6. Both devices accept the same version of the agreement before cutting starts; the plan is then locked. Optional photo checkpoints are advisory only.
-7. The customer rates from the phone. The barber saves the consented visit and preferred haircut for "same as last time", and can delete a customer with every visit and photo.
+The previews are illustrations, not predictions of exactly how a person will look. AI observations are suggestions; the barber and customer make the final decisions.
 
-## Why local AI
-GupAi looks at close-up photos of a customer's face and hair and listens to their voice while they sit in the chair. Sending that to a cloud API would mean uploading biometric-adjacent personal data from a small shop that has no privacy officer and often no reliable internet. Running the vision model, language model, face landmarks, and speech recognition **on the shop laptop** keeps photos and audio inside the shop, in the spirit of the Data Privacy Act (RA 10173). It keeps working when the internet is down or the load runs out, and it costs nothing per consultation.
+## How it runs
 
-**Runs locally:**
-- Qwen 3.5 4B via Ollama
-- faster-whisper
-- MediaPipe Face Landmarker
-- FastAPI
-- SQLite
-- the catalog and every UI asset
+| Component | Purpose |
+|---|---|
+| React, TypeScript, Vite | Laptop and phone interfaces; served locally after building |
+| FastAPI + SQLite | Local API, consultations, agreements, and customer records |
+| Ollama + `qwen3.5:4b` | Conversation, photo observations, and suggestions |
+| faster-whisper | Local Tagalog/Taglish speech recognition |
+| MediaPipe Face Landmarker | Face landmarks and heuristic shape estimates |
+| OmniVoice, optional | Local spoken replies using the included male reference |
+| mkcert | Trusted local HTTPS for phone camera and microphone access |
 
-**Needs internet:** only the one-time setup. See [DISCLOSURES.md](DISCLOSURES.md).
+## Before you start
 
-## Verified status
-The backend regression suite (`pytest backend/tests`) has **294 passing tests**, and an end-to-end run of the full consultation against the real local models passed 51/51 checks. Production browser rehearsal evidence and real local model timings are recorded in [docs/MEASUREMENTS.md](docs/MEASUREMENTS.md) and the ignored `.local-backup/conversation-rehearsal/report.json`.
+You need:
 
-CPU inference can take tens of seconds. The UI displays queued/running status, elapsed time, and cancellation. Do not present a five-second latency promise. Real phone certificate trust, camera, and microphone still require a physical-device check.
+- **Python 3.12**, **Node.js 22.12 or newer** (Node 24 also works), npm, Git, [Ollama](https://ollama.com/download), and [mkcert](https://github.com/FiloSottile/mkcert#installation).
+- A laptop with enough free disk space for Python packages and several gigabytes of model weights. Allow **at least 15 GB free** as a practical starting point; GPU packages can need more.
+- **16 GB RAM or more is recommended**, especially with spoken replies. Lower-memory machines may be slow; this is not a validated minimum.
+- Internet during setup. For phone pairing, put both devices on the same reachable Wi-Fi/hotspot without client isolation.
 
-## Setup (Windows 11; any OS with Python 3.12 + Node 20+ should work)
-Prerequisites: [Ollama](https://ollama.com), Python 3.12, Node.js 20+, [mkcert](https://github.com/FiloSottile/mkcert).
+**Tested environment:** Apple Silicon macOS with Python 3.12. The Windows instructions below match the project’s paths and launcher, but have not been freshly tested on a separate Windows machine. The current voice implementation uses Apple’s MPS GPU on supported Macs and CPU elsewhere; an NVIDIA GPU is not automatically used by this code.
 
-```bash
-ollama pull qwen3.5:4b
+> Run every command below from the repository root unless a step says otherwise. Do not copy another person’s `.venv`, certificates, or local database.
+
+## Step 1 — Clone the project
+
+```sh
+git clone https://github.com/manalogadiel/GupAi.git
+cd GupAi
 ```
 
-```bash
-py -3.12 -m venv .venv && .venv/Scripts/pip install fastapi "uvicorn[standard]" pydantic pillow python-multipart httpx qrcode pytest faster-whisper mediapipe
+Check the tools:
+
+```sh
+node --version
+npm --version
+ollama --version
+mkcert -version
 ```
 
-```bash
-curl -L -o knowledge/models/face_landmarker.task https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task
+If a command is missing, install that prerequisite and open a new terminal before continuing.
+
+## Step 2 — Create the Python environment
+
+### macOS / Linux — Bash or Zsh
+
+```sh
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+mkdir -p certs knowledge/models
 ```
 
-```bash
-npm --prefix frontend install && npm --prefix frontend run build
-```
-
-**HTTPS for the phone.**
-1. Run `mkcert -install` once.
-2. Generate a certificate that covers the laptop's IP on the shop network:
-
-```bash
-mkcert -cert-file certs/gupai.pem -key-file certs/gupai-key.pem localhost 127.0.0.1 <laptop-ip>
-```
-
-3. Install the root CA from `mkcert -CAROOT` on the phone and trust it.
-
-**Offline speech setup:** faster-whisper `large-v3-turbo` (default, ~1.6 GB) or `small` (lighter fallback) must already be cached. During one-time internet setup, run `.venv/Scripts/python -c "from faster_whisper import WhisperModel; WhisperModel('large-v3-turbo', device='cpu', compute_type='int8')"`. Choose the model with `GUPAI_WHISPER=small` or `GUPAI_WHISPER=large-v3-turbo`; if turbo is not cached, `small` is used. Runtime speech loading uses `local_files_only=True`, so a missing cache reports unavailable instead of downloading. On an M-series Mac CPU a 5-second clip took about 1.2 s on `small` and 3.8 s on turbo.
-
-**Run on this prepared laptop (PowerShell):**
+### Windows — PowerShell
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/preflight.py
-.\scripts\start-demo.ps1
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+New-Item -ItemType Directory -Force certs, knowledge/models | Out-Null
 ```
 
-The launcher prints readiness, sets a LAN pairing origin, and starts HTTPS. If a server already runs, it reports that fact; restart its existing terminal after code changes. Both devices must share the same reachable local network. To select another adapter, pass `-PhoneIP <laptop-ip>` and regenerate the certificate for that IP. Never share the private HTTPS key.
+If PowerShell blocks activation, use `.\.venv\Scripts\python.exe` instead of `python` in the remaining commands; activation is only a convenience. On macOS/Linux the equivalent is `.venv/bin/python`.
 
-**Run on macOS:**
+Install the core dependencies. These versions match the working development environment:
 
-```bash
-brew install python@3.12 mkcert && mkcert -install
-mkcert -cert-file certs/gupai.pem -key-file certs/gupai-key.pem localhost 127.0.0.1 <laptop-ip>
-scripts/start-demo.sh
+```sh
+python -m pip install "fastapi==0.143.0" "uvicorn[standard]==0.54.0" "pydantic==2.14.0" "pillow==12.3.0" "python-multipart==0.0.32" "httpx==0.28.1" "qrcode==8.2" "faster-whisper==1.2.1" "mediapipe==1.1.0" "av==19.0.1" "numpy==2.5.3" "pytest==9.1.1"
 ```
 
-Open `https://localhost:8443` on the laptop and allow the macOS firewall prompt for Python. The QR code then points the phone to `https://<laptop-ip>:8443`. Before scanning, the phone must trust the mkcert root CA, `rootCA.pem` in `mkcert -CAROOT`.
-- **iPhone:** AirDrop the file and install the profile. Then go to Settings › General › About › Certificate Trust Settings and turn it on.
-- **Android:** Settings › Security › Install a certificate › CA certificate.
+## Step 3 — Download the local AI models
 
-**Manual run:**
+**Keep internet enabled for this step.** If you previously set `HF_HUB_OFFLINE` or `TRANSFORMERS_OFFLINE`, remove those settings while downloading.
 
-```bash
-.venv/Scripts/python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8443 --ssl-keyfile certs/gupai-key.pem --ssl-certfile certs/gupai.pem
+### Conversation and vision
+
+Open the Ollama application and leave it running, then run:
+
+```sh
+ollama pull qwen3.5:4b
+ollama list
 ```
 
-Open `https://localhost:8443` on the laptop (barber), then pair the phone with the QR code.
+The list must include `qwen3.5:4b`. If Ollama is not running as an application/service, run `ollama serve` in a separate terminal and leave it open. Do not run a second server if port 11434 is already occupied by Ollama.
 
-**Tests:**
+### Speech recognition
 
-```bash
-.venv/Scripts/python -m pytest backend/tests -q
+Download the lighter model first. The app uses it when the larger default model is not cached:
+
+```sh
+python -c "from faster_whisper import WhisperModel; WhisperModel('small', device='cpu', compute_type='int8')"
 ```
 
-## Privacy and safety
-- No face recognition. Face landmarks are used only for shape ratios and the outline; only the confirmed shape and 3 ratios are saved.
-- Photos are saved only with a separate consent checkbox. Temporary sessions delete everything at the end. Raw audio is deleted right after transcription.
-- The barber-only customer list is restricted to the laptop itself. A paired phone sees only its own consultation, and its access is revoked when the visit ends.
-- AI suggestions are proposals. The barber confirms physical observations, and the customer has the final say on preferences.
+For the larger Tagalog/Taglish recognition option, also download:
 
-## Limitations
-See [DISCLOSURES.md](DISCLOSURES.md#known-limitations-honest). In short: the guidance has not been validated by a practicing barber; the face-shape thresholds are heuristic; there's no barber password; data is not encrypted at rest.
+```sh
+python -c "from faster_whisper import WhisperModel; WhisperModel('large-v3-turbo', device='cpu', compute_type='int8')"
+```
 
-## How it was built
-Initially built with Claude Code and Codex CLI; Codex desktop subsequently completed the v2 integration and verification after the Claude session limit. Original coordination is recorded in [AGENTS.md](AGENTS.md) and [docs/TASKS.md](docs/TASKS.md). Full planning docs are in [docs/](docs/).
+When both are present, the app prefers `large-v3-turbo`. To use `small` explicitly, set `GUPAI_WHISPER=small` before launching.
 
-See [docs/DEMO.md](docs/DEMO.md) for the rehearsal, physical phone checklist, and isolated v1 recovery procedure.
+### Face landmarks
+
+This command works in both activated environments:
+
+```sh
+python -c "from pathlib import Path; from urllib.request import urlretrieve; p=Path('knowledge/models/face_landmarker.task'); p.parent.mkdir(parents=True, exist_ok=True); urlretrieve('https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task', str(p))"
+```
+
+### Spoken replies — optional
+
+Install this if you want Kuya Gup to speak. Text conversation works without it; missing voice weights will not be downloaded automatically at runtime.
+
+```sh
+python -m pip install -r backend/requirements-tts.txt
+python scripts/setup-tts.py
+```
+
+This downloads approximately **3.27 GB** of OmniVoice weights to `data/models/omnivoice`. The reference voice is already included at `knowledge/voices/kuya-gup.wav`.
+
+**License:** OmniVoice’s code is Apache-2.0, but its pretrained weights are **CC-BY-NC**, according to its [model card](https://huggingface.co/k2-fsa/OmniVoice). Check the model terms before commercial deployment. Spoken replies can take several seconds to generate and will be slower on CPU. Browser playback may require tapping **Pakinggan**.
+
+Check that Python dependencies are compatible:
+
+```sh
+python -m pip check
+```
+
+Expected: `No broken requirements found.`
+
+## Step 4 — Build the interface
+
+```sh
+npm --prefix frontend ci
+npm --prefix frontend run build
+```
+
+A successful build creates `frontend/dist/index.html`. FastAPI serves this build, so you do **not** need a separate Vite server to run the app. Rebuild after changing frontend code.
+
+## Step 5 — Create HTTPS certificates
+
+Find the laptop’s **local IPv4 address** on the network the phone will use:
+
+- **macOS:** System Settings → Wi-Fi → Details → TCP/IP.
+- **Windows:** run `ipconfig` and find the IPv4 address of the active Wi-Fi adapter.
+- **Linux:** inspect the active network connection or run `hostname -I`.
+
+Install mkcert’s local certificate authority:
+
+```sh
+mkcert -install
+```
+
+Then generate the certificate. **Replace `192.168.1.50` below with your laptop’s actual local IP**; it is only an example:
+
+```sh
+mkcert -cert-file certs/gupai.pem -key-file certs/gupai-key.pem localhost 127.0.0.1 ::1 192.168.1.50
+```
+
+If the laptop’s network/IP changes, regenerate the certificate for the new IP and use that address when starting the app.
+
+### Trust the certificate on the phone
+
+```sh
+mkcert -CAROOT
+```
+
+Transfer **only `rootCA.pem`** from that directory to your own test phone. Never share `rootCA-key.pem` or `certs/gupai-key.pem`.
+
+- **iPhone/iPad:** install the downloaded profile in Settings, then enable its trust under General → About → Certificate Trust Settings.
+- **Android:** install it as a CA certificate through the device’s security/credential settings. Menu names differ by manufacturer.
+
+Allow the browser’s camera and microphone permissions when prompted. A trusted HTTPS connection is required for the phone capture workflow.
+
+## Step 6 — Start GupAi
+
+All downloads must be complete first. Keep Ollama running. Replace the example IP with the same laptop IP used in the certificate.
+
+### macOS / Linux
+
+```sh
+export HF_HUB_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+export PYTORCH_ENABLE_MPS_FALLBACK=1
+python scripts/preflight.py --phone-ip 192.168.1.50
+bash scripts/start-demo.sh 192.168.1.50
+```
+
+### Windows PowerShell
+
+```powershell
+$env:HF_HUB_OFFLINE = "1"
+$env:TRANSFORMERS_OFFLINE = "1"
+python scripts/preflight.py --phone-ip 192.168.1.50
+.\scripts\start-demo.ps1 -PhoneIP 192.168.1.50
+```
+
+Preflight should report `"ready": true`. Fix any `false` check before continuing. Preflight checks the core app, speech recognition, and certificates; it **does not check OmniVoice readiness**. Startup prints separate model warmup messages, including `warm tagalog voice` when voice setup succeeds. Wait for warmup before the first consultation.
+
+If PowerShell prevents the launcher script from running, use the manual command below with the project’s Python executable.
+
+### Manual launch — either platform
+
+Set the phone URL first:
+
+```sh
+# macOS/Linux
+export GUPAI_PAIR_BASE_URL=https://192.168.1.50:8443
+```
+
+```powershell
+# Windows PowerShell
+$env:GUPAI_PAIR_BASE_URL = "https://192.168.1.50:8443"
+```
+
+Then, with the virtual environment active:
+
+```sh
+python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8443 --ssl-keyfile certs/gupai-key.pem --ssl-certfile certs/gupai.pem
+```
+
+Leave that terminal running. Stop with **Ctrl+C**; run the same launcher again to restart. Do not start multiple copies on port 8443.
+
+## Step 7 — Open the app and try a consultation
+
+1. On the **laptop**, open **https://localhost:8443**. Use localhost for barber access; the LAN URL is intended for the paired phone.
+2. Start a consultation and display its QR code.
+3. On the **phone**, scan that QR code. The generated link includes the pairing token; opening the bare LAN address does not pair a device.
+4. Answer Kuya Gup’s questions, capture the guided photos, and confirm the observations.
+5. Choose the sides and top, then approve the shared haircut plan from both devices.
+6. Finish the visit, collect a rating, and save a record only with the appropriate consent.
+
+For a quick server check, open **https://localhost:8443/api/health** on the laptop. Expect `ollama`, `whisper`, and `face_landmarker` to be `true`, with `vision_model` set to `qwen3.5:4b`. Voice generation has a separate startup check and is not included in this response.
+
+After setup, you can disconnect the network’s **internet uplink** to try offline operation. Keep the local Wi-Fi/hotspot connection between laptop and phone active.
+
+## Troubleshooting
+
+| Symptom | What to check |
+|---|---|
+| `python` or a package is missing | Activate `.venv`, or use its Python executable explicitly. Use Python 3.12. |
+| Vite reports an unsupported Node version | Install Node 22.12+ or Node 24, reopen the terminal, then rerun `npm ci` and the build. |
+| `ollama_model: false` | Start Ollama and confirm `ollama list` contains exactly `qwen3.5:4b`. |
+| `speech_weights_cached: false` | Download `small` or `large-v3-turbo` using the same OS user and virtual environment that run the app. Disable offline environment flags during downloads. |
+| `face_model: false` | Repeat the face landmark download and check the destination filename. |
+| `production_ui: false` | Run `npm --prefix frontend ci` and `npm --prefix frontend run build`. |
+| Certificate/IP checks fail | Regenerate the certificate with the current laptop IP and pass that IP to the launcher. |
+| Phone cannot connect | Use the same LAN, allow Python/port 8443 through the firewall on the private network, and avoid guest Wi-Fi client isolation. |
+| Phone camera/mic unavailable | Trust the CA on the phone, use HTTPS, and grant browser permissions. |
+| Voice is silent | Install the optional TTS dependencies and weights, check warmup logs, unmute, then tap **Pakinggan**. |
+| Voice or AI is delayed | Wait for model warmup, close other heavy apps, and avoid overlapping consultations while testing. New audio requires inference; cached replay is quicker. CPU voice generation can be slow. |
+| Launcher says “already running” | Stop the existing server with Ctrl+C before restarting to apply backend changes. Refresh both browsers after frontend changes. |
+
+## Development checks
+
+With the virtual environment active:
+
+```sh
+python -m pytest backend/tests -q
+npm --prefix frontend run build
+npm --prefix frontend run lint
+```
+
+Optional playback regression tests use **Node 24**:
+
+```sh
+node --experimental-strip-types --test frontend/tests/speech.test.ts
+```
+
+Core API tests use temporary databases; passing them does not replace testing camera, microphone, certificate trust, and playback on a physical phone. Setup commands were checked against the repository and working Mac environment; a fresh installation on every supported OS has not been verified.
+
+## Data, privacy, and limitations
+
+- SQLite records and local media live under `data/`. Model caches and certificates are machine-specific and excluded from Git.
+- Photos and recordings stay on the local system during inference. No cloud AI API key is required.
+- Face landmarks estimate shape; the app does not perform face identification.
+- The prototype has no barber password and does not encrypt stored data at rest. Use it on a trusted local network, not as a public internet service.
+- Haircut advice and face-shape thresholds are not professionally validated. Confirm observations and preferences with the barber and customer.
+- Separate licenses apply to models and third-party assets; local execution does not remove those restrictions.
+
+## Project guide
+
+- [`backend/app/`](backend/app/) — API, local models, consultation flow, and storage.
+- [`frontend/src/`](frontend/src/) — laptop/phone interfaces and the mascot.
+- [`knowledge/`](knowledge/) — haircut catalog, source material, and voice reference.
+- [`scripts/`](scripts/) — readiness checks, launchers, and voice setup.
+- [`docs/DEMO.md`](docs/DEMO.md) — demo and physical-device checklist.
+- [`docs/PRD.md`](docs/PRD.md) — product scope and design.
+- [`DISCLOSURES.md`](DISCLOSURES.md) and [`ASSETS.md`](ASSETS.md) — development and asset background. See the current voice license note above for the added OmniVoice integration.
+
+Built with Claude Code and OpenAI Codex. The shared goal: help people leave the chair with the haircut they actually agreed on.
