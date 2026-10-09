@@ -18,7 +18,8 @@ export function flow(id: string, h: Hook) {
     /** A reviewed sentence from voice or typing, then fresh options that respect it. */
     async say(text: string, speaker: Speaker, inputType: 'typed' | 'voice') {
       const next = await h.contribute({ kind: 'text', speaker, text, input_type: inputType })
-      if (next) await h.runJob('propose')
+      // The input clears once the text is saved; option generation runs on (shown by JobStatus).
+      if (next) void h.runJob('propose')
     },
     async audio(clip: Blob) {
       try {

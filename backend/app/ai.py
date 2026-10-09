@@ -125,7 +125,7 @@ PROPOSE_SYSTEM = (
     "(use their exact catalog_id). Prefer options that respect keep/avoid and the customer's goal. Explain in plain "
     "Taglish, short and concrete. Face-shape notes are advisory: the customer's preference always comes first; never "
     "say a style is 'best for your face' or rank looks. reply: 1-3 short sentences. next_question: one short question "
-    "or empty. why: one short sentence tying the style to THIS customer's keep/change/avoid. "
+    "or empty, and only about length, shape or styling effort (never hair color or dye). Pick only styles that fit; why: one short sentence saying HOW the style fits THIS customer's keep/change/avoid. Never pick a style and then say it does not fit. "
     "uncertainties: what you could not know (max 2). 'cuts' lists the regions a style shortens.")
 
 

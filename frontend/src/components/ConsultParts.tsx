@@ -124,6 +124,14 @@ export function AgreementSummary({ c }: { c: Consultation }) {
         <h2 className="font-display text-[30px] leading-none">Napagkasunduan</h2>
         {c.agreement && <span className="tabular-nums text-[14px] text-ink-2">v{c.agreement.version}</span>}
       </div>
+      <AnimatePresence>
+        {agreed && (
+          <motion.div initial={{ scale: 1.6, opacity: 0, rotate: -12 }} animate={{ scale: 1, opacity: 1, rotate: -6 }} transition={{ type: 'spring', stiffness: 420, damping: 18 }}
+            className="inline-block rounded-[10px] border-[3px] border-action px-3 py-1 font-display text-2xl text-action" aria-label="Napagkasunduan na ng dalawa">
+            ✓ Kasundo
+          </motion.div>
+        )}
+      </AnimatePresence>
       {s.goal && <p className="text-[15px] italic text-ink-2">“{s.goal}”</p>}
       <List title="Keep" items={s.keep} tone="bg-action" />
       <List title="Change" items={s.change} tone="bg-voice" />
@@ -134,14 +142,6 @@ export function AgreementSummary({ c }: { c: Consultation }) {
       {s.conflicts.length > 0 && (
         <div role="alert" className="rounded-[14px] bg-error/8 px-3.5 py-2.5 text-[15px] text-error">⚠ May salungat: {s.conflicts.map(x => x.text).join('; ')}</div>
       )}
-      <AnimatePresence>
-        {agreed && (
-          <motion.div initial={{ scale: 1.6, opacity: 0, rotate: -12 }} animate={{ scale: 1, opacity: 1, rotate: -6 }} transition={{ type: 'spring', stiffness: 420, damping: 18 }}
-            className="absolute right-4 top-14 rounded-[10px] border-[3px] border-action px-3 py-1 font-display text-2xl text-action" aria-label="Napagkasunduan na ng dalawa">
-            ✓ Kasundo
-          </motion.div>
-        )}
-      </AnimatePresence>
     </section>
   )
 }

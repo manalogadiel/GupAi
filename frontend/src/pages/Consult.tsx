@@ -269,7 +269,7 @@ export default function Consult({ id }: { id: string }) {
               <AgreementConfirm c={c} ready={agreementReady} onDone={h.refresh} />
             </Sheet>
           )}
-          <Sheet><Pairing c={c} /></Sheet>
+          {c.stage !== 'cutting' && <Sheet><Pairing c={c} /></Sheet>}
         </aside>
       </main>
     </div>
