@@ -1,8 +1,9 @@
+import { AnimatePresence, motion } from 'motion/react'
 import { useState } from 'react'
 import { api, ApiError, type Consultation, type Stage } from '../api'
 import { navigate } from '../App'
 import { AgreementSummary, FaceShapeChips, JobStatus, OptionCard } from '../components/ConsultParts'
-import Mascot from '../components/Mascot'
+import Character, { type CharacterState } from '../components/Character'
 import Mirror from '../components/Mirror'
 import Photo from '../components/Photo'
 import Talk from '../components/Talk'
@@ -39,12 +40,12 @@ const QUICK: { field: 'keep' | 'change' | 'avoid'; value: string; label: string 
 function Pairing({ c }: { c: Consultation }) {
   const [qr, setQr] = useState<{ url: string; qr_png_data_url: string; expires_at: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
-  if (c.phone_paired) return <p className="text-[15px] text-ink-2"><span className="text-action">●</span> Naka-connect ang phone ng customer</p>
+  if (c.phone_paired) return <p className="flex items-center gap-2 text-[15px] text-ink"><span aria-hidden className="size-2.5 rounded-full bg-action" /> Naka-connect ang phone ng customer</p>
   return (
     <div className="space-y-3">
       {qr ? (
         <>
-          <img src={qr.qr_png_data_url} alt="QR code para i-connect ang phone" className="mx-auto w-44 rounded-[8px] bg-surface p-2" />
+          <motion.img initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 28 }} src={qr.qr_png_data_url} alt="QR code para i-connect ang phone" className="mx-auto w-48 rounded-[16px] bg-white p-3 shadow-[var(--shadow-card)]" />
           <p className="break-all text-center text-[13px] text-ink-2">{qr.url}</p>
           <p className="text-center text-[13px] text-ink-2">Isang beses lang magagamit · 10 minuto</p>
         </>
@@ -73,7 +74,7 @@ function CompleteForm({ c }: { c: Consultation }) {
       <label className="block space-y-1">
         <span className="text-[15px] font-semibold">Ano ang talagang ginawa?</span>
         <textarea rows={3} value={notes} onChange={e => setNotes(e.target.value)} maxLength={1000} placeholder="Hal. #2 sa gilid, gunting sa ibabaw, iniwan ang fringe"
-          className="block w-full rounded-[var(--radius-control)] border border-boundary bg-surface px-3 py-2" />
+          className="block w-full rounded-[var(--radius-control)] bg-subtle px-4 py-3 outline-none focus-visible:ring-2 focus-visible:ring-focus" />
       </label>
       {named ? (
         <>
@@ -92,6 +93,7 @@ function CompleteForm({ c }: { c: Consultation }) {
 export default function Consult({ id }: { id: string }) {
   const h = useConsultation(id)
   const { c, results, runningJob } = h
+  const [recording, setRecording] = useState(false)
   const f = flow(id, h)
   const busy = !!runningJob
 
@@ -120,12 +122,15 @@ export default function Consult({ id }: { id: string }) {
     h.refresh()
   }
 
+  const agreed = !!(c.agreement?.customer_confirmed_at && c.agreement?.barber_confirmed_at)
+  const mood: CharacterState = recording ? 'listening' : busy ? 'thinking' : agreed ? 'happy' : 'idle'
+
   return (
-    <div className="min-h-dvh">
+    <div className="min-h-dvh pb-10">
       <Header
-        sub={<>{c.customer ? c.customer.display_name : 'Temporary session'} · {c.customer ? 'saved customer' : 'walang ise-save'}</>}
+        sub={<span className="hidden sm:inline">{c.customer ? c.customer.display_name : 'Temporary session'} · {c.customer ? 'saved customer' : 'walang ise-save'}</span>}
         right={<>
-          {h.offline ? <span className="text-[15px] text-error">⚠ Offline sa laptop server</span> : <span className="text-[14px] text-ink-2">Local AI · walang internet</span>}
+          {h.offline ? <span className="text-[15px] text-error">⚠ Offline sa laptop server</span> : <span className="hidden text-[14px] text-ink-2 md:inline">Local AI · walang internet</span>}
           <Button variant="quiet" className="min-h-10 px-3 text-[15px]" onClick={async () => {
             if (!confirm('Itigil ang konsulta? Walang mase-save at buburahin ang photos.')) return
             try { await api.abandon(c.id); navigate('/') } catch (e) { h.setError(e instanceof ApiError ? e.message : 'Hindi naitigil.') }
@@ -133,23 +138,39 @@ export default function Consult({ id }: { id: string }) {
         </>}
       />
 
-      <nav aria-label="Steps" className="flex gap-1 overflow-x-auto border-b border-separator px-4 sm:px-8">
-        {STEPS.map((x, i) => (
-          <button key={x.stage} onClick={() => go(x.stage)} disabled={x.stage === 'cutting' || c.stage === 'cutting'} aria-current={i === stepIndex ? 'step' : undefined}
-            className={`min-h-12 whitespace-nowrap border-b-2 px-3 text-[15px] ${i === stepIndex ? 'border-action font-semibold text-ink' : 'border-transparent text-ink-2 hover:text-ink'} disabled:cursor-default disabled:hover:text-ink-2`}>
-            {i + 1}. {x.label}
-          </button>
-        ))}
+      <nav aria-label="Steps" className="mx-auto mt-2 flex max-w-[1440px] justify-center px-4">
+        <ol className="flex max-w-full gap-1 overflow-x-auto rounded-full bg-surface p-1.5 shadow-[var(--shadow-card)]">
+          {STEPS.map((x, i) => (
+            <li key={x.stage}>
+              <button onClick={() => go(x.stage)} disabled={x.stage === 'cutting' || c.stage === 'cutting'} aria-current={i === stepIndex ? 'step' : undefined}
+                className={`relative min-h-11 whitespace-nowrap rounded-full px-4 text-[15px] font-medium transition-colors duration-150 disabled:cursor-default ${i === stepIndex ? 'text-on-action' : i < stepIndex ? 'text-ink hover:bg-subtle' : 'text-ink-2 hover:bg-subtle'}`}>
+                {i === stepIndex && <motion.span layoutId="step-thumb" className="absolute inset-0 rounded-full bg-action" transition={{ type: 'spring', stiffness: 420, damping: 34 }} />}
+                <span className="relative">{i < stepIndex ? '✓ ' : `${i + 1}. `}{x.label}</span>
+              </button>
+            </li>
+          ))}
+        </ol>
       </nav>
 
-      <main className="grid gap-6 px-4 py-6 sm:px-8 lg:grid-cols-12">
+      <main className="mx-auto grid max-w-[1440px] gap-6 px-4 pt-6 sm:px-8 lg:grid-cols-12">
         {/* Prompt column */}
-        <section className="space-y-5 lg:col-span-4 xl:col-span-3">
-          <div className="flex items-start gap-3">
-            <Mascot size={64} />
-            <p className="text-[clamp(1.375rem,2vw,1.75rem)] font-semibold leading-tight">{PROMPT[c.stage]}</p>
+        <section className="min-w-0 space-y-5 lg:col-span-4">
+          <div className="flex items-end gap-3">
+            <Character state={mood} size={96} />
+            <AnimatePresence mode="wait">
+              <motion.h1 key={c.stage} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+                className="pb-2 font-display text-[clamp(1.9rem,2.6vw,2.6rem)]">{PROMPT[c.stage]}</motion.h1>
+            </AnimatePresence>
           </div>
-          {s.reply && <p className="rounded-[var(--radius-control)] bg-surface p-4">{s.reply}{s.next_question && <><br /><b>{s.next_question}</b></>}</p>}
+          <AnimatePresence>
+            {s.reply && (
+              <motion.div key={s.reply} initial={{ opacity: 0, y: 10, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0 }} transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                className="relative rounded-[20px] rounded-tl-[6px] bg-surface p-4 shadow-[var(--shadow-card)]" aria-live="polite">
+                <p>{s.reply}</p>
+                {s.next_question && <p className="mt-2 font-semibold">{s.next_question}</p>}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {(c.stage === 'concern' || c.stage === 'options') && (
             <div className="flex flex-wrap gap-2">
@@ -161,36 +182,44 @@ export default function Consult({ id }: { id: string }) {
           )}
 
           {c.stage === 'observations' && (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <FaceShapeChips c={c} disabled={busy} onPick={shape => f.contribute({ kind: 'face_shape', confirmed: shape })} />
               <div className="space-y-2">
-                <p className="text-[15px]">Nakita ng AI <span className="text-ink-2">(mungkahi lang)</span></p>
+                <p className="text-[15px] font-medium">Nakita ng AI <span className="font-normal text-ink-2">· mungkahi lang</span></p>
                 {proposed.length === 0 && <p className="text-[15px] text-ink-2">{s.observations.length ? 'Na-review na lahat.' : 'Wala pa. Kumuha muna ng photo.'}</p>}
-                {proposed.map(o => (
-                  <div key={o.id} className="space-y-2 rounded-[var(--radius-control)] bg-surface p-3">
-                    <p>{o.text}{o.uncertain && <span className="text-ink-2"> · hindi sigurado</span>}{o.origin === 'history' && <span className="text-ink-2"> · mula sa huling visit, i-check ulit</span>}</p>
-                    <div className="flex gap-2">
-                      <Button className="min-h-10 flex-1" onClick={() => f.contribute({ kind: 'observation', observation_id: o.id, status: 'confirmed' })}>Tama</Button>
-                      <Button variant="quiet" className="min-h-10 flex-1" onClick={() => f.contribute({ kind: 'observation', observation_id: o.id, status: 'rejected' })}>Mali</Button>
-                    </div>
-                  </div>
-                ))}
+                <AnimatePresence initial={false}>
+                  {proposed.map(o => (
+                    <motion.div key={o.id} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: 24, transition: { duration: 0.16 } }}
+                      className="space-y-3 rounded-[18px] bg-surface p-4 shadow-[var(--shadow-card)]">
+                      <p>{o.text}{o.uncertain && <span className="text-ink-2"> · hindi sigurado</span>}{o.origin === 'history' && <span className="text-ink-2"> · mula sa huling visit, i-check ulit</span>}</p>
+                      <div className="flex gap-2">
+                        <Button variant="primary" className="min-h-10 flex-1" onClick={() => f.contribute({ kind: 'observation', observation_id: o.id, status: 'confirmed' })}>✓ Tama</Button>
+                        <Button variant="quiet" className="min-h-10 flex-1 bg-subtle" onClick={() => f.contribute({ kind: 'observation', observation_id: o.id, status: 'rejected' })}>Mali</Button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
             </div>
           )}
 
           {c.stage !== 'cutting' && c.stage !== 'completed' && (
-            <Talk onSend={f.say} onAudio={f.audio} transcript={results.transcribe?.text} busy={busy} />
+            <Talk onSend={f.say} onAudio={f.audio} transcript={results.transcribe?.text} busy={busy} onRecordingChange={setRecording} />
           )}
           <JobStatus job={runningJob} />
           <ErrorLine message={h.error} />
         </section>
 
         {/* Mirror column */}
-        <section className="space-y-5 lg:col-span-5 xl:col-span-6">
+        <section className="min-w-0 space-y-5 lg:col-span-5">
           {(c.stage === 'concern' || c.stage === 'photos') && !c.phone_paired && <Mirror onCapture={f.photo} busy={busy} />}
-          {(c.stage === 'concern' || c.stage === 'photos') && c.phone_paired && (
-            <Sheet><p className="text-ink-2">Kumukuha ng photo sa phone ng customer. Lalabas dito ang mga kuha.</p></Sheet>
+          {(c.stage === 'concern' || c.stage === 'photos') && c.phone_paired && !front && !side && (
+            <div className="grid aspect-[4/3] place-items-center rounded-[var(--radius-mirror)] bg-subtle p-8 text-center">
+              <div className="space-y-2">
+                <p className="font-display text-3xl">Nasa phone ng customer ang salamin</p>
+                <p className="text-ink-2">Lalabas dito ang mga kuha.</p>
+              </div>
+            </div>
           )}
           {(front || side) && c.stage !== 'options' && c.stage !== 'agreement' && (
             <div className="grid gap-4 sm:grid-cols-2">
@@ -201,25 +230,30 @@ export default function Consult({ id }: { id: string }) {
           {(c.stage === 'options' || c.stage === 'agreement') && (
             s.options.length ? (
               <>
-                <div className="grid gap-4 md:grid-cols-2">
-                  {s.options.map(o => (
-                    <OptionCard key={o.id} o={o} selected={o.id === s.selected_option_id}
-                      onSelect={c.stage === 'options' ? () => f.contribute({ kind: 'select_option', option_id: o.id }) : undefined} />
+                <div className="grid gap-5 md:grid-cols-2">
+                  {s.options.map((o, i) => (
+                    <motion.div key={o.id} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04, type: 'spring', stiffness: 320, damping: 30 }}>
+                      <OptionCard o={o} selected={o.id === s.selected_option_id}
+                        onSelect={c.stage === 'options' ? () => f.contribute({ kind: 'select_option', option_id: o.id }) : undefined} />
+                    </motion.div>
                   ))}
                 </div>
                 {s.options.length === 1 && <p className="text-ink-2">Isang style lang sa catalog ang tugma sa mga kondisyon ngayon.</p>}
                 {s.uncertainties.length > 0 && <p className="text-[15px] text-ink-2">Hindi sigurado ang AI: {s.uncertainties.join('; ')}</p>}
               </>
             ) : (
-              <Sheet className="space-y-3">
-                <p>Wala pang options. Sabihin ang gusto, o hingin na ngayon.</p>
-                <Button variant="primary" disabled={busy} onClick={f.propose}>Ipakita ang dalawang option</Button>
-              </Sheet>
+              <div className="grid min-h-[320px] place-items-center rounded-[var(--radius-mirror)] bg-subtle p-8 text-center">
+                <div className="space-y-4">
+                  <p className="font-display text-3xl">Wala pang options</p>
+                  <p className="text-ink-2">Sabihin ang gusto, o hingin na ngayon.</p>
+                  <Button variant="primary" disabled={busy} onClick={f.propose}>Ipakita ang dalawang option</Button>
+                </div>
+              </div>
             )
           )}
           {c.stage === 'cutting' && <Sheet><CompleteForm c={c} /></Sheet>}
 
-          <div className="flex justify-between gap-2">
+          <div className="flex justify-between gap-2 pt-1">
             <Button variant="quiet" disabled={stepIndex === 0} onClick={() => go(STEPS[stepIndex - 1].stage)}>← Bumalik</Button>
             {stepIndex < STEPS.length - 2 && (
               <Button variant="primary" onClick={() => go(STEPS[stepIndex + 1].stage)}>Susunod: {STEPS[stepIndex + 1].label} →</Button>
@@ -228,8 +262,8 @@ export default function Consult({ id }: { id: string }) {
         </section>
 
         {/* Agreement column */}
-        <aside className="space-y-5 lg:col-span-3">
-          <Sheet><AgreementSummary c={c} /></Sheet>
+        <aside className="min-w-0 space-y-5 lg:col-span-3">
+          <Sheet className="relative overflow-hidden"><AgreementSummary c={c} /></Sheet>
           {c.stage === 'agreement' && (
             <Sheet className="space-y-3">
               <AgreementConfirm c={c} ready={agreementReady} onDone={h.refresh} />
@@ -260,7 +294,7 @@ function AgreementConfirm({ c, ready, onDone }: { c: Consultation; ready: boolea
       <label className="block space-y-1">
         <span className="text-[15px]">Cutting notes ng barbero</span>
         <textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)} maxLength={500} placeholder="Hal. #2 fade sa gilid, 2 inches sa ibabaw"
-          className="block w-full rounded-[var(--radius-control)] border border-boundary bg-surface px-3 py-2" />
+          className="block w-full rounded-[var(--radius-control)] bg-subtle px-4 py-3 outline-none focus-visible:ring-2 focus-visible:ring-focus" />
       </label>
       <Button variant={a?.barber_confirmed_at ? 'secondary' : 'primary'} className="w-full" disabled={!!a?.barber_confirmed_at} onClick={() => confirm('barber')}>
         {a?.barber_confirmed_at ? '✓ Barbero: Kaya ko ’to' : 'Barbero: Kaya ko ’to'}

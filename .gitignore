@@ -11,3 +11,4 @@ knowledge/models/*.task
 .env
 test-face*.jpg
 test-face*.png
+.playwright-mcp/

@@ -105,7 +105,7 @@ export default function Talk({ speakerLocked, onSend, onAudio, transcript, busy,
             <textarea id="talk-input" rows={1} value={text} onChange={e => setText(e.target.value)} maxLength={500}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
               placeholder={placeholder ?? 'Hal. “Maikli sa gilid pero huwag galawin ang fringe”'}
-              className="max-h-28 min-h-8 flex-1 resize-none bg-transparent py-1 leading-snug outline-none placeholder:text-ink-2" />
+              className="max-h-28 min-h-8 min-w-0 flex-1 resize-none overflow-y-auto bg-transparent py-1 leading-snug outline-none [field-sizing:content] [scrollbar-width:none] placeholder:text-ink-2" />
           )}
           {recording ? (
             <Button type="button" variant="quiet" className="min-h-11 rounded-full px-4" onClick={() => stop(true)}>Discard</Button>
