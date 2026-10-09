@@ -88,6 +88,7 @@ interface Job { id: string; type: "transcribe" | "observe" | "faceshape" | "prop
 | 14 | DELETE | `/api/jobs/{id}` | P | — | Job (cancelled) |
 | 15 | POST | `/api/consultations/{id}/agreements/confirm` | P | `{ role: Speaker, barber_notes?: string, expected_revision }` | Consultation. The barber role needs B. Both confirmed → immutable version saved, stage → `cutting`. Open conflicts → `409 conflict_unresolved` |
 | 16 | POST | `/api/consultations/{id}/complete` | B | `{ actual_notes, save_as_preferred: bool, keep_photos: bool }` | `{ visit_id }`. Revokes the phone cookie and deletes unkept media |
+| 16b | POST | `/api/consultations/{id}/abandon` | B | — | `{ id, status: "abandoned" }`. Nothing saved; all media deleted; phone access revoked; queued/running jobs cancelled |
 | 17 | GET | `/api/media/{id}` | P | — | image/jpeg (no-store) |
 
 ### Contribution (endpoint 10)

@@ -1,4 +1,5 @@
 """FastAPI entry point, security boundary, and local frontend serving."""
+import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -23,6 +24,8 @@ SECURITY_HEADERS = {
 async def lifespan(app):
     db.initialize()
     db.recover_running_jobs()
+    if "pytest" not in sys.modules:
+        jobs._ensure_worker()  # the worker warms all local models before taking jobs
     yield
 
 

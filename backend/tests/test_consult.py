@@ -383,3 +383,17 @@ def test_invalid_job_change_is_atomic(logic):
     with pytest.raises(APIError):
         logic.merge_job_result(before, "propose", result)
     assert before == state()
+
+
+def test_abandon_frees_the_chair_and_revokes_phone(tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+    from backend.app import db, main
+    monkeypatch.setattr(db, "DB_PATH", tmp_path / "a.db")
+    db.initialize()
+    barber = TestClient(main.app, base_url="https://localhost:8443", client=("127.0.0.1", 5000))
+    h = lambda: {"Origin": "https://localhost:8443", "Idempotency-Key": str(__import__("uuid").uuid4())}
+    cid = barber.post("/api/consultations", json={}, headers=h()).json()["id"]
+    assert barber.post(f"/api/consultations/{cid}/abandon", headers=h()).json()["status"] == "abandoned"
+    assert barber.post("/api/consultations", json={}, headers=h()).status_code == 200
+    phone = TestClient(main.app, base_url="https://localhost:8443", client=("192.168.1.9", 5000))
+    assert phone.post(f"/api/consultations/{cid}/abandon", headers=h()).status_code == 403

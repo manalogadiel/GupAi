@@ -73,6 +73,29 @@ def result_from_landmarks(landmarks, width: int, height: int) -> dict:
             "outline": outline, "confirmed": None, "face_found": True}
 
 
+_detectors = {}
+
+
+def _detector(model, mp, vision):
+    # Only the single inference worker thread (and startup warm-up, before jobs) calls this.
+    key = str(model)
+    if key not in _detectors:
+        options = vision.FaceLandmarkerOptions(
+            base_options=mp.tasks.BaseOptions(model_asset_path=key),
+            running_mode=vision.RunningMode.IMAGE, num_faces=1,
+            output_face_blendshapes=False, output_facial_transformation_matrixes=False)
+        _detectors[key] = vision.FaceLandmarker.create_from_options(options)
+    return _detectors[key]
+
+
+def warm():
+    """Load MediaPipe and the landmarker once at startup."""
+    import mediapipe as mp
+    from mediapipe.tasks.python import vision
+    if MODEL_PATH.is_file():
+        _detector(MODEL_PATH, mp, vision)
+
+
 def estimate_face_shape(image_path: str | Path, *, model_path: str | Path | None = None) -> dict:
     """Run on an internal canonical front-photo path, resolved by the scoped job.
 
@@ -91,14 +114,9 @@ def estimate_face_shape(image_path: str | Path, *, model_path: str | Path | None
         image = mp.Image.create_from_file(str(image_path))
     except (OSError, RuntimeError, ValueError) as exc:
         raise APIError("invalid_input", "Use a valid front photo.") from exc
-    # shortcut: load model per job, reuse a worker-owned detector if measured latency requires it.
-    options = vision.FaceLandmarkerOptions(
-        base_options=mp.tasks.BaseOptions(model_asset_path=str(model)),
-        running_mode=vision.RunningMode.IMAGE, num_faces=1,
-        output_face_blendshapes=False, output_facial_transformation_matrixes=False)
     try:
-        with vision.FaceLandmarker.create_from_options(options) as detector:
-            detection = detector.detect(image)
+        # One detector for the process: first creation measured ~60 s cold on Windows, reuse is ~1 s.
+        detection = _detector(model, mp, vision).detect(image)
     except (OSError, RuntimeError, ValueError) as exc:
         raise APIError("model_unavailable", "Face landmarker could not run.", retryable=True) from exc
     if not detection.face_landmarks:

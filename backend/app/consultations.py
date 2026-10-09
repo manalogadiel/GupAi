@@ -210,3 +210,21 @@ def complete(consultation_id: str, request: Request, body: CompletionInput):
     if len(body.actual_notes) > 4000:
         raise APIError("invalid_input", "Actual cut notes are too long.")
     return _write(consultation_id, request, "complete", body.model_dump())
+
+
+@router.post("/{consultation_id}/abandon", dependencies=[Depends(require_barber)])
+def abandon(consultation_id: str):
+    """Barber cancels (customer left, wrong person). Nothing is saved; media is deleted; phone access ends."""
+    with db.connect() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        changed = conn.execute("UPDATE consultations SET status='abandoned', stage='abandoned', phone_token_hash=NULL, "
+                               "pair_code_hash=NULL, ended_at=? WHERE id=? AND status='active'",
+                               (datetime.now(timezone.utc).isoformat(), consultation_id)).rowcount
+        if not changed:
+            raise APIError("not_found", "Active consultation not found.")
+        conn.execute("UPDATE jobs SET status='cancelled', finished_at=? WHERE consultation_id=? AND status IN ('queued','running')",
+                     (datetime.now(timezone.utc).isoformat(), consultation_id))
+        doomed = [r["id"] for r in conn.execute("SELECT id FROM media WHERE consultation_id=?", (consultation_id,))]
+    for media_id in doomed:
+        media.delete_media(media_id)
+    return {"id": consultation_id, "status": "abandoned"}

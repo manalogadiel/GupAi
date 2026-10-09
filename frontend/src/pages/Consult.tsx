@@ -112,7 +112,13 @@ export default function Consult({ id }: { id: string }) {
     <div className="min-h-dvh">
       <Header
         sub={<>{c.customer ? c.customer.display_name : 'Temporary session'} · {c.customer ? 'saved customer' : 'walang ise-save'}</>}
-        right={h.offline ? <span className="text-[15px] text-error">⚠ Offline sa laptop server</span> : <span className="text-[14px] text-ink-2">Local AI · walang internet</span>}
+        right={<>
+          {h.offline ? <span className="text-[15px] text-error">⚠ Offline sa laptop server</span> : <span className="text-[14px] text-ink-2">Local AI · walang internet</span>}
+          <Button variant="quiet" className="min-h-10 px-3 text-[15px]" onClick={async () => {
+            if (!confirm('Itigil ang konsulta? Walang mase-save at buburahin ang photos.')) return
+            try { await api.abandon(c.id); navigate('/') } catch (e) { h.setError(e instanceof ApiError ? e.message : 'Hindi naitigil.') }
+          }}>Itigil</Button>
+        </>}
       />
 
       <nav aria-label="Steps" className="flex gap-1 overflow-x-auto border-b border-separator px-4 sm:px-8">

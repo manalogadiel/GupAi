@@ -111,6 +111,7 @@ export const api = {
   cancelJob: (jobId: string) => request<Job>('DELETE', `/api/jobs/${jobId}`),
   confirmAgreement: (id: string, role: Speaker, expected_revision: number, barber_notes?: string) =>
     request<Consultation>('POST', `/api/consultations/${id}/agreements/confirm`, { role, barber_notes, expected_revision }, idem()),
+  abandon: (id: string) => request<{ id: string; status: string }>('POST', `/api/consultations/${id}/abandon`, {}, idem()),
   complete: (id: string, actual_notes: string, save_as_preferred: boolean, keep_photos: boolean) =>
     request<{ visit_id: string }>('POST', `/api/consultations/${id}/complete`, { actual_notes, save_as_preferred, keep_photos }, idem()),
 }

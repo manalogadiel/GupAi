@@ -121,7 +121,8 @@ def _regions(value):
     # shortcut: explicit English/Taglish region words only; expand with a reviewed
     # vocabulary if the catalog or customer chips gain more anatomical regions.
     words = set(re.findall(r"[a-z]+", value.casefold()))
-    aliases = {"side": "sides", "bangs": "fringe", "bang": "fringe"}
+    aliases = {"side": "sides", "bangs": "fringe", "bang": "fringe", "gilid": "sides", "likod": "back",
+               "batok": "back", "ibabaw": "top", "taas": "top", "tuktok": "crown", "noo": "fringe"}
     words.update(aliases[word] for word in list(words) if word in aliases)
     return words.intersection(REGIONS) or {value.strip().casefold()}
 
