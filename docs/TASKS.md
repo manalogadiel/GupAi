@@ -51,3 +51,14 @@ Remaining human items: trusted real-phone camera/microphone and disconnected-int
 
 ## Conversation-first revision — Oct 10
 Implemented shared source-backed brief, one-pass streamed Kuya Pal conversation, preference-driven local AI part selection, face-only Reveal, retained Sides/Top cards, optional hair vision, exact component agreement and old-plan compatibility. Final backend suite: 238 tests. Production build and lint pass (10 existing React warnings). Automated UI and voice evidence is recorded in docs/MEASUREMENTS.md. Real-phone trust/camera/microphone and disconnected-internet physical acceptance remain the final human demo checks.
+
+## Reply stability fix
+| ID | Owner | Status | Task | Verify |
+|---|---|---|---|---|
+| C8 | codex | review | Publish only the final agenda-checked chat reply so streamed draft wording cannot be replaced. See `docs/agents/C8.md`. | 298 backend tests pass; live rehearsal pending |
+
+## Offline Filipino speech
+| ID | Owner | Status | Task | Verify |
+|---|---|---|---|---|
+| C9 | codex | review | Local OmniVoice Filipino speech for persisted AI turns; scoped endpoint, spoken normalization, cancellable playback. See `docs/agents/C9.md`. | 309 backend tests; 4 playback tests; production build passes |
+| C10 | codex | review | Fix intermittent TTS, anchor voice to omnivoice-fast-2, add cached replay and remove voice-changing fallback. | 12 targeted speech tests; 4 playback tests; build passes |

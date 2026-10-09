@@ -41,7 +41,7 @@ export interface ConsultState {
   problems: ProblemId[]; chat: { role: 'customer' | 'barber' | 'ai'; text: string; media_id?: string }[]; revealed: boolean
   recommendations: { top_pick: Pick; alternatives: Pick[]; face_note: string | null } | null
   selected_style: string | null; sides: PartState; top: PartState
-  checkpoints: { sides: Checkpoint | null; top: Checkpoint | null }
+  checkpoints: { left?: Checkpoint | null; right?: Checkpoint | null; top: Checkpoint | null; sides?: Checkpoint | null }
   goal: string; keep: string[]; change: string[]; avoid: string[]; styling_effort: Effort | null
   observations: Observation[]; face_shape: FaceShapeResult | null; options: Option[]
   selected_option_id: string | null; conflicts: { id: string; text: string }[]

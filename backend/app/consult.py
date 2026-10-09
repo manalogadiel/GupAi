@@ -162,7 +162,7 @@ def empty_state():
             "problems": [], "chat": [], "revealed": False, "recommendations": None, "selected_style": None,
             "sides": {"options": [], "recommended_id": None, "intro": None, "choice": None},
             "top": {"options": [], "recommended_id": None, "intro": None, "choice": None},
-            "checkpoints": {"sides": None, "top": None}, "rating": None, "brief": brief_defaults(),
+            "checkpoints": {"left": None, "right": None, "top": None}, "rating": None, "brief": brief_defaults(),
             "hair_profile": None}
 
 
@@ -422,7 +422,9 @@ def merge_job_result(state: dict, job_type: str, result: dict, part=None, media_
         if target["choice"] and not target["choice"].get("custom") and not any(o["id"] == target["choice"]["id"] for o in target["options"]):
             target["choice"] = None
     elif job_type == "checkpoint":
-        out["checkpoints"][part] = {"status": result["status"], "note": result["note"], "media_id": media_id}
+        # Kaliwa/Kanan are stored per side (from the photo's view); older "side" photos keep the "sides" key.
+        out.setdefault("checkpoints", {})[result.get("checkpoint_key") or part] = {
+            "status": result["status"], "note": result["note"], "media_id": media_id}
     else:
         _invalid("Unknown job type.")
     out["revision"] = state.get("revision", 0) + 1

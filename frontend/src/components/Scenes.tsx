@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CatalogItem, Consultation, Part, PartOption, ProblemId, Stage } from '../api'
 import { cutName, useCatalog } from '../catalog'
-import { setEnabled, speak, ttsAvailable, useSpeaking, useTtsEnabled } from '../speech'
+import { cancelSpeech, setEnabled, speak, ttsAvailable, useSpeechStatus, useSpeaking, useTtsEnabled } from '../speech'
 import type { flow } from '../flow'
 import type { useConsultation } from '../useConsultation'
 import BarberMascot from './BarberMascot'
@@ -177,6 +177,7 @@ function ChatThread({ c, f, h, compact, quickReplies, placeholder, narrow }: Sce
   const streaming = job?.type === 'chat' ? job.partial_text ?? '' : null
   const end = useRef<HTMLDivElement>(null)
   const speaking = useSpeaking()
+  const speechStatus = useSpeechStatus()
   const tts = useTtsEnabled()
   const reading = h.jobs.find(j => j.type === 'observe' && c.stage !== 'reveal') ?? null
   useEffect(() => { end.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }) }, [turns.length, streaming])
@@ -184,9 +185,10 @@ function ChatThread({ c, f, h, compact, quickReplies, placeholder, narrow }: Sce
   const spoken = useRef(turns.length)
   useEffect(() => {
     const last = turns.at(-1)
-    if (turns.length > spoken.current && last?.role === 'ai') speak(last.text)
+    if (turns.length > spoken.current && last?.role === 'ai') void speak(last.text, c.id, turns.length - 1)
     spoken.current = turns.length
-  }, [turns])
+  }, [turns, c.id])
+  useEffect(() => () => cancelSpeech(), [c.id])
   return (
     <Card className={`relative flex h-full min-h-0 flex-col ${compact ? 'p-2.5' : 'p-4'}`}>
       {ttsAvailable && (
@@ -195,6 +197,13 @@ function ChatThread({ c, f, h, compact, quickReplies, placeholder, narrow }: Sce
           <Icon name={tts ? 'volume' : 'mute'} size={18} />
         </button>
       )}
+      {tts && turns.some(t => t.role === 'ai') && <div className="flex items-center gap-2 pr-10 text-xs text-ink-2">
+        <button type="button" className="underline" onClick={() => {
+          const index = turns.findLastIndex(t => t.role === 'ai')
+          if (index >= 0) void speak(turns[index].text, c.id, index)
+        }}>Pakinggan</button>
+        <span role="status">{speechStatus}</span>
+      </div>}
       <div className="scroll-col min-h-0 flex-1 space-y-3 overflow-y-auto px-1 pb-2" aria-live="polite">
         {turns.map((t, i) => <Bubble key={i} role={t.role} text={t.text} image={t.media_id ? c.photos.find(p => p.id === t.media_id)?.url : undefined} />)}
         {streaming !== null && <Bubble role="ai" text={streaming} streaming />}
@@ -581,36 +590,46 @@ export function SummaryScene({ c, f, role, compact }: SceneProps) {
 /* ---------------- cutting checkpoints ---------------- */
 const CP_LABEL = { ok: 'Walang nakitang concern', review: 'I-review ang area', insufficient: 'Kulang ang view' } as const
 
+const SPOTS = [{ key: 'left', pose: 'left', label: 'Kaliwa', hint: 'Ipakita ang kaliwang gilid at tenga.' },
+  { key: 'right', pose: 'right', label: 'Kanan', hint: 'Ipakita ang kanang gilid at tenga.' },
+  { key: 'top', pose: 'front', label: 'Ibabaw', hint: 'Itaas nang kaunti ang camera para kita ang ibabaw at fringe.' }] as const
+
 export function CuttingScene({ c, f, h, role, compact }: SceneProps) {
-  const [capturing, setCapturing] = useState<Part | null>(null)
-  const cps = c.state.checkpoints ?? { sides: null, top: null }
+  const [capturing, setCapturing] = useState<(typeof SPOTS)[number] | null>(null)
+  const cps = c.state.checkpoints ?? { top: null }
   return (
     <div className={`grid h-full min-h-0 gap-4 ${compact ? '' : 'grid-cols-[1.2fr_1fr]'}`}>
       {capturing ? (
         <div className="flex min-h-0 flex-col gap-2">
-          <p className="shrink-0 text-sm">{capturing === 'sides' ? 'Ipakita ang gilid at tenga, hindi harap lang.' : 'Itaas nang kaunti ang camera para kita ang ibabaw at fringe.'}</p>
-          <div className="min-h-0 flex-1"><Mirror busy={!!h.runningJob} onCapture={async blob => { setCapturing(null); await f.checkpoint(blob, capturing) }} /></div>
+          <p className="shrink-0 text-sm">{capturing.hint}</p>
+          <div className="min-h-0 flex-1"><Mirror pose={capturing.pose} busy={!!h.runningJob} onCapture={async blob => { const spot = capturing.key; setCapturing(null); await f.checkpoint(blob, spot) }} /></div>
           <Button variant="quiet" className="mt-2" onClick={() => setCapturing(null)}>Kanselahin</Button>
         </div>
       ) : (
-        <Card className="grid place-items-center p-6 text-center">
-          <div className="space-y-3"><HaircutPreview sides={asSides(c.state.sides.choice?.id)} top={asTop(c.state.top.choice?.id)} size={200} />
-            <p className="max-w-[34ch] text-ink-2">Pag tapos ang isang bahagi, pindutin ang checkpoint para kunan at ma-check ng AI. Advisory lang ito.</p></div>
+        <Card className="flex flex-col items-center justify-center gap-4 p-6 text-center">
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <HaircutPreview sides={asSides(c.state.sides.choice?.id)} top={asTop(c.state.top.choice?.id)} size={compact ? 140 : 220} />
+            <SideProfile sides={asSides(c.state.sides.choice?.id)} top={asTop(c.state.top.choice?.id)} size={compact ? 140 : 220} />
+          </div>
+          <p className="max-w-[40ch] text-ink-2">Ito ang napagkasunduan. Pag tapos ang isang bahagi, kunan para ma-check ni Kuya Gup. Gabay lang ito; ang barbero pa rin ang huhusga.</p>
         </Card>
       )}
-      <div className="grid min-h-0 content-start gap-3">
-        {(['sides', 'top'] as const).map(part => {
-          const cp = cps[part]
+      <div className="grid min-h-0 content-start gap-3 overflow-y-auto">
+        {SPOTS.map(spot => {
+          const cp = cps[spot.key]
           return (
-            <Card key={part} className="space-y-2 p-4">
-              <div className="flex items-center justify-between gap-2">
-                <p className="font-display text-[26px] leading-none">{part === 'sides' ? 'Gilid' : 'Ibabaw'}</p>
-                {cp && <span className={`rounded-full px-2.5 py-1 text-[13px] font-semibold ${cp.status === 'ok' ? 'bg-action text-on-action' : cp.status === 'review' ? 'bg-voice text-white' : 'bg-subtle'}`}>{CP_LABEL[cp.status]}</span>}
+            <Card key={spot.key} className="flex items-start gap-3 p-3">
+              <span className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-[14px] bg-peach/60"><PoseIcon pose={spot.pose} size={52} /></span>
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="font-display text-[24px] leading-none">{spot.label}</p>
+                  {cp && <span className={`rounded-full px-2.5 py-1 text-[12px] font-semibold ${cp.status === 'ok' ? 'bg-action text-on-action' : cp.status === 'review' ? 'bg-voice text-white' : 'bg-subtle'}`}>{CP_LABEL[cp.status]}</span>}
+                </div>
+                {cp && <p className="text-[14px]">{cp.note}</p>}
+                <Button className="min-h-10 w-full rounded-full" disabled={!!h.runningJob} onClick={() => setCapturing(spot)}>
+                  <Icon name={cp ? 'refresh' : 'camera'} size={17} /> {cp ? 'Kunan ulit' : `Tapos na ang ${spot.label.toLowerCase()}: kunan`}
+                </Button>
               </div>
-              {cp && <p className="text-[15px]">{cp.note}</p>}
-              <Button className="w-full rounded-full" disabled={!!h.runningJob} onClick={() => setCapturing(part)}>
-                <Icon name={cp ? 'refresh' : 'camera'} size={18} /> {cp ? 'Kunan ulit' : `Tapos na ang ${part === 'sides' ? 'gilid' : 'ibabaw'}: kunan`}
-              </Button>
             </Card>
           )
         })}

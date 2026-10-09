@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from starlette.exceptions import HTTPException
 from starlette.staticfiles import StaticFiles
 
-from . import customers, consultations, db, health, jobs, media, pairing
+from . import customers, consultations, db, health, jobs, media, pairing, tts
 from .errors import error_response, install_handlers
 
 FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend/dist"
@@ -45,7 +45,7 @@ async def security(request: Request, call_next):
     return response
 
 
-for module in (health, customers, consultations, pairing, media, jobs):
+for module in (health, customers, consultations, pairing, media, jobs, tts):
     app.include_router(module.router)
 
 

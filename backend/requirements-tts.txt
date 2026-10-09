@@ -1,0 +1,5 @@
+# Optional offline Filipino voice runtime. OmniVoice weights are CC-BY-NC.
+torch==2.8.0
+torchaudio==2.8.0
+transformers==5.19.0
+omnivoice==0.2.1

@@ -14,7 +14,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict
 
-from . import ai, consult, db, faceshape, media, stt
+from . import ai, consult, db, faceshape, media, stt, tts
 from .auth import require_scope
 from .errors import APIError
 
@@ -216,7 +216,10 @@ def _run(job, conn_snapshot):
         return ai.propose(conn_snapshot["state"], conn_snapshot["texts"])
     path = media.MEDIA_DIR / conn_snapshot["media"]["storage_key"]
     if t == "checkpoint":
-        return ai.checkpoint(conn_snapshot["state"], path, conn_snapshot["part"])
+        view = conn_snapshot["media"]["view"]
+        side = view if view in ("left", "right") else None
+        return {**ai.checkpoint(conn_snapshot["state"], path, conn_snapshot["part"], view=side),
+                "checkpoint_key": side or conn_snapshot["part"]}
     if t == "observe" and conn_snapshot["media"]["view"] == "reference":
         return ai.describe_reference(path, conn_snapshot["state"])
     if t == "observe":
@@ -301,7 +304,7 @@ def _process(job_id):
 def warmup():
     """Load every local model before the first customer: Ollama weights, face landmarker, whisper."""
     for name, fn in (("ollama", lambda: ai.chat("Reply ok.", "ok", {"type": "object", "properties": {"ok": {"type": "boolean"}}})),
-                     ("faceshape", faceshape.warm), ("whisper", stt._load)):
+                     ("faceshape", faceshape.warm), ("whisper", stt._load), ("tagalog voice", lambda: tts.synthesize("Kumusta."))):
         started = time.perf_counter()
         try:
             fn()

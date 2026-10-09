@@ -104,6 +104,29 @@ def test_opener_greets_and_asks_problem_without_a_model_call(monkeypatch):
     assert out["brief_updates"] == [] and out["proposed_changes"] == []
 
 
+@pytest.mark.parametrize("complete", [False, True])
+def test_chat_publishes_only_the_final_agenda_checked_reply(monkeypatch, complete):
+    state = {**consult.empty_state(), "stage": "goal", "problems": ["puffy_sides"]}
+    text = "Para sa school."
+    if complete:
+        state["brief"] = {**brief_defaults(), "occasion": "school", "desired_cut": "low fade",
+                          "desired_impression": ["malinis"], "preferences": "wala"}
+        text = "10 minuto lang ako mag-ayos."
+    state["chat"] = [{"role": "customer", "text": text}]
+    pieces = []
+
+    def model(system, user, schema, on_token):
+        on_token("Ayos! ")
+        on_token("May iba pa?")
+        return {"reply": "Ayos! May iba pa?", "brief_updates": [], "proposed_changes": []}
+
+    monkeypatch.setattr(ai, "stream_json", model)
+    result = ai.chat_reply(state, [text], pieces.append)
+    assert result["reply"] != "Ayos! May iba pa?"
+    assert "".join(pieces) == result["reply"]
+    assert all(result["reply"].startswith("".join(pieces[:i + 1])) for i in range(len(pieces)))
+
+
 def test_ranking_uses_problem_face_and_hair_fit():
     state = consult.empty_state()
     state["problems"] = ["puffy_sides"]

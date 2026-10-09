@@ -113,7 +113,7 @@ def test_new_state_multiple_chairs_and_newest_active(barber):
     assert state["problems"] == state["chat"] == [] and state["revealed"] is False
     assert state["recommendations"] is state["selected_style"] is None
     assert state["sides"] == state["top"] == {"options": [], "recommended_id": None, "intro": None, "choice": None}
-    assert state["checkpoints"] == {"sides": None, "top": None}
+    assert state["checkpoints"] == {"left": None, "right": None, "top": None}
     assert create(barber)["chair_label"] == "Upuan 3"
     listing = barber.get("/api/consultations/active-list").json()
     assert [r["id"] for r in listing] == [barber.get("/api/consultations/active").json()["id"], second["id"], first["id"]]
@@ -406,7 +406,7 @@ def test_checkpoint_requires_cutting_and_scoped_photo_then_merges_without_stale_
         assert post(barber, path, invalid).status_code == 422
     seen = []
 
-    def checkpoint(state, image_path, part):
+    def checkpoint(state, image_path, part, view=None):
         seen.append((image_path, part))
         with db.connect() as conn:
             conn.execute("UPDATE consultations SET revision=revision+1 WHERE id=?", (current["id"],))
@@ -419,6 +419,23 @@ def test_checkpoint_requires_cutting_and_scoped_photo_then_merges_without_stale_
     state = saved(current["id"])
     assert state["revision"] == 2 and state["checkpoints"]["sides"] == {"status": "review", "note": "Check the sides.", "media_id": mid}
     assert seen == [(media.MEDIA_DIR / (mid + ".jpg"), "sides")]
+
+
+@pytest.mark.parametrize("view,side", [("left", "kaliwa"), ("right", "kanan")])
+def test_left_and_right_checkpoints_are_stored_and_checked_separately(barber, monkeypatch, view, side):
+    current = create(barber)
+    mid = str(uuid4())
+    with db.connect() as conn:
+        conn.execute("INSERT INTO media VALUES (?,?,?,?,?,?,?)", (mid, current["id"], "photo", view, mid + ".jpg", 0, "now"))
+    seed(current["id"], stage="cutting")
+    prompts = []
+    monkeypatch.setattr(ai, "image_b64", lambda path: "x")
+    monkeypatch.setattr(ai, "chat", lambda system, user, *a, **k: prompts.append(system + user) or {"status": "ok", "note": "Pantay."})
+    job = start_job(barber, current, "checkpoint", part="sides", media_id=mid)
+    jobs._process(job["id"])
+    state = saved(current["id"])
+    assert state["checkpoints"][view] == {"status": "ok", "note": "Pantay.", "media_id": mid}
+    assert side in prompts[0].lower()
 
 
 def test_chat_failure_and_cancel_never_merge(barber, monkeypatch):

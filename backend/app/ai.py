@@ -589,7 +589,8 @@ def chat_reply(state: dict, new_texts: list[str], on_token) -> dict:
         "brief_updates: ONLY remaining fields in the schema, exact source_text quotes; already-known facts need no updates. Copy dress_rules, maintenance_preference and inspiration verbatim. "
         "proposed_changes: only explicit keep/change/avoid, never re-list detected problems. Remove only on explicit retraction. "
         "At sides/top focus on that part and the shared brief.")
-    out=stream_json(system,json.dumps(facts,ensure_ascii=False),schema,on_token)
+    # Draft wording can change during agenda checks; publish only the final reply.
+    out=stream_json(system,json.dumps(facts,ensure_ascii=False),schema,lambda piece: None)
     reply=_whole_sentences(out.get('reply'))
     if not reply: raise APIError('model_unavailable','Walang malinaw na sagot. Subukan ulit.',retryable=True)
     updates=validate_brief_updates(out.get('brief_updates',[]),turns)
@@ -608,7 +609,7 @@ def chat_reply(state: dict, new_texts: list[str], on_token) -> dict:
         updates=[u for u in updates if u['field']!='maintenance_preference']
     slot_now=next_slot(current_brief,problems)
     if slot_now=='done':  # everything is known: close deterministically so the app can move to the scan
-        reply=_ack(updates,fresh)+' '+CLOSING; on_token('\n')
+        reply=_ack(updates,fresh)+' '+CLOSING
     else:
         # Kuya Gup leads: keep his acknowledgement, but the question is always the next agenda item.
         said=' '.join(x for x in re.split(r'(?<=[.!?])\s+',reply) if x and not x.endswith('?'))
@@ -616,7 +617,7 @@ def chat_reply(state: dict, new_texts: list[str], on_token) -> dict:
         question=SLOT_QUESTIONS[slot_now]
         if slot_now==asked:  # still unanswered: ask again in other words, never a word-for-word repeat
             question='Para sigurado ako, '+question[0].lower()+question[1:]
-        reply=said+' '+question; on_token('\n')
+        reply=said+' '+question
     # A named cut is the wanted cut (brief.desired_cut), not a region to keep or change.
     # Keep/change must name a hair region ("school look" is not one).
     # Rule-based changes come first: they use clean region names and need no model.
@@ -636,6 +637,7 @@ def chat_reply(state: dict, new_texts: list[str], on_token) -> dict:
         if ok and not same: changes.append(c)
     source_goals=[t['text'] for t in turns if t.get('speaker')=='customer' and
                   re.search(r"\b(gusto|want|prefer|goal|palit|instead)\b",t['text'],re.I)]
+    on_token(reply)
     return {'reply':reply,'brief_updates':updates,
             'problems_detected':detect_problems(new_texts),'proposed_changes':changes,
             'goal':source_goals[-1][:300] if source_goals else state.get('goal',''), 'phase':phase}
@@ -887,10 +889,12 @@ def _part_text(state, part):
     return next((o["name"] for o in p.get("options", []) if o["id"] == choice.get("id")), choice.get("id") or "hindi tiyak")
 
 
-def checkpoint(state: dict, image_path: Path, part: str) -> dict:
+def checkpoint(state: dict, image_path: Path, part: str, view: str | None = None) -> dict:
     if part not in ("sides", "top"):
         raise APIError("invalid_input", "Part must be sides or top.")
-    region = "gilid (sides) at likod ng tenga" if part == "sides" else "ibabaw (top) at fringe"
+    side = {"left": "kaliwang", "right": "kanang"}.get(view or "")
+    region = (f"{side} gilid (the customer's {view} side) at likod ng {side} tenga" if side else
+              "gilid (sides) at likod ng tenga" if part == "sides" else "ibabaw (top) at fringe")
     system = ("You help a barber double-check a haircut photo. Look ONLY at the " + region + ". "
               "status ok = no visible concern compared with the agreed plan; review = something looks uneven or "
               "different from the plan (say where, e.g. 'mukhang mas mataas ang fade sa kaliwa'); insufficient = the "

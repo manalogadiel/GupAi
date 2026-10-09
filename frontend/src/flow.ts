@@ -69,10 +69,11 @@ export function flow(id: string, h: Hook) {
       catch (e) { fail(e, 'Hindi na-confirm.') }
     },
     /** Barber marks a part done: capture → advisory AI vision check against the agreed plan. */
-    async checkpoint(blob: Blob, part: Part) {
+    /** Kaliwa/Kanan are checked as sides (the photo's view tells which side); Ibabaw from the front. */
+    async checkpoint(blob: Blob, spot: 'left' | 'right' | 'top') {
       try {
-        const media = await api.upload(id, blob, 'photo', part === 'sides' ? 'side' : 'front')
-        await h.runJob('checkpoint', media.id, part)
+        const media = await api.upload(id, blob, 'photo', spot === 'top' ? 'front' : spot)
+        await h.runJob('checkpoint', media.id, spot === 'top' ? 'top' : 'sides')
       } catch (e) { fail(e, 'Hindi na-upload ang checkpoint photo.') }
     },
     /** The server moves one step at a time; walk there so the step bar can jump. */
