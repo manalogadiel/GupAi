@@ -9,3 +9,5 @@ __pycache__/
 docs/agents/*.log
 knowledge/models/*.task
 .env
+test-face*.jpg
+test-face*.png

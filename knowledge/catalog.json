@@ -1,0 +1,528 @@
+[
+  {
+    "id": "crew_cut",
+    "name": "Crew cut",
+    "image": "/assets/catalog/crew_cut.svg",
+    "stays": [
+      "Natural growth direction"
+    ],
+    "changes": [
+      "top",
+      "sides",
+      "back",
+      "fringe"
+    ],
+    "effort": "low",
+    "maintenance": "Little daily styling; regular trims to keep the short outline.",
+    "limitations": [
+      "Needs enough top length for the chosen outline.",
+      "Shortening fringe conflicts with a keep-fringe constraint."
+    ],
+    "face_shape_notes": {
+      "oval": {
+        "fit": "suggested",
+        "note": "Crew cut is commonly suggested for oval faces because balanced proportions allow many outlines. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "round": {
+        "fit": "neutral",
+        "note": "Lift and angles are commonly suggested for round faces because they add apparent length; ask whether this short top has enough lift. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "square": {
+        "fit": "suggested",
+        "note": "A crew cut is commonly suggested for square faces because its classic short outline works with a strong jaw. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "oblong": {
+        "fit": "neutral",
+        "note": "Side fullness is commonly suggested for oblong faces because it avoids extra apparent length; keep this crew cut low on top and discuss side tightness. Sources disagree on oblong guidance about side width and the lengthening effect of very short sides; let the barber decide. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "heart": {
+        "fit": "neutral",
+        "note": "Medium length is commonly suggested for heart faces because it softens a wider forehead; this shorter family needs a barber check. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "diamond": {
+        "fit": "care",
+        "note": "Fringe and lower fullness are commonly suggested for diamond faces because they balance cheekbone width; a short crew cut may remove that fullness. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      }
+    },
+    "source_ids": [
+      "opentextbc_consultation",
+      "pall_mall_face_shapes",
+      "manual_face_shapes",
+      "gentlemans_gazette_face_shapes"
+    ]
+  },
+  {
+    "id": "buzz_cut",
+    "name": "Buzz cut",
+    "image": "/assets/catalog/buzz_cut.svg",
+    "stays": [
+      "Natural growth direction"
+    ],
+    "changes": [
+      "top",
+      "sides",
+      "back",
+      "fringe"
+    ],
+    "effort": "low",
+    "maintenance": "Minimal daily styling; regular trims for an even short length.",
+    "limitations": [
+      "Removes length across all regions, including fringe.",
+      "Cannot preserve medium or long hair."
+    ],
+    "face_shape_notes": {
+      "oval": {
+        "fit": "suggested",
+        "note": "Buzz cut is commonly suggested for oval faces because balanced proportions allow many outlines. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "round": {
+        "fit": "care",
+        "note": "Height and angles are commonly suggested for round faces because they add apparent length; a buzz cut provides little top height. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "square": {
+        "fit": "suggested",
+        "note": "A buzz cut is commonly suggested for square faces because its classic short outline works with a strong jaw. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "oblong": {
+        "fit": "care",
+        "note": "Side fullness is commonly suggested for oblong faces because it avoids extra apparent length; a very short buzz cut removes that fullness. Sources disagree on oblong guidance about side width and the lengthening effect of very short sides; let the barber decide. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "heart": {
+        "fit": "care",
+        "note": "Medium length is commonly suggested for heart faces because it softens a wider forehead; a buzz cut removes that length. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "diamond": {
+        "fit": "care",
+        "note": "Fringe and lower fullness are commonly suggested for diamond faces because they balance cheekbone width; a buzz cut removes both. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      }
+    },
+    "source_ids": [
+      "opentextbc_consultation",
+      "pall_mall_face_shapes",
+      "manual_face_shapes",
+      "gentlemans_gazette_face_shapes"
+    ]
+  },
+  {
+    "id": "side_part",
+    "name": "Side part",
+    "image": "/assets/catalog/side_part.svg",
+    "stays": [
+      "Top length for a visible part"
+    ],
+    "changes": [
+      "top",
+      "sides",
+      "back"
+    ],
+    "effort": "medium",
+    "maintenance": "Comb into a part; light product may help; trim to maintain the outline.",
+    "limitations": [
+      "Part placement depends on growth direction and available length.",
+      "Confirm fringe handling and side fullness before cutting."
+    ],
+    "face_shape_notes": {
+      "oval": {
+        "fit": "suggested",
+        "note": "Side part is commonly suggested for oval faces because balanced proportions allow many outlines. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "round": {
+        "fit": "suggested",
+        "note": "A side part is commonly suggested for round faces because top lift and an angular part can add apparent length. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "square": {
+        "fit": "suggested",
+        "note": "A side part is commonly suggested for square faces because a classic outline works with a strong jaw. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "oblong": {
+        "fit": "suggested",
+        "note": "A low side part with side fullness is commonly suggested for oblong faces because it avoids extra top height. Sources disagree on oblong guidance about side width and the lengthening effect of very short sides; let the barber decide. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "heart": {
+        "fit": "suggested",
+        "note": "A medium-length side part is commonly suggested for heart faces because it can soften a wider forehead. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "diamond": {
+        "fit": "neutral",
+        "note": "Forehead width and lower fullness are commonly suggested for diamond faces because they balance cheekbone width; keep fullness when shaping this part. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      }
+    },
+    "source_ids": [
+      "opentextbc_consultation",
+      "pall_mall_face_shapes",
+      "manual_face_shapes",
+      "gentlemans_gazette_face_shapes"
+    ]
+  },
+  {
+    "id": "textured_crop",
+    "name": "Textured crop",
+    "image": "/assets/catalog/textured_crop.svg",
+    "stays": [
+      "Some top length for texture"
+    ],
+    "changes": [
+      "top",
+      "sides",
+      "back",
+      "fringe"
+    ],
+    "effort": "low",
+    "maintenance": "Light styling to show texture or lift; trim to maintain the chosen fringe.",
+    "limitations": [
+      "Fringe treatment must be agreed explicitly.",
+      "Texture and lift depend on hair length and growth pattern."
+    ],
+    "face_shape_notes": {
+      "oval": {
+        "fit": "suggested",
+        "note": "Textured crop is commonly suggested for oval faces because balanced proportions allow many outlines. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "round": {
+        "fit": "suggested",
+        "note": "A textured crop with lift is commonly suggested for round faces because height and angles add apparent length; a flat fringe has a different effect. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "square": {
+        "fit": "suggested",
+        "note": "A textured crop is commonly suggested for square faces because texture can soften a strong angular outline. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "oblong": {
+        "fit": "suggested",
+        "note": "A textured crop with fringe is commonly suggested for oblong faces because forehead coverage can reduce apparent length. Sources disagree on oblong guidance about side width and the lengthening effect of very short sides; let the barber decide. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "heart": {
+        "fit": "suggested",
+        "note": "A textured crop with fringe is commonly suggested for heart faces because forehead coverage can soften a wider forehead. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "diamond": {
+        "fit": "suggested",
+        "note": "A textured crop with fringe is commonly suggested for diamond faces because forehead width and retained fullness can balance cheekbone width. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      }
+    },
+    "source_ids": [
+      "opentextbc_consultation",
+      "pall_mall_face_shapes",
+      "manual_face_shapes",
+      "gentlemans_gazette_face_shapes"
+    ]
+  },
+  {
+    "id": "curtains",
+    "name": "Curtains",
+    "image": "/assets/catalog/curtains.svg",
+    "stays": [
+      "Medium top and fringe length"
+    ],
+    "changes": [
+      "top",
+      "sides",
+      "back"
+    ],
+    "effort": "medium",
+    "maintenance": "Part and arrange the longer fringe; drying or light product may be needed.",
+    "limitations": [
+      "Needs enough fringe length to divide and fall to the sides.",
+      "Confirm the part against growth pattern; avoid removing required fullness."
+    ],
+    "face_shape_notes": {
+      "oval": {
+        "fit": "suggested",
+        "note": "Curtains is commonly suggested for oval faces because balanced proportions allow many outlines. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "round": {
+        "fit": "care",
+        "note": "Lift and angles are commonly suggested for round faces because they add apparent length; flat curtains may add width instead. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "square": {
+        "fit": "neutral",
+        "note": "Texture is commonly suggested for square faces because it can soften angular edges; discuss the curtains outline with the barber. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "oblong": {
+        "fit": "suggested",
+        "note": "Curtains with side fullness are commonly suggested for oblong faces because fringe coverage and width can reduce apparent length. Sources disagree on oblong guidance about side width and the lengthening effect of very short sides; let the barber decide. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "heart": {
+        "fit": "suggested",
+        "note": "Curtains are commonly suggested for heart faces because medium length and fringe can soften a wider forehead. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "diamond": {
+        "fit": "suggested",
+        "note": "Curtains are commonly suggested for diamond faces because fringe width and lower fullness can balance cheekbone width. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      }
+    },
+    "source_ids": [
+      "opentextbc_consultation",
+      "pall_mall_face_shapes",
+      "manual_face_shapes",
+      "gentlemans_gazette_face_shapes"
+    ]
+  },
+  {
+    "id": "short_quiff",
+    "name": "Short quiff",
+    "image": "/assets/catalog/short_quiff.svg",
+    "stays": [
+      "Top length for lift"
+    ],
+    "changes": [
+      "top",
+      "sides",
+      "back",
+      "fringe"
+    ],
+    "effort": "medium",
+    "maintenance": "Arrange the front upward; drying and product may be needed to hold lift.",
+    "limitations": [
+      "Needs sufficient front/top length and willingness to style.",
+      "Lifting or shortening fringe may conflict with a keep-fringe constraint."
+    ],
+    "face_shape_notes": {
+      "oval": {
+        "fit": "suggested",
+        "note": "Short quiff is commonly suggested for oval faces because balanced proportions allow many outlines. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "round": {
+        "fit": "suggested",
+        "note": "A short quiff is commonly suggested for round faces because top height and tighter sides add apparent length. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "square": {
+        "fit": "neutral",
+        "note": "Classic outlines or softer texture are commonly suggested for square faces because they can work with a strong jaw; confirm the quiff height. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "oblong": {
+        "fit": "care",
+        "note": "A low top with side fullness is commonly suggested for oblong faces because it avoids extra length; quiff height may oppose that goal. Sources disagree on oblong guidance about side width and the lengthening effect of very short sides; let the barber decide. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "heart": {
+        "fit": "care",
+        "note": "Medium length and softer forehead coverage are commonly suggested for heart faces because they balance a wider forehead; a high quiff may expose it. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      },
+      "diamond": {
+        "fit": "care",
+        "note": "Fringe width and lower fullness are commonly suggested for diamond faces because they balance cheekbone width; tight sides with a high quiff may oppose that goal. Use the customer's goal, confirmed hair observations and available length; their preference comes first.",
+        "source_ids": [
+          "opentextbc_consultation",
+          "pall_mall_face_shapes",
+          "manual_face_shapes",
+          "gentlemans_gazette_face_shapes"
+        ]
+      }
+    },
+    "source_ids": [
+      "opentextbc_consultation",
+      "pall_mall_face_shapes",
+      "manual_face_shapes",
+      "gentlemans_gazette_face_shapes"
+    ]
+  }
+]

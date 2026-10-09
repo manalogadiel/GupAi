@@ -1,0 +1,39 @@
+[
+  {
+    "id": "opentextbc_consultation",
+    "title": "Barbering Techniques for Hairstylists: Client Consultation and Analysis",
+    "url": "https://opentextbc.ca/barberingtechniquesforhairstylists/chapter/the-design-consultation/",
+    "license": "CC BY",
+    "summary": "PRD Appendix A: consider face shape, head shape and growth patterns; client preferences come first."
+  },
+  {
+    "id": "pall_mall_face_shapes",
+    "title": "Pall Mall Barbers: Best men's hairstyles by face shape",
+    "url": "https://www.pallmallbarbers.com/london/best-men-hairstyles-by-face-shape/",
+    "summary": "Grooming guidance cited by PRD Appendix A, advisory rather than a beauty ranking."
+  },
+  {
+    "id": "manual_face_shapes",
+    "title": "The Manual: Best haircut for your face",
+    "url": "https://themanual.com/grooming/best-haircut-for-your-face",
+    "summary": "Grooming guidance cited by PRD Appendix A. Sources disagree on oblong: side width/fullness and the lengthening effect of short sides require barber judgment."
+  },
+  {
+    "id": "gentlemans_gazette_face_shapes",
+    "title": "Gentleman's Gazette: How to get the best haircut for your face shape",
+    "url": "https://www.gentlemansgazette.com/how-to-get-best-haircut-for-face-shape/",
+    "summary": "Grooming guidance cited by PRD Appendix A. Record both oblong views about width at the sides and very short sides; let the barber decide."
+  },
+  {
+    "id": "inception_face_shapes",
+    "title": "Face shape classification using Inception v3",
+    "url": "https://arxiv.org/pdf/1911.07916",
+    "summary": "PRD Appendix A accuracy caveat: small, subjectively labeled datasets and boundary detection failures limit generalization; this does not validate GupAi's heuristic."
+  },
+  {
+    "id": "mediapipe_face_landmarker",
+    "title": "MediaPipe Face Landmarker",
+    "url": "https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker",
+    "summary": "Local landmark model; no identity recognition or embeddings are used by GupAi."
+  }
+]
