@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-label="Textured crop: short fringe forward, faded sides">
+<rect width="400" height="300" fill="#EAE5DA"/>
+<path d="M95 300c8-52 50-74 105-74s97 22 105 74z" fill="#365846"/>
+<path d="M176 214h48l-4 30c-12 8-28 8-40 0z" fill="#B98563"/>
+<ellipse cx="142" cy="168" rx="11" ry="18" fill="#B98563"/><ellipse cx="258" cy="168" rx="11" ry="18" fill="#B98563"/>
+<ellipse cx="200" cy="165" rx="58" ry="74" fill="#C9946F"/>
+<path d="M144 140c-2-38 20-58 56-58s58 20 56 58c-2-4-6-8-10-10z" fill="#252821" opacity=".45"/><path d="M150 126c4-30 24-44 50-44s46 14 50 44l-8 8-8-10-8 12-9-12-8 13-9-13-9 13-8-13-9 12-8-12-8 10z" fill="#252821"/>
+<circle cx="180" cy="168" r="4" fill="#252821"/><circle cx="220" cy="168" r="4" fill="#252821"/>
+<path d="M172 156q8-5 16 0M212 156q8-5 16 0" stroke="#252821" stroke-width="3" fill="none" stroke-linecap="round"/>
+<path d="M188 205q12 7 24 0" stroke="#7A4E36" stroke-width="3" fill="none" stroke-linecap="round"/>
+</svg>

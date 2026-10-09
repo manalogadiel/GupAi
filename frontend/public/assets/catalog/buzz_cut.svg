@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-label="Buzz cut: very short, even all over">
+<rect width="400" height="300" fill="#EAE5DA"/>
+<path d="M95 300c8-52 50-74 105-74s97 22 105 74z" fill="#365846"/>
+<path d="M176 214h48l-4 30c-12 8-28 8-40 0z" fill="#B98563"/>
+<ellipse cx="142" cy="168" rx="11" ry="18" fill="#B98563"/><ellipse cx="258" cy="168" rx="11" ry="18" fill="#B98563"/>
+<ellipse cx="200" cy="165" rx="58" ry="74" fill="#C9946F"/>
+<path d="M142 150c-2-44 24-66 58-66s60 22 58 66c-6-22-14-34-22-38-12-5-60-5-72 0-8 4-16 16-22 38z" fill="#252821" opacity=".55"/>
+<circle cx="180" cy="168" r="4" fill="#252821"/><circle cx="220" cy="168" r="4" fill="#252821"/>
+<path d="M172 156q8-5 16 0M212 156q8-5 16 0" stroke="#252821" stroke-width="3" fill="none" stroke-linecap="round"/>
+<path d="M188 205q12 7 24 0" stroke="#7A4E36" stroke-width="3" fill="none" stroke-linecap="round"/>
+</svg>

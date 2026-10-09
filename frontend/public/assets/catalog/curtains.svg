@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-label="Curtains: centre part, fringe framing the face">
+<rect width="400" height="300" fill="#EAE5DA"/>
+<path d="M95 300c8-52 50-74 105-74s97 22 105 74z" fill="#365846"/>
+<path d="M176 214h48l-4 30c-12 8-28 8-40 0z" fill="#B98563"/>
+<ellipse cx="142" cy="168" rx="11" ry="18" fill="#B98563"/><ellipse cx="258" cy="168" rx="11" ry="18" fill="#B98563"/>
+<ellipse cx="200" cy="165" rx="58" ry="74" fill="#C9946F"/>
+<path d="M136 176c-10-60 16-98 64-98s74 38 64 98c-4-24-10-38-18-48-10 6-22 10-34 14l-12-38-12 38c-12-4-24-8-34-14-8 10-14 24-18 48z" fill="#252821"/>
+<circle cx="180" cy="168" r="4" fill="#252821"/><circle cx="220" cy="168" r="4" fill="#252821"/>
+<path d="M172 156q8-5 16 0M212 156q8-5 16 0" stroke="#252821" stroke-width="3" fill="none" stroke-linecap="round"/>
+<path d="M188 205q12 7 24 0" stroke="#7A4E36" stroke-width="3" fill="none" stroke-linecap="round"/>
+</svg>
