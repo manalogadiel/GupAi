@@ -36,3 +36,10 @@
 | ID | Owner | Status | Task | Files | Verify | Story |
 |---|---|---|---|---|---|---|
 | D1 | codex | review | Animated vector barber mascot (see prompt) | `frontend/src/components/BarberMascot.tsx`, `frontend/src/dev/MascotStates.tsx` | `npm --prefix frontend run build` passes | UI |
+
+## v2 barber-style flow (Oct 9 night) — contract: docs/API-v2.md
+| ID | Owner | Status | Task | Files | Verify | Story |
+|---|---|---|---|---|---|---|
+| C7 | codex | todo | v2 plumbing per docs/API-v2.md: stages, state v2 defaults, new contributions (problem, reveal, pick_style, choose_part), summary gate on agreements/confirm, reveal hiding in GET, new job types chat/recommend/suggest/checkpoint calling ai.* (mock in tests; do NOT edit ai.py), chat streaming partial_text, multi-chair (remove single-active limit, chair_label, active-list), rating on complete, migration v2 | `backend/app/{consult,consultations,jobs,db,schema.sql}`, `backend/tests/test_v2_flow.py` | pytest all green incl. stage gates, reveal hiding, choose_part validation, checkpoint merge, rating stored, two-chair isolation (cross 404) | v2 |
+| K2 | codex | todo | `knowledge/parts.json`: sides (skin_fade, low_fade, mid_fade, taper, scissor_over_comb, uniform) and top (textured_crop, side_part, quiff, curtains, keep_length, buzz) options with name (Taglish-friendly), pros[≤3], cons[≤3], maintenance, face_shape_fit per oval/round/square/oblong/heart/diamond {fit: suggested\|neutral\|care, note}, problem_fit per puffy_sides/cowlick/hard_to_style/grows_fast/flat_top/wide_forehead {fit: helps\|neutral\|worse, note}, source_ids from knowledge/sources.json. Conditional wording, cosmetic only, no medical claims | `knowledge/parts.json`, `backend/tests/test_parts.py` (schema check) | pytest test_parts green | v2 |
+| D3 | codex | todo | `frontend/src/components/HaircutPreview.tsx` + `HaircutPreview.css` (bundled; CSP blocks inline style tags) + `frontend/src/dev/PreviewStates.tsx`: composable high-end flat SVG barber head, props sides/top/fringe, fade tone bands, 250ms crossfade on change, reduced-motion static | those 3 files | `npm --prefix frontend run build` | v2 |
