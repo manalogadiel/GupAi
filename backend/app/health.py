@@ -1,14 +1,15 @@
-﻿"""Readiness checks only; no model loading or downloads."""
+"""Readiness checks only; no model loading or downloads."""
 import importlib
 from pathlib import Path
 
 import httpx
 from fastapi import APIRouter
+from . import ai, stt
 
 router = APIRouter()
 OLLAMA_URL = "http://127.0.0.1:11434"
 LANDMARKER_PATH = Path(__file__).resolve().parents[2] / "knowledge/models/face_landmarker.task"
-VISION_MODELS = ("qwen3.5:4b", "qwen3.5:2b", "gemma3:4b")
+VISION_MODELS = (ai.MODEL,)
 
 
 @router.get("/api/health")
@@ -28,7 +29,7 @@ async def health():
         pass
     try:
         importlib.import_module("faster_whisper")
-        whisper = True
+        whisper = stt.available()
     except (ImportError, OSError, RuntimeError):
         whisper = False
     return {"ollama": ollama, "vision_model": vision_model, "whisper": whisper,

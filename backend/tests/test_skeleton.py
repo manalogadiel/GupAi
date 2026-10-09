@@ -34,7 +34,7 @@ def test_schema_has_seven_tables_and_enforces_foreign_keys(tmp_path):
             "SELECT name FROM sqlite_master WHERE type='table'")}
         assert tables == {"customers", "consultations", "contributions", "media",
                           "agreements", "visits", "jobs"}
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 1
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == 2
         assert conn.execute("PRAGMA foreign_keys").fetchone()[0] == 1
         with pytest.raises(sqlite3.IntegrityError):
             conn.execute("INSERT INTO contributions VALUES (?, ?, ?, ?, ?, ?)",
@@ -48,7 +48,7 @@ def test_startup_recovers_only_running_jobs(tmp_path, monkeypatch):
     db.initialize()
     with db.connect() as conn:
         conn.execute("INSERT INTO consultations (id, status, stage, revision, state_json, started_at) "
-                     "VALUES (?, ?, ?, ?, ?, ?)", ("c", "active", "concern", 0, "{}", "now"))
+                     "VALUES (?, ?, ?, ?, ?, ?)", ("c", "active", "photos", 0, "{}", "now"))
         for status in ("running", "queued", "done"):
             conn.execute("INSERT INTO jobs (id, consultation_id, type, requested_revision, status) "
                          "VALUES (?, ?, ?, ?, ?)", (status, "c", "observe", 0, status))
@@ -133,7 +133,7 @@ def test_health_missing_dependencies_is_truthful(client, monkeypatch, tmp_path):
 
 @pytest.mark.parametrize("models, expected", [
     (["qwen3.5:2b", "qwen3.5:4b"], "qwen3.5:4b"),
-    (["qwen3.5:2b"], "qwen3.5:2b"), (["gemma3:4b"], "gemma3:4b"),
+    (["qwen3.5:2b"], None), (["gemma3:4b"], None),
     (["unrelated:latest"], None)])
 def test_health_selects_available_vision_model(client, monkeypatch, tmp_path, models, expected):
     _, _, health = modules()
@@ -141,6 +141,7 @@ def test_health_selects_available_vision_model(client, monkeypatch, tmp_path, mo
     model_file.write_bytes(b"model")
     monkeypatch.setattr(health, "LANDMARKER_PATH", model_file)
     monkeypatch.setattr(health.importlib, "import_module", lambda name: object())
+    monkeypatch.setattr(health.stt, "available", lambda: True)
     real_client = httpx.AsyncClient
     def transport(request):
         assert str(request.url) == "http://127.0.0.1:11434/api/tags"

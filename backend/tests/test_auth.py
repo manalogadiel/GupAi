@@ -7,6 +7,7 @@ from urllib.parse import parse_qs, urlsplit
 from uuid import uuid4
 
 import pytest
+from backend.app import consult
 from fastapi.testclient import TestClient
 from backend.app import db, main
 
@@ -15,6 +16,8 @@ ORIGIN = {"Origin": "https://localhost:8443"}
 
 @pytest.fixture
 def barber(tmp_path, monkeypatch):
+    # Keep simulated phone cookies on the TestClient's configured host.
+    monkeypatch.setenv('GUPAI_PAIR_BASE_URL', 'https://localhost:8443')
     monkeypatch.setattr(db, "DB_PATH", tmp_path / "test.db")
     with TestClient(main.app, base_url="https://localhost:8443", client=("127.0.0.1", 1)) as client:
         yield client
@@ -77,21 +80,26 @@ def test_non_loopback_cannot_access_barber_routes(barber):
         assert remote.request(method, path, json=body, headers={**ORIGIN, "X-Forwarded-For": "127.0.0.1"}).status_code == 403
 
 
-def test_consultation_defaults_and_one_active(barber):
+def test_consultation_defaults_and_multiple_active(barber):
     assert barber.get("/api/consultations/active").json() is None
     consultation = create(barber)
     assert consultation["status"] == "active"
-    assert consultation["stage"] == "concern"
+    assert consultation["stage"] == "photos"
     assert consultation["revision"] == 0
     assert consultation["customer"] is None
     assert consultation["photos"] == []
     assert consultation["agreement"] is None
     assert consultation["active_job"] is None
     assert consultation["phone_paired"] is False
-    assert consultation["state"] == {"goal": "", "keep": [], "change": [], "avoid": [], "styling_effort": None, "observations": [], "face_shape": None, "options": [], "selected_option_id": None, "conflicts": [], "reply": None, "next_question": None, "uncertainties": []}
+    assert consultation["state"] == {"goal": "", "keep": [], "change": [], "avoid": [], "styling_effort": None, "observations": [], "face_shape": None, "options": [], "selected_option_id": None, "conflicts": [], "reply": None, "next_question": None, "uncertainties": [],
+        "problems": [], "chat": [], "revealed": False, "recommendations": None, "selected_style": None,
+        "sides": {"options": [], "recommended_id": None, "intro": None, "choice": None},
+        "top": {"options": [], "recommended_id": None, "intro": None, "choice": None}, "checkpoints": {"sides": None, "top": None}, "rating": None, "brief": consult.brief_defaults()}
     assert barber.get("/api/consultations/active").json() == consultation
     assert barber.get('/api/consultations/' + consultation['id']).json() == consultation
-    assert barber.post("/api/consultations", json={}, headers=ORIGIN).status_code == 409
+    second = create(barber)
+    assert second["id"] != consultation["id"]
+    assert barber.get("/api/consultations/active").json()["id"] == second["id"]
     assert barber.get('/api/consultations/' + str(uuid4())).status_code == 404
 
 
@@ -157,7 +165,7 @@ def test_return_visit_prefill_and_customer_scope(barber, has_ratios):
             historical_state["face_shape"].pop("ratios")
         conn.execute("UPDATE consultations SET status='completed', state_json=? WHERE id=?", (json.dumps(historical_state), old))
         conn.execute("INSERT INTO agreements VALUES (?,?,?,?,?,?)", (aid, old, 1, json.dumps(plan), "now", "now"))
-        conn.execute("INSERT INTO visits VALUES (?,?,?,?,?,?)", (vid, customer["id"], old, aid, "trimmed", "now"))
+        conn.execute("INSERT INTO visits (id,customer_id,consultation_id,agreement_id,actual_notes,completed_at) VALUES (?,?,?,?,?,?)", (vid, customer["id"], old, aid, "trimmed", "now"))
         conn.execute("UPDATE customers SET preferred_visit_id=? WHERE id=?", (vid, customer["id"]))
     other = barber.post("/api/customers", json={"display_name": "Other", "retention_consent": True}, headers=ORIGIN).json()
     assert barber.post("/api/consultations", json={"customer_id": other["id"], "from_visit_id": vid}, headers=ORIGIN).status_code == 404
@@ -167,10 +175,13 @@ def test_return_visit_prefill_and_customer_scope(barber, has_ratios):
     assert new["state"]["keep"] == ["fringe"]
     assert new["state"]["change"] == ["sides"]
     assert new["state"]["avoid"] == ["buzz"]
-    assert new["state"]["face_shape"]["confirmed"] == "round"
+    assert new["state"]["face_shape"] is None
+    with db.connect() as conn:
+        internal = json.loads(conn.execute("SELECT state_json FROM consultations WHERE id=?", (new["id"],)).fetchone()[0])
+    assert internal["face_shape"]["confirmed"] == "round"
     expected_ratios = {"lw": 1.1, "jw": 0.8, "fw": 0.9} if has_ratios else {"lw": 0.0, "jw": 0.0, "fw": 0.0}
-    assert new["state"]["face_shape"]["ratios"] == expected_ratios
-    assert new["state"]["face_shape"]["outline"] == []
+    assert internal["face_shape"]["ratios"] == expected_ratios
+    assert internal["face_shape"]["outline"] == []
     assert new["state"]["observations"][0]["text"] == "medium top"
     assert new["state"]["observations"][0]["status"] == "unconfirmed"
     assert new["state"]["observations"][0]["origin"] == "history"

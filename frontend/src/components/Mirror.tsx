@@ -53,8 +53,8 @@ export default function Mirror({ onCapture, busy }: { onCapture: (b: Blob, view:
   }
 
   return (
-    <div className="space-y-3">
-      <div className="relative mx-auto aspect-[4/5] max-h-[56dvh] w-full overflow-hidden rounded-[var(--radius-mirror)] bg-subtle shadow-[var(--shadow-lift)] ring-8 ring-surface">
+    <div className="mirror-shell flex h-full min-h-0 flex-col gap-3">
+      <div className="relative mx-auto min-h-24 w-full flex-1 overflow-hidden rounded-[var(--radius-mirror)] bg-subtle shadow-[var(--shadow-lift)] ring-8 ring-surface">
         <video ref={video} autoPlay playsInline muted
           className={`h-full w-full -scale-x-100 object-cover ${state === 'live' ? '' : 'hidden'}`} />
         {state !== 'live' && (
@@ -69,7 +69,7 @@ export default function Mirror({ onCapture, busy }: { onCapture: (b: Blob, view:
         )}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
         <Segmented id="view" label="Photo view" value={view} onChange={setView}
           options={[{ value: 'front', label: 'Harap' }, { value: 'side', label: 'Gilid' }]} />
         {state === 'live'

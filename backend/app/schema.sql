@@ -11,20 +11,21 @@ CREATE TABLE IF NOT EXISTS consultations (
     id TEXT PRIMARY KEY,
     customer_id TEXT REFERENCES customers(id),
     status TEXT NOT NULL CHECK (status IN ('active','completed','abandoned')),
-    stage TEXT NOT NULL CHECK (stage IN ('created','concern','photos','observations','options','agreement','cutting','completed','abandoned')),
+    stage TEXT NOT NULL CHECK (stage IN ('photos','goal','reveal','sides','top','summary','cutting','done','abandoned')),
     revision INTEGER NOT NULL DEFAULT 0 CHECK (revision >= 0),
     state_json TEXT NOT NULL,
     pair_code_hash TEXT,
     pair_expires_at TEXT,
     phone_token_hash TEXT,
     started_at TEXT NOT NULL,
-    ended_at TEXT
+    ended_at TEXT,
+    chair_label TEXT
 );
 CREATE TABLE IF NOT EXISTS contributions (
     id TEXT PRIMARY KEY,
     consultation_id TEXT NOT NULL REFERENCES consultations(id),
     speaker TEXT NOT NULL CHECK (speaker IN ('customer','barber')),
-    input_type TEXT NOT NULL CHECK (input_type IN ('typed','voice','chip','photo','audio','observation','observation_add','face_shape','select_option','resolve_conflict','stage')),
+    input_type TEXT NOT NULL CHECK (input_type IN ('typed','voice','chip','photo','audio','observation','observation_add','face_shape','select_option','resolve_conflict','stage','problem','reveal','pick_style','choose_part')),
     text TEXT NOT NULL,
     created_at TEXT NOT NULL
 );
@@ -52,12 +53,14 @@ CREATE TABLE IF NOT EXISTS visits (
     consultation_id TEXT NOT NULL REFERENCES consultations(id),
     agreement_id TEXT NOT NULL REFERENCES agreements(id),
     actual_notes TEXT NOT NULL,
-    completed_at TEXT NOT NULL
+    completed_at TEXT NOT NULL,
+    rating INTEGER,
+    rating_tags TEXT
 );
 CREATE TABLE IF NOT EXISTS jobs (
     id TEXT PRIMARY KEY,
     consultation_id TEXT NOT NULL REFERENCES consultations(id),
-    type TEXT NOT NULL CHECK (type IN ('transcribe','observe','faceshape','propose')),
+    type TEXT NOT NULL CHECK (type IN ('transcribe','observe','faceshape','propose','chat','recommend','suggest','checkpoint')),
     requested_revision INTEGER NOT NULL CHECK (requested_revision >= 0),
     status TEXT NOT NULL CHECK (status IN ('queued','running','done','failed','cancelled','stale')),
     result_json TEXT,
@@ -66,5 +69,5 @@ CREATE TABLE IF NOT EXISTS jobs (
     finished_at TEXT
 );
 -- Face shape remains inside consultations.state_json; no landmarks or embeddings.
-PRAGMA user_version=1;
+PRAGMA user_version=2;
 COMMIT;

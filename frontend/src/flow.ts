@@ -16,13 +16,14 @@ export function flow(id: string, h: Hook) {
         const media = await api.upload(id, blob, 'photo', view)
         await h.refresh()
         if (view === 'front') await h.runJob('faceshape', media.id)
-        await h.runJob('observe', media.id)
+        // Hair vision is explicitly requested on Reveal, so it cannot block the conversation by default.
       } catch (e) { fail(e, 'Hindi na-upload ang photo.') }
     },
     /** One conversation turn: save the text, then Kuya Gup answers (streamed). The input clears right away. */
     async say(text: string, speaker: Speaker, inputType: 'typed' | 'voice') {
       const next = await h.contribute({ kind: 'text', speaker, text, input_type: inputType })
       if (next) void h.runJob('chat')
+      return !!next
     },
     async audio(clip: Blob) {
       try {
@@ -30,11 +31,16 @@ export function flow(id: string, h: Hook) {
         await h.runJob('transcribe', media.id)
       } catch (e) { fail(e, 'Hindi na-upload ang recording.') }
     },
+    rate: (score: number, tags: string[]) => h.contribute({ kind: 'rating', score, tags }),
     problem: (pid: ProblemId, remove: boolean) => h.contribute({ kind: 'problem', id: pid, remove }),
-    /** Barber reveals the face shape; recommendations generate behind the reveal animation. */
+    /** Barber reveals only the face estimate. Suggestions belong to Sides and Top. */
     async reveal() {
       const next = await h.contribute({ kind: 'reveal' })
-      if (next && !next.state.recommendations) void h.runJob('recommend')
+      return next
+    },
+    async analyzeHair() {
+      const current=await api.consultation(id)
+      for (const photo of current.photos.slice(-2)) await h.runJob('observe', photo.id)
     },
     recommend: () => h.runJob('recommend'),
     pickStyle: (catalog_id: string) => h.contribute({ kind: 'pick_style', catalog_id }),
@@ -47,7 +53,7 @@ export function flow(id: string, h: Hook) {
     /** Barber marks a part done: capture → advisory AI vision check against the agreed plan. */
     async checkpoint(blob: Blob, part: Part) {
       try {
-        const media = await api.upload(id, blob, 'photo', 'front')
+        const media = await api.upload(id, blob, 'photo', part === 'sides' ? 'side' : 'front')
         await h.runJob('checkpoint', media.id, part)
       } catch (e) { fail(e, 'Hindi na-upload ang checkpoint photo.') }
     },

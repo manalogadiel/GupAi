@@ -3,7 +3,8 @@ import json
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 from fastapi import APIRouter, Depends, Request
-from pydantic import BaseModel, ConfigDict
+from typing import Annotated
+from pydantic import BaseModel, ConfigDict, Field
 from . import consult, db, media
 from .auth import require_barber, require_scope
 from .customers import agreement_dict
@@ -16,12 +17,11 @@ class ConsultationInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     customer_id: UUID | None = None
     from_visit_id: UUID | None = None
+    chair_label: Annotated[str, Field(max_length=30)] | None = None
 
 
 def empty_state():
-    return {"goal": "", "keep": [], "change": [], "avoid": [], "styling_effort": None,
-            "observations": [], "face_shape": None, "options": [], "selected_option_id": None,
-            "conflicts": [], "reply": None, "next_question": None, "uncertainties": []}
+    return consult.empty_state()
 
 
 def consultation_dict(conn, row):
@@ -30,7 +30,7 @@ def consultation_dict(conn, row):
     photos = [{"id": photo["id"], "view": photo["view"], "url": "/api/media/" + photo["id"]}
               for photo in conn.execute("SELECT id, view FROM media WHERE consultation_id=? AND kind='photo' ORDER BY created_at, id", (cid,))]
     agreement = conn.execute("SELECT * FROM agreements WHERE consultation_id=? ORDER BY version DESC LIMIT 1", (cid,)).fetchone()
-    job = conn.execute("SELECT * FROM jobs WHERE consultation_id=? AND status IN ('queued','running') ORDER BY rowid DESC LIMIT 1", (cid,)).fetchone()
+    job = conn.execute("SELECT * FROM jobs WHERE consultation_id=? AND status IN ('queued','running') ORDER BY CASE status WHEN 'running' THEN 0 ELSE 1 END, rowid LIMIT 1", (cid,)).fetchone()
     active_job = None
     if job:
         elapsed = 0.0
@@ -40,17 +40,26 @@ def consultation_dict(conn, row):
                       "started_at": job["started_at"], "finished_at": job["finished_at"], "elapsed_s": elapsed,
                       "result": json.loads(job["result_json"]) if job["result_json"] else None,
                       "error": {"code": job["error_code"], "message": "Job failed."} if job["error_code"] else None}
-    return {"id": cid, "customer": dict(customer) if customer else None, "stage": row["stage"],
-            "status": row["status"], "revision": row["revision"], "state": json.loads(row["state_json"]),
+    from .jobs import job_dict
+    recent_jobs = [job_dict(item) for item in conn.execute("SELECT * FROM jobs WHERE consultation_id=? ORDER BY rowid DESC LIMIT 12", (cid,))]
+    # Consume completed transient results in creation order, leaving the newest outline/transcript visible.
+    recent_jobs.reverse()
+    state = json.loads(row["state_json"])
+    state.setdefault("rating", None)
+    state.setdefault("brief", consult.brief_defaults())
+    if not state.get("revealed", False):
+        state["face_shape"] = state["recommendations"] = None
+    return {"id": cid, "chair_label": row["chair_label"], "customer": dict(customer) if customer else None, "stage": row["stage"],
+            "status": row["status"], "revision": row["revision"], "state": state,
             "photos": photos, "agreement": agreement_dict(agreement) if agreement else None,
-            "active_job": active_job, "phone_paired": row["status"] == "active" and bool(row["phone_token_hash"])}
+            "active_job": active_job, "recent_jobs": recent_jobs, "phone_paired": row["status"] == "active" and bool(row["phone_token_hash"])}
 
 
 @router.post("", dependencies=[Depends(require_barber)])
 def create(body: ConsultationInput):
     customer_id = str(body.customer_id) if body.customer_id else None
     with db.connect() as conn:
-        # shortcut: SQLite serializes consultation starts; upgrade if multiple chairs are supported.
+        # shortcut: SQLite serializes writes across chairs; revisit if shop write volume causes contention.
         conn.execute("BEGIN IMMEDIATE")
         if customer_id and not conn.execute("SELECT id FROM customers WHERE id=?", (customer_id,)).fetchone():
             raise APIError("not_found", "Customer not found.")
@@ -70,31 +79,48 @@ def create(body: ConsultationInput):
                 old_face = previous.get("face_shape") or {}
                 state["face_shape"] = {"suggested": [], "ratios": old_face.get("ratios") or {"lw": 0.0, "jw": 0.0, "fw": 0.0}, "outline": [],
                                        "confirmed": plan["face_shape"], "face_found": False}
+            state['brief']={**consult.brief_defaults(),**plan.get('brief',{})}
             for text in plan.get("observations", []):
                 old = next((o for o in previous.get("observations", []) if o["text"] == text), {})
                 state["observations"].append({"id": str(uuid4()), "text": text, "view": old.get("view", "front"),
                                               "region": old.get("region", "general"), "uncertain": old.get("uncertain", True),
                                               "status": "unconfirmed", "origin": "history"})
-        if conn.execute("SELECT id FROM consultations WHERE status='active' LIMIT 1").fetchone():
-            raise APIError("conflict_unresolved", "Finish the active consultation first.")
+        count = conn.execute("SELECT COUNT(*) FROM consultations WHERE status='active'").fetchone()[0]
+        chair_label = body.chair_label if body.chair_label is not None else f"Upuan {count + 1}"
         cid = str(uuid4())
-        conn.execute("INSERT INTO consultations (id, customer_id, status, stage, revision, state_json, started_at) VALUES (?,?,?,?,?,?,?)",
-                     (cid, customer_id, "active", "concern", 0, json.dumps(state), datetime.now(timezone.utc).isoformat()))
+        conn.execute("INSERT INTO consultations (id, customer_id, status, stage, revision, state_json, started_at, chair_label) VALUES (?,?,?,?,?,?,?,?)",
+                     (cid, customer_id, "active", "photos", 0, json.dumps(state), datetime.now(timezone.utc).isoformat(), chair_label))
         return consultation_dict(conn, conn.execute("SELECT * FROM consultations WHERE id=?", (cid,)).fetchone())
 
 
 @router.get("/active", dependencies=[Depends(require_barber)])
 def active():
     with db.connect() as conn:
-        row = conn.execute("SELECT * FROM consultations WHERE status='active' ORDER BY started_at DESC LIMIT 1").fetchone()
+        row = conn.execute("SELECT * FROM consultations WHERE status='active' ORDER BY started_at DESC, rowid DESC LIMIT 1").fetchone()
         return consultation_dict(conn, row) if row else None
+
+
+@router.get("/active-list", dependencies=[Depends(require_barber)])
+def active_list():
+    with db.connect() as conn:
+        rows = conn.execute("SELECT c.id,c.chair_label,c.stage,c.phone_token_hash,c.started_at, "
+                            "u.id AS customer_id,u.display_name,u.nickname FROM consultations c "
+                            "LEFT JOIN customers u ON u.id=c.customer_id WHERE c.status='active' "
+                            "ORDER BY c.started_at DESC,c.rowid DESC").fetchall()
+        return [{"id": row["id"], "chair_label": row["chair_label"], "stage": row["stage"],
+                 "phone_paired": bool(row["phone_token_hash"]), "started_at": row["started_at"],
+                 "customer": {"id": row["customer_id"], "display_name": row["display_name"], "nickname": row["nickname"]}
+                             if row["customer_id"] else None} for row in rows]
 
 
 @router.get("/{consultation_id}")
 def get(consultation_id: str, request: Request):
     row = require_scope(consultation_id, request)
     with db.connect() as conn:
-        return consultation_dict(conn, row)
+        out = consultation_dict(conn, row)
+    if not out["state"]["revealed"]:
+        out["state"]["face_shape"] = out["state"]["recommendations"] = None
+    return out
 
 
 class ConfirmationInput(consult.Input):
@@ -103,10 +129,16 @@ class ConfirmationInput(consult.Input):
     expected_revision: int
 
 
+class RatingInput(consult.Input):
+    score: Annotated[int, Field(ge=1, le=5)]
+    tags: Annotated[list[Annotated[str, Field(max_length=40)]], Field(max_length=5)]
+
+
 class CompletionInput(consult.Input):
     actual_notes: str
     save_as_preferred: bool
     keep_photos: bool
+    rating: RatingInput | None = None
 
 
 def _state(row):
@@ -128,7 +160,7 @@ def _write(consultation_id, request, action, payload):
     event_id = consult._id([consultation_id, "idempotency", key])
     cleanup = []
     with db.connect() as conn:
-        # shortcut: one chair, SQLite write lock; revisit if multiple chairs are added.
+        # shortcut: SQLite write lock across chairs; revisit if shop write volume causes contention.
         conn.execute("BEGIN IMMEDIATE")
         require_scope(consultation_id, request)
         row = conn.execute("SELECT * FROM consultations WHERE id=?", (consultation_id,)).fetchone()
@@ -152,7 +184,7 @@ def _write(consultation_id, request, action, payload):
                 # Confirmed versions are immutable; edits invalidate only pending drafts.
                 conn.execute("DELETE FROM agreements WHERE consultation_id=? AND (customer_confirmed_at IS NULL OR barber_confirmed_at IS NULL)", (consultation_id,))
                 speaker = contribution.get("speaker", "barber")
-                input_type = contribution.get("input_type", contribution["kind"])
+                input_type = "chip" if contribution["kind"] == "rating" else contribution.get("input_type", contribution["kind"])
                 # C6 consumes real typed/voice text, including its original negation.
                 text = contribution["text"] if contribution["kind"] == "text" else json.dumps(contribution)
                 conn.execute("INSERT INTO contributions VALUES (?,?,?,?,?,?)", (consult._id([event_id, "input"]),
@@ -168,12 +200,12 @@ def _write(consultation_id, request, action, payload):
                 _save_state(conn, consultation_id, out)
                 speaker = payload["role"]
             else:
-                response, cleanup = consult.complete_visit(conn, row, payload["actual_notes"], payload["save_as_preferred"], payload["keep_photos"], now)
+                response, cleanup = consult.complete_visit(conn, row, payload["actual_notes"], payload["save_as_preferred"], payload["keep_photos"], now, payload.get("rating"))
             if action != "complete":
                 response = consultation_dict(conn, conn.execute("SELECT * FROM consultations WHERE id=?", (consultation_id,)).fetchone())
             # shortcut: durable replay envelopes use stage bookkeeping rows in the
             # existing contributions table (C6 should read typed/voice input rows);
-            # give idempotency its own table if schema v2 or multiple chairs are needed.
+            # give idempotency its own table if replay storage becomes a bottleneck.
             conn.execute("INSERT INTO contributions VALUES (?,?,?,?,?,?)", (event_id, consultation_id, "barber", "stage",
                 json.dumps({"action": action, "payload": payload, "response": response}), now))
     # shortcut: filesystem deletion cannot share SQLite's transaction. Keep unkept
@@ -190,7 +222,7 @@ def _write(consultation_id, request, action, payload):
 def contribute(consultation_id: str, request: Request, body: dict):
     require_scope(consultation_id, request)
     contribution = consult.validate_contribution({name: value for name, value in body.items() if name != "expected_revision"})
-    if contribution["kind"] in {"observation", "observation_add", "face_shape", "stage"}:
+    if contribution["kind"] in {"observation", "observation_add", "face_shape", "stage", "reveal"}:
         require_barber(request)
     return _write(consultation_id, request, "contribution", body)
 

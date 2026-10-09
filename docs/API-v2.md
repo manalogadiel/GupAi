@@ -13,8 +13,8 @@ This doc extends `docs/API.md` (v1). Everything in v1 still holds unless it is c
 - **Barber stage moves** (`{kind:"stage"}`) go one step forward or back, within `photos…summary`, and `cutting → done`.
   - `summary → cutting` happens **only** through the agreement confirmation, once both roles have confirmed.
   - Moving out of `cutting` backwards is not allowed.
-- **`reveal`** can only be entered when `face_shape` exists, or when the barber picks a shape manually with the v1 `face_shape` contribution.
-- **`summary`** requires `selected_style`, `sides.choice` and `top.choice`. Otherwise the move returns `409 conflict_unresolved` with a Taglish message saying what's missing.
+- **`reveal`** accepts unknown face shape. The barber may confirm a manual shape here; Reveal starts no full-haircut recommendation job.
+- **`summary`** requires `sides.choice` and `top.choice`. Otherwise the move returns `409 conflict_unresolved` with a Taglish message saying what's missing.
 
 ## State v2 (`consultations.state_json`)
 These fields are added to the v1 fields. Keep `keep / change / avoid / observations / face_shape / conflicts / uncertainties`.
@@ -52,7 +52,7 @@ checkpoints: { sides: Checkpoint | null; top: Checkpoint | null }
 | `pick_style` | `{catalog_id}` | P | Sets `selected_style`. Must be the top pick or an alternative from `recommendations` |
 | `choose_part` | `{part: "sides"\|"top", option_id?: string, custom?: string ≤120}` | P | Sets `state[part].choice`. Exactly one of `option_id` (must be in `options`) or `custom` |
 
-- **Agreement:** the v1 `POST …/agreements/confirm {role, barber_notes?}` still applies. It is allowed only at stage `summary`, and requires `selected_style`, `sides.choice` and `top.choice`.
+- **Agreement:** the v1 `POST …/agreements/confirm {role, barber_notes?}` still applies. It is allowed only at stage `summary`, and requires `sides.choice` and `top.choice`.
 - **Agreement `plan_json` adds:** `selected_style`, `sides_choice`, `top_choice` (resolved names) and `problems`.
 - **When both roles have confirmed**, the stage moves to `cutting`.
 
@@ -88,3 +88,22 @@ checkpoints: { sides: Checkpoint | null; top: Checkpoint | null }
 - **Migration v2:** `ALTER TABLE visits ADD COLUMN rating INTEGER`, `ALTER TABLE visits ADD COLUMN rating_tags TEXT` (JSON), `ALTER TABLE consultations ADD COLUMN chair_label TEXT`, and `PRAGMA user_version=2`.
   - `db.initialize` upgrades v1 to v2 in place.
 - **Temporary consultations:** the rating is accepted but no visit is saved (as in v1).
+
+## Integrated v2 contract amendments (Oct 10)
+- `state.rating` is null or `{score: 1..5, tags: string[]}`. Phone and barber may contribute `{kind: "rating", score, tags}` only at `done`; tags are deduplicated. Completion uses this authoritative shared rating before a completion-body fallback.
+- Every consultation serializer masks `face_shape` and `recommendations` until `revealed`; internal state retains them.
+- `recent_jobs` contains the last 12 jobs in creation order, so both devices can recover quickly completed outline/transcript results. `active_job` prioritizes the running job over queued work.
+- Goal/constraint changes invalidate derived recommendations and catalog choices; explicit custom descriptions survive regeneration. Frozen cutting/done plans reject edits and delayed plan job merges. Only checkpoints, stage advancement, and rating remain allowed as appropriate.
+- Localhost pairing automatically chooses a private LAN IPv4. `GUPAI_PAIR_BASE_URL` overrides this for multi-adapter setups.
+- Runtime speech loads only cached files. Health requires the exact configured Qwen model, cached speech weights, and the local face-landmarker asset.
+
+Chat/propose input consumption uses a persisted private contribution row cursor, so messages sent during inference survive even if timestamps match. The cursor is excluded from serialized job results.
+
+## Oct 10 conversation-first contract (supersedes full-style selection above)
+`selected_style`, `pick_style` and `recommend` are legacy interfaces; the active frontend makes no recommendation call on Reveal. A new agreement includes the source-backed `brief` and chosen components. Old plans lacking brief remain readable/completable and retain their original style value.
+
+`state.brief` defaults: nullable occasion, change_level, styling_minutes, maintenance_preference, dress_rules, inspiration; desired_impression is an array; evidence records field, source_text, customer speaker and contribution_id. Barber ideas cannot silently become customer preferences. Brief edits invalidate derived proposals before agreement; top-only refinements preserve agreed sides. Mere questions do not discard choices. Accepted cutting plans remain immutable.
+
+`chat` uses one streamed local JSON call for reply and preference updates. `suggest` receives all hard-eligible candidates, validates model-selected IDs and per-option evidence ranges, and retries malformed output once. No fixed face-shape ranking fallback is represented as AI choice.
+
+Jobs expose optional progress (queued/transcribing/composing/done/status, queued_ahead, first_token_ms) and whitelisted Ollama duration/token counters. Timing and partial text are process-local and disappear on restart. elapsed_s starts at inference, excluding queue wait. Queued-ahead counts are refreshed after insertion; immediate creation may show zero before the transaction is committed. No private prompt/audio is included in diagnostics.

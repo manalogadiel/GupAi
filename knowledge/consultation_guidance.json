@@ -1,0 +1,58 @@
+[
+  {
+    "id": "consult_preferences",
+    "topics": [
+      "occasion",
+      "desired_impression",
+      "goal"
+    ],
+    "summary": "Establish the client’s intended look and preferences before selecting a design. Face shape is advisory; never impose a balancing goal the client did not request.",
+    "source_ids": [
+      "opentextbc_consultation",
+      "pall_mall_lifestyle"
+    ]
+  },
+  {
+    "id": "daily_routine",
+    "topics": [
+      "styling_minutes",
+      "maintenance_preference",
+      "hard_to_style",
+      "work",
+      "school"
+    ],
+    "summary": "Compare the requested finish with the daily styling time and upkeep the client accepts. School or work does not establish a dress rule; ask for the actual policy.",
+    "source_ids": [
+      "pall_mall_lifestyle",
+      "sam_villa_personalization"
+    ]
+  },
+  {
+    "id": "texture_growth",
+    "topics": [
+      "cowlick",
+      "puffy_sides",
+      "flat_top",
+      "texture"
+    ],
+    "summary": "Growth direction, density, available length and texture affect the feasible outline. Use barber-confirmed observations; unconfirmed photos cannot establish these facts.",
+    "source_ids": [
+      "opentextbc_consultation",
+      "sam_villa_personalization"
+    ]
+  },
+  {
+    "id": "impact_choice",
+    "topics": [
+      "change_level",
+      "birthday",
+      "desired_impression",
+      "inspiration"
+    ],
+    "summary": "Clarify the impact the client wants and how different the result should feel. Offer styling and silhouette tradeoffs rather than mapping every occasion to one haircut.",
+    "source_ids": [
+      "pall_mall_lifestyle",
+      "sam_villa_personalization"
+    ]
+  }
+]

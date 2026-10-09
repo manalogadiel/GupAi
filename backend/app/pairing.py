@@ -3,6 +3,8 @@ import base64
 import hashlib
 import io
 import os
+import socket
+import ipaddress
 import secrets
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, Request
@@ -21,6 +23,16 @@ def issue(consultation_id: str, request: Request):
     expires = (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
     # shortcut: set GUPAI_PAIR_BASE_URL to the hotspot HTTPS origin when laptop uses localhost.
     base_url = os.environ.get("GUPAI_PAIR_BASE_URL", str(request.base_url)).rstrip("/")
+    if not os.environ.get("GUPAI_PAIR_BASE_URL") and request.url.hostname in ("localhost", "127.0.0.1", "::1"):
+        try:
+            addresses = sorted({item[4][0] for item in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET)})
+            address = next((a for a in addresses if ipaddress.ip_address(a).is_private
+                            and not ipaddress.ip_address(a).is_loopback
+                            and not ipaddress.ip_address(a).is_link_local), None)
+            if address:
+                base_url = f"{request.url.scheme}://{address}:{request.url.port or 8443}"
+        except OSError:
+            pass  # Explicit GUPAI_PAIR_BASE_URL remains available for unusual LAN configurations.
     url = base_url + "/pair?code=" + code
     png = io.BytesIO()
     qrcode.make(url).save(png, format="PNG")

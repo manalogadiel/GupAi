@@ -91,3 +91,15 @@ input, textarea, select { font-size: 16px; } /* stops iOS zoom on focus */
   box-shadow: inset 0 1px 0 rgb(255 255 255 / .7), var(--shadow-card); }
 @keyframes caret { 50% { opacity: 0; } }
 .caret::after { content: ""; display: inline-block; width: 2px; height: 1.05em; margin-left: 2px; vertical-align: -0.15em; background: currentColor; animation: caret 1s steps(1) infinite; }
+
+/* Compact scenes expose one option at a time rather than clipping stacked cards. */
+.phone-face { float: right; align-self: center; }
+.phone-face img { max-height: 80px; }
+.phone-face figcaption { display: none; }
+.float-preview { align-self: flex-end; margin-bottom: -85px; }
+html { overscroll-behavior: none; }
+.scroll-col { overscroll-behavior: contain; }
+@media (max-width: 480px) {
+  .mirror-shell { gap: 8px; }
+  .mirror-shell button { min-height: 44px; }
+}

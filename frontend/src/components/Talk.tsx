@@ -9,11 +9,12 @@ const MAX_S = 30
  * Voice + typing dock. Voice: tap to record (≤30 s) → local transcription → editable transcript → Send.
  * Typing always works; the mic is optional and never listens unless the Talk button was pressed.
  */
-export default function Talk({ speakerLocked, onSend, onAudio, transcript, busy, placeholder, onRecordingChange, micSize = 76 }: {
+export default function Talk({ speakerLocked, onSend, onAudio, transcript, transcriptId, busy, placeholder, onRecordingChange, micSize = 76 }: {
   speakerLocked?: Speaker
-  onSend: (text: string, speaker: Speaker, inputType: 'typed' | 'voice') => Promise<void> | void
+  onSend: (text: string, speaker: Speaker, inputType: 'typed' | 'voice') => Promise<boolean | void> | void
   onAudio?: (clip: Blob) => Promise<void> | void
   transcript?: string | null
+  transcriptId?: string | null
   busy?: boolean
   placeholder?: string
   onRecordingChange?: (recording: boolean) => void
@@ -29,7 +30,7 @@ export default function Talk({ speakerLocked, onSend, onAudio, transcript, busy,
   const rec = useRef<{ mr: MediaRecorder; stream: MediaStream; ctx: AudioContext; timer: number; raf: number } | null>(null)
 
   // A finished transcription lands in the box for review; it is never sent automatically.
-  useEffect(() => { if (transcript) { setText(transcript); setFromVoice(true) } }, [transcript])
+  useEffect(() => { if (transcript) { setText(transcript); setFromVoice(true) } }, [transcript, transcriptId])
   useEffect(() => () => stop(true), []) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { onRecordingChange?.(recording) }, [recording, onRecordingChange])
 
@@ -82,7 +83,8 @@ export default function Talk({ speakerLocked, onSend, onAudio, transcript, busy,
   async function send() {
     const t = text.trim()
     if (!t) return
-    await onSend(t, speaker, fromVoice ? 'voice' : 'typed')
+    const sent = await onSend(t, speaker, fromVoice ? 'voice' : 'typed')
+    if (sent === false) return
     setText(''); setFromVoice(false)
   }
 

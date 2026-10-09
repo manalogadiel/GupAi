@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { MotionConfig } from 'motion/react'
+import PreviewStates from './dev/PreviewStates'
 import Backdrop from './components/Backdrop'
 import Home from './pages/Home'
 import Customers from './pages/Customers'
@@ -20,14 +22,15 @@ export default function App() {
     return () => window.removeEventListener('popstate', on)
   }, [])
 
-  return <><Backdrop />{route(path)}</>
+  return <MotionConfig reducedMotion="user"><Backdrop />{route(path)}</MotionConfig>
 }
 
 function route(path: string) {
+  if (path.startsWith('/dev/preview')) return <PreviewStates />
   if (path.startsWith('/dev/mascot')) return <MascotStates />
   if (path.startsWith('/phone')) return <Phone />
   const consult = path.match(/^\/consult\/([\w-]+)/)
-  if (consult) return <Consult id={consult[1]} />
+  if (consult) return <Consult key={consult[1]} id={consult[1]} />
   if (path.startsWith('/customers')) return <Customers />
   return <Home />
 }

@@ -1,5 +1,6 @@
 // Typed client for docs/API.md (v1). Keep in sync with the contract, not with backend internals.
 
+export interface Rating { score: number; tags: string[] }
 export type Speaker = 'customer' | 'barber'
 export type Stage = 'photos' | 'goal' | 'reveal' | 'sides' | 'top' | 'summary' | 'cutting' | 'done' | 'completed' | 'abandoned'
 export type Part = 'sides' | 'top'
@@ -25,7 +26,10 @@ export interface Option {
   stays: string[]; changes: string[]; effort: Effort; needs_barber_check: string[]
   face_shape_note: string | null; source_ids: string[]
 }
+export interface Brief { occasion:string|null; desired_impression:string[]; change_level:string|null; styling_minutes:number|null; maintenance_preference:string|null; dress_rules:string|null; inspiration:string|null; evidence:{field:string;source_text:string}[] }
 export interface ConsultState {
+  brief?: Brief
+  rating: Rating | null
   problems: ProblemId[]; chat: { role: 'customer' | 'barber' | 'ai'; text: string }[]; revealed: boolean
   recommendations: { top_pick: Pick; alternatives: Pick[]; face_note: string | null } | null
   selected_style: string | null; sides: PartState; top: PartState
@@ -43,6 +47,7 @@ export interface Agreement {
 export type JobType = 'transcribe' | 'observe' | 'faceshape' | 'propose' | 'chat' | 'recommend' | 'suggest' | 'checkpoint'
 export interface Job {
   partial_text?: string | null
+  progress?: { phase:string; queued_ahead:number|null; first_token_ms:number|null }
   id: string; type: JobType; status: 'queued' | 'running' | 'done' | 'failed' | 'cancelled' | 'stale'
   requested_revision: number; started_at: string | null; finished_at: string | null; elapsed_s: number
   result: any; error: { code: string; message: string } | null // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -51,13 +56,14 @@ export interface CustomerRef { id: string; display_name: string; nickname: strin
 export interface Consultation {
   id: string; customer: CustomerRef | null; stage: Stage; status: 'active' | 'completed' | 'abandoned'
   revision: number; state: ConsultState; photos: { id: string; view: 'front' | 'side'; url: string }[]
-  agreement: Agreement | null; active_job: Job | null; phone_paired: boolean
+  agreement: Agreement | null; active_job: Job | null; recent_jobs?: Job[]; phone_paired: boolean
 }
 export interface CustomerRow extends CustomerRef { last_visit_at: string | null; preferred_visit_id: string | null }
 export interface Visit { id: string; completed_at: string; agreement: Agreement; actual_notes: string }
 export interface Health { ollama: boolean; vision_model: string | null; whisper: boolean; face_landmarker: boolean }
 
 export type Contribution =
+  | { kind: 'rating'; score: number; tags: string[] }
   | { kind: 'text'; speaker: Speaker; text: string; input_type: 'typed' | 'voice' }
   | { kind: 'chip'; speaker: Speaker; field: 'keep' | 'change' | 'avoid' | 'styling_effort' | 'goal'; value: string; remove?: boolean }
   | { kind: 'observation'; observation_id: string; status: 'confirmed' | 'rejected'; text?: string }
@@ -128,8 +134,8 @@ export const api = {
   confirmAgreement: (id: string, role: Speaker, expected_revision: number, barber_notes?: string) =>
     request<Consultation>('POST', `/api/consultations/${id}/agreements/confirm`, { role, barber_notes, expected_revision }, idem()),
   abandon: (id: string) => request<{ id: string; status: string }>('POST', `/api/consultations/${id}/abandon`, {}, idem()),
-  complete: (id: string, actual_notes: string, save_as_preferred: boolean, keep_photos: boolean, rating?: { score: number; tags: string[] }) =>
-    request<{ visit_id: string }>('POST', `/api/consultations/${id}/complete`, { actual_notes, save_as_preferred, keep_photos, rating }, idem()),
+  complete: (id: string, actual_notes: string, save_as_preferred: boolean, keep_photos: boolean, rating?: { score: number; tags: string[] }, key?: string) =>
+    request<{ visit_id: string }>('POST', `/api/consultations/${id}/complete`, { actual_notes, save_as_preferred, keep_photos, rating }, key ? { 'Idempotency-Key': key } : idem()),
 }
 
 /** Poll a job until it leaves queued/running. Resolves with the final job; `onTick` gets each poll. */

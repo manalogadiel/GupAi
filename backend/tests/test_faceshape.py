@@ -100,7 +100,7 @@ def test_catalog_contract_and_citations():
     catalog = json.loads((ROOT / "knowledge/catalog.json").read_text(encoding="utf8"))
     sources = json.loads((ROOT / "knowledge/sources.json").read_text(encoding="utf8"))
     source_ids = {source["id"] for source in sources}
-    assert len(source_ids) == len(sources) == 6
+    assert len(source_ids) == len(sources) and len(sources) >= 8
     assert {style["id"] for style in catalog} == {
         "crew_cut", "buzz_cut", "side_part", "textured_crop", "curtains", "short_quiff"}
     assert len(catalog) == 6

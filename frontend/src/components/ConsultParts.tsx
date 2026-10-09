@@ -5,6 +5,7 @@ import { Button, Chip } from './ui'
 import { shapeLabel } from './Photo'
 
 const JOB_TL: Record<string, string> = {
+  chat: 'Sumasagot si Kuya Pal', recommend: 'Pinipili ang haircut', suggest: 'Pinipili ang part options', checkpoint: 'Sinusuri ang checkpoint',
   transcribe: 'Isinasalin ang boses sa text sa laptop',
   observe: 'Tinitingnan ng local AI ang photo',
   faceshape: 'Sinusukat ang hugis ng mukha',
@@ -24,7 +25,7 @@ export function JobStatus({ job }: { job: Job | null }) {
                 <motion.span key={i} className="size-1.5 rounded-full bg-action" animate={{ opacity: [0.25, 1, 0.25] }} transition={{ duration: 1.1, repeat: Infinity, delay: i * 0.18 }} />
               ))}
             </span>
-            {JOB_TL[job.type] ?? job.type}… <span className="tabular-nums text-ink-2">{Math.round(job.elapsed_s)}s</span>
+            {job.status === 'queued' ? `Nakapila · ${job.progress?.queued_ahead ?? '?'} nauna` : JOB_TL[job.type] ?? job.type}… <span className="tabular-nums text-ink-2">{Math.round(job.elapsed_s)}s</span>
           </span>
           <Button variant="quiet" className="min-h-9 rounded-full px-3 text-[14px]" onClick={() => api.cancelJob(job.id).catch(() => {})}>Cancel</Button>
         </motion.div>

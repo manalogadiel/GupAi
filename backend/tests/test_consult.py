@@ -18,7 +18,7 @@ def logic():
 
 
 def state(**values):
-    return {**consultations.empty_state(), "revision": 3, "stage": "concern", **values}
+    return {**consultations.empty_state(), "revision": 3, "stage": "photos", **values}
 
 
 def test_revision_and_text_negation(logic):
@@ -65,9 +65,9 @@ def test_observations_face_shape_selection_and_stage(logic):
     assert face["face_shape"]["confirmed"] == "round"
     selected = logic.apply_contribution(state(options=[{"id": "a"}]), {"kind": "select_option", "option_id": "a"}, 3)
     assert selected["selected_option_id"] == "a"
-    photos = logic.apply_contribution(state(), {"kind": "stage", "stage": "photos"}, 3)
+    photos = logic.apply_contribution(state(stage="goal"), {"kind": "stage", "stage": "photos"}, 3)
     assert photos["stage"] == "photos"
-    assert logic.apply_contribution(photos, {"kind": "stage", "stage": "concern"}, 4)["stage"] == "concern"
+    assert logic.apply_contribution(photos, {"kind": "stage", "stage": "goal"}, 4)["stage"] == "goal"
 
 
 @pytest.mark.parametrize("contribution", [
@@ -141,7 +141,7 @@ def test_merge_propose_remove_add_conflict_and_reply(logic):
 
 
 def test_agreement_conflict_blocks_confirmation(logic):
-    before = state(stage="agreement", conflicts=[{"id": "c", "text": "fringe"}])
+    before = state(stage="summary", conflicts=[{"id": "c", "text": "fringe"}])
     with pytest.raises(APIError) as error:
         logic.confirm_agreement(before, None, "customer", "", 3)
     assert error.value.code == "conflict_unresolved"
@@ -149,6 +149,8 @@ def test_agreement_conflict_blocks_confirmation(logic):
 
 @pytest.fixture
 def barber(tmp_path, monkeypatch):
+    # Keep simulated phone cookies on the TestClient's configured host.
+    monkeypatch.setenv('GUPAI_PAIR_BASE_URL', 'https://localhost:8443')
     monkeypatch.setattr(db, "DB_PATH", tmp_path / "test.db")
     monkeypatch.setattr(media, "MEDIA_DIR", tmp_path / "media")
     with TestClient(main.app, base_url="https://localhost:8443", client=("127.0.0.1", 1)) as client:
@@ -172,7 +174,17 @@ def contribution(client, cid, revision, **body):
 
 def agreement_stage(client, cid):
     current = client.get(f"/api/consultations/{cid}").json()
-    for stage in ("photos", "observations", "options", "agreement"):
+    current = contribution(client, cid, current["revision"], kind="face_shape", confirmed="round").json()
+    # Recommendation inference is outside this lifecycle test; use its validated
+    # stored result, then exercise the real contribution and stage gates.
+    with db.connect() as conn:
+        value = json.loads(conn.execute("SELECT state_json FROM consultations WHERE id=?", (cid,)).fetchone()[0])
+        value["recommendations"] = {"top_pick": {"catalog_id": "side_part", "name": "Side part", "image": "/assets/catalog/side_part.webp", "why": "Simple"}, "alternatives": [], "face_note": None}
+        conn.execute("UPDATE consultations SET state_json=? WHERE id=?", (json.dumps(value), cid))
+    current = contribution(client, cid, current["revision"], kind="pick_style", catalog_id="side_part").json()
+    for part in ("sides", "top"):
+        current = contribution(client, cid, current["revision"], kind="choose_part", part=part, custom="Keep length").json()
+    for stage in ("goal", "reveal", "sides", "top", "summary"):
         current = contribution(client, cid, current["revision"], kind="stage", stage=stage).json()
     return current
 
@@ -210,25 +222,24 @@ def test_contribution_revision_scope_roles_origin_and_idempotency(barber):
     assert post(barber, path, {**body, "kind": "invalid"}).status_code == 422
 
 
-def test_agreements_are_immutable_versions_and_edits_require_reconfirmation(barber):
+def test_agreements_are_immutable_and_summary_edits_require_reconfirmation(barber):
     cid = create(barber)["id"]
     current = agreement_stage(barber, cid)
     first = agree(barber, current, "customer").json()
-    assert first["agreement"]["customer_confirmed_at"] and first["stage"] == "agreement"
+    assert first["agreement"]["customer_confirmed_at"] and first["stage"] == "summary"
     edited = contribution(barber, cid, first["revision"], kind="chip", speaker="customer", field="keep", value="fringe").json()
     assert edited["agreement"] is None
+    # Explicit custom choices remain reviewable; a redundant style pick is no longer required.
     current = agree(barber, edited, "barber", "leave fringe").json()
     current = agree(barber, current, "customer").json()
     assert current["stage"] == "cutting" and current["agreement"]["version"] == 1
     original = current["agreement"]
-    current = contribution(barber, cid, current["revision"], kind="stage", stage="agreement").json()
-    current = contribution(barber, cid, current["revision"], kind="chip", speaker="customer", field="change", value="sides").json()
-    current = agree(barber, current, "customer").json()
-    current = agree(barber, current, "barber", "trim sides").json()
-    assert current["agreement"]["version"] == 2
+    assert contribution(barber, cid, current["revision"], kind="stage", stage="summary").status_code == 422
+    assert contribution(barber, cid, current["revision"], kind="chip", speaker="customer", field="change", value="sides").status_code == 409
+    assert agree(barber, current, "customer").status_code == 422
     with db.connect() as conn:
         rows = conn.execute("SELECT * FROM agreements WHERE consultation_id=? ORDER BY version", (cid,)).fetchall()
-    assert len(rows) == 2
+    assert len(rows) == 1
     assert json.loads(rows[0]["plan_json"]) == original["plan"]
     assert rows[0]["barber_confirmed_at"] == original["barber_confirmed_at"]
 
@@ -265,7 +276,7 @@ def test_completion_persistence_prefill_media_retention_and_revocation(barber):
     assert remote.get(f"/api/consultations/{cid}").status_code == 404
     with db.connect() as conn:
         row = conn.execute("SELECT * FROM consultations WHERE id=?", (cid,)).fetchone()
-        assert row["status"] == row["stage"] == "completed" and row["phone_token_hash"] is None
+        assert row["status"] == "completed" and row["stage"] == "done" and row["phone_token_hash"] is None
         assert conn.execute("SELECT COUNT(*) FROM visits").fetchone()[0] == 1
         assert conn.execute("SELECT keep FROM media WHERE id=?", (mids[0],)).fetchone()[0] == 1
         assert conn.execute("SELECT id FROM media WHERE id=?", (mids[1],)).fetchone() is None
@@ -306,7 +317,7 @@ def test_complete_transaction_rolls_back_on_database_failure(barber):
         assert conn.execute("SELECT status FROM consultations WHERE id=?", (cid,)).fetchone()[0] == "active"
 
 
-def test_polling_selects_latest_active_job_and_scoped_photos(barber):
+def test_polling_prioritizes_running_job_and_scoped_photos(barber):
     cid = create(barber)["id"]
     old, latest, done, mid = (str(uuid4()) for _ in range(4))
     with db.connect() as conn:
@@ -314,18 +325,20 @@ def test_polling_selects_latest_active_job_and_scoped_photos(barber):
             conn.execute("INSERT INTO jobs (id,consultation_id,type,requested_revision,status) VALUES (?,?,?,?,?)", (jid, cid, "observe", 0, status))
         conn.execute("INSERT INTO media VALUES (?,?,?,?,?,?,?)", (mid, cid, "photo", "side", "random.jpg", 0, "now"))
     current = barber.get(f"/api/consultations/{cid}").json()
-    assert current["active_job"]["id"] == latest
+    assert current["active_job"]["id"] == old
+    assert [j["id"] for j in current["recent_jobs"]] == [old, latest, done]
     assert current["photos"] == [{"id": mid, "view": "side", "url": f"/api/media/{mid}"}]
     assert barber.get(f"/api/consultations/{cid}").json()["revision"] == 0
 
 
-def test_edits_while_cutting_require_fresh_confirmation(barber):
+def test_edits_while_cutting_are_rejected_and_completion_stays_available(barber):
     cid = create(barber)["id"]
     current = agree(barber, agreement_stage(barber, cid), "customer").json()
     current = agree(barber, current, "barber").json()
-    current = contribution(barber, cid, current["revision"], kind="chip", speaker="customer", field="change", value="sides").json()
-    assert current["stage"] == "agreement"
-    assert post(barber, f"/api/consultations/{cid}/complete", {"actual_notes": "trim", "save_as_preferred": False, "keep_photos": False}).status_code == 409
+    response = contribution(barber, cid, current["revision"], kind="chip", speaker="customer", field="change", value="sides")
+    assert response.status_code == 409
+    assert barber.get(f"/api/consultations/{cid}").json()["stage"] == "cutting"
+    assert post(barber, f"/api/consultations/{cid}/complete", {"actual_notes": "trim", "save_as_preferred": False, "keep_photos": False}).status_code == 200
 
 
 def test_completion_blocks_plan_changed_by_job_after_confirmation(barber):

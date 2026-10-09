@@ -12,3 +12,5 @@ knowledge/models/*.task
 test-face*.jpg
 test-face*.png
 .playwright-mcp/
+
+.local-backup/

@@ -6,13 +6,14 @@ import Talk from '../components/Talk'
 import { flow } from '../flow'
 import { useConsultation } from '../useConsultation'
 
-/** The customer's phone: one frame per step. Kuya Gup on top, the step in the middle, the voice dock at the bottom. */
+/** The customer's phone: one frame per step. Kuya Pal on top, the step in the middle, the voice dock at the bottom. */
 export default function Phone() {
   const id = new URLSearchParams(location.search).get('c')
   const h = useConsultation(id)
   const { c } = h
   const [recording, setRecording] = useState(false)
 
+  if (h.ended) return <Center>Salamat! Tapos na ang konsultang ito. I-scan ang bagong QR para sa susunod na visit.</Center>
   if (!id) return <Center>I-scan ang QR code sa laptop ng barbero para magsimula.</Center>
   if (!c) return <Center>{h.offline ? 'Hindi maabot ang laptop. Nasa shop Wi-Fi ka ba?' : h.error ?? 'Kumokonekta sa laptop…'}</Center>
   if (c.status !== 'active') return <Center>Salamat sa pagpunta! Tapos na ang konsultang ito.</Center>
@@ -22,7 +23,7 @@ export default function Phone() {
   const showDock = c.stage === 'goal' || c.stage === 'sides' || c.stage === 'top'
 
   return (
-    <div className="mx-auto flex h-dvh max-w-md flex-col gap-3 overflow-hidden px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-[calc(0.75rem+env(safe-area-inset-top))]">
+    <div className="mx-auto flex h-dvh max-w-md flex-col gap-2 overflow-hidden px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-[calc(0.75rem+env(safe-area-inset-top))]">
       <header className="flex items-center justify-between">
         <span className="font-display text-[24px] leading-none">Gup<span className="text-voice">.</span>Ai</span>
         <span aria-label={`Step ${at + 1} ng ${STEPS.length}`} className="flex gap-1">
@@ -37,8 +38,8 @@ export default function Phone() {
         </motion.div>
       </AnimatePresence>
       {showDock && (
-        <Talk speakerLocked="customer" onSend={f.say} onAudio={f.audio} transcript={h.results.transcribe?.text}
-          busy={!!h.runningJob && h.runningJob.type !== 'chat'} placeholder="Sabihin o i-type…" onRecordingChange={setRecording} micSize={60} />
+        <Talk speakerLocked="customer" onSend={f.say} onAudio={f.audio} transcript={h.results.transcribe?.text} transcriptId={h.results.transcribe?.job_id}
+          busy={!!h.runningJob} placeholder="Sabihin o i-type…" onRecordingChange={setRecording} micSize={60} />
       )}
     </div>
   )

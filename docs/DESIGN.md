@@ -91,3 +91,6 @@
 - Color is never the only signal (checks and words too).
 - The mascot is `aria-hidden`.
 - Job status is `role=status` with honest elapsed seconds.
+
+## V2 operation refinements
+Preserve the warm cream/peach/sage palette and blurred visual identity. On phones, recommendation and part alternatives use selectable tabs with one complete card visible; job state, ratings, and camera controls remain reachable. Desktop chat scrolls within its pane with input pinned. Reduced-motion preference is respected. Preview is illustrative; custom choices are labeled as descriptions.

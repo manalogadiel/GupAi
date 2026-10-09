@@ -75,7 +75,7 @@ def _seed(tmp_path, monkeypatch, revision, requested):
     db.initialize()
     with db.connect() as conn:
         conn.execute("INSERT INTO consultations (id, status, stage, revision, state_json, started_at) VALUES "
-                     "('c1','active','options',?,?, 'now')", (revision, json.dumps(empty_state())))
+                     "('c1','active','reveal',?,?, 'now')", (revision, json.dumps(empty_state())))
         conn.execute("INSERT INTO jobs (id, consultation_id, type, requested_revision, status) VALUES ('j1','c1','propose',?,'queued')",
                      (requested,))
 

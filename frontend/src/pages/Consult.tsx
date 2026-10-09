@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { api, ApiError, type Consultation, type Stage } from '../api'
 import { navigate } from '../App'
 import { BarberPanel, Scene, STEPS } from '../components/Scenes'
@@ -13,8 +13,9 @@ const ORDER = STEPS.map(s => s.stage)
 function blocker(c: Consultation): string | null {
   const s = c.state
   switch (c.stage) {
-    case 'photos': return c.photos.some(p => p.view === 'front') ? null : 'Kumuha muna ng harap na photo.'
-    case 'reveal': return !s.revealed ? 'I-reveal muna ang resulta.' : !s.selected_style ? 'Pumili muna ng style.' : null
+    case 'photos': return ['front', 'side'].every(v => c.photos.some(p => p.view === v)) ? null : 'Kumuha muna ng harap at gilid na photo.'
+    case 'goal': return c.active_job ? 'Hintayin o i-cancel muna ang pagsusuri.' : null
+    case 'reveal': return !s.revealed ? 'I-reveal muna ang resulta.' : null
     case 'sides': return s.sides?.choice ? null : 'Pumili o mag-type muna ng gusto sa gilid.'
     case 'top': return s.top?.choice ? null : 'Pumili o mag-type muna ng gusto sa ibabaw.'
     default: return null
@@ -49,6 +50,7 @@ export default function Consult({ id }: { id: string }) {
   const { c } = h
   const [recording, setRecording] = useState(false)
   const [dir, setDir] = useState(1)
+  const completion = useRef<{ payload: string; key: string } | null>(null)
 
   if (!c) return <main className="grid min-h-dvh place-items-center text-ink-2">{h.error ?? 'Loading consultation…'}</main>
 
@@ -60,7 +62,9 @@ export default function Consult({ id }: { id: string }) {
   const chair = (c as Consultation & { chair_label?: string | null }).chair_label
 
   async function complete(rating: { score: number; tags: string[] }, notes: string, preferred: boolean, keepPhotos: boolean) {
-    try { await api.complete(c!.id, notes, !!c!.customer && preferred, !!c!.customer && keepPhotos, rating); navigate('/') }
+    const payload = JSON.stringify([rating, notes, preferred, keepPhotos])
+    if (completion.current?.payload !== payload) completion.current = { payload, key: crypto.randomUUID() }
+    try { await api.complete(c!.id, notes, !!c!.customer && preferred, !!c!.customer && keepPhotos, rating, completion.current.key); navigate('/') }
     catch (e) { h.setError(e instanceof ApiError ? e.message : 'Hindi na-save.') }
   }
 
