@@ -5,6 +5,9 @@ import { navigate } from '../App'
 import Character from '../components/Character'
 import Icon from '../components/Icon'
 import { Button, ErrorLine, Header } from '../components/ui'
+import HaircutPreview, { asSides, asTop } from '../components/HaircutPreview'
+
+
 
 const fmt = (iso: string | null) =>
   iso ? new Date(iso).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Wala pang visit'
@@ -82,12 +85,19 @@ function CustomerDetail({ id, onDeleted }: { id: string; onDeleted: () => void }
       {p && pref ? (
         <div className="overflow-hidden rounded-[22px] bg-subtle">
           <div className="flex items-center gap-4 p-4">
-            {p.option?.image && <img src={p.option.image} alt="" className="size-24 shrink-0 rounded-[16px] bg-peach object-cover" />}
+            {p.option?.image ? (
+              <img src={p.option.image} alt="" className="size-24 shrink-0 rounded-[16px] bg-peach object-cover" />
+            ) : (p.sides_choice || p.top_choice) ? (
+              <div className="grid size-24 shrink-0 place-items-center rounded-[16px] bg-peach/70 p-1">
+                <HaircutPreview sides={asSides(p.sides_choice)} top={asTop(p.top_choice)} size={88} />
+              </div>
+            ) : null}
             <div className="min-w-0">
               <p className="text-[14px] text-ink-2">Preferred haircut · {fmt(pref.completed_at)}</p>
-              <p className="font-display text-[30px] leading-tight">{p.option?.name ?? 'Custom haircut'}</p>
+              <p className="font-display text-[28px] leading-tight">{p.option?.name ?? [p.sides_choice, p.top_choice].filter(Boolean).join(' + ') || 'Custom haircut'}</p>
             </div>
           </div>
+
           <dl className="space-y-1 border-t border-separator px-4 py-3 text-[15px]">
             {p.keep.length > 0 && <div><dt className="inline font-semibold">Keep: </dt><dd className="inline">{p.keep.join(', ')}</dd></div>}
             {p.avoid.length > 0 && <div><dt className="inline font-semibold">Avoid: </dt><dd className="inline">{p.avoid.join(', ')}</dd></div>}

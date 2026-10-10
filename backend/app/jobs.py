@@ -147,16 +147,19 @@ def stream(job_id: str, request: Request):
     def events():
         sent, deadline = 0, time.monotonic() + 300
         while True:
-            with db.connect() as conn:
-                row = conn.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()
             text = _transient.get(job_id, {}).get("partial_text") or ""
             if len(text) > sent:
                 yield "event: delta\ndata: " + json.dumps({"text": text[sent:]}) + "\n\n"
                 sent = len(text)
+            with db.connect() as conn:
+                row = conn.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()
+            if row is None:
+                return
             if row["status"] not in ("queued", "running") or time.monotonic() > deadline:
                 yield "event: done\ndata: " + json.dumps(job_dict(row)) + "\n\n"
                 return
-            time.sleep(0.08)
+            time.sleep(0.15)
+
 
     return StreamingResponse(events(), media_type="text/event-stream", headers={"Cache-Control": "no-store"})
 

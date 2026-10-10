@@ -80,6 +80,18 @@ def create(body: ConsultationInput):
                 state["face_shape"] = {"suggested": [], "ratios": old_face.get("ratios") or {"lw": 0.0, "jw": 0.0, "fw": 0.0}, "outline": [],
                                        "confirmed": plan["face_shape"], "face_found": False}
             state['brief']={**consult.brief_defaults(),**plan.get('brief',{})}
+            if previous.get("sides") and previous["sides"].get("choice"):
+                state["sides"] = json.loads(json.dumps(previous["sides"]))
+            elif plan.get("sides_choice"):
+                state["sides"]["choice"] = {"id": None, "custom": plan["sides_choice"]}
+            if previous.get("top") and previous["top"].get("choice"):
+                state["top"] = json.loads(json.dumps(previous["top"]))
+            elif plan.get("top_choice"):
+                state["top"]["choice"] = {"id": None, "custom": plan["top_choice"]}
+            if plan.get("selected_style"):
+                state["selected_style"] = plan["selected_style"]
+            if plan.get("problems"):
+                state["problems"] = list(plan["problems"])
             for text in plan.get("observations", []):
                 old = next((o for o in previous.get("observations", []) if o["text"] == text), {})
                 state["observations"].append({"id": str(uuid4()), "text": text, "view": old.get("view", "front"),

@@ -30,17 +30,34 @@ function PhoneLink({ c }: { c: Consultation }) {
   const [open, setOpen] = useState(false)
   const [qr, setQr] = useState<{ url: string; qr_png_data_url: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
-  if (c.phone_paired) return <span className="flex items-center gap-2 whitespace-nowrap text-[14px]"><Icon name="phone" size={18} className="text-action" /> Phone konektado</span>
+
+  function loadQr() {
+    setError(null)
+    api.pair(c.id).then(setQr, e => setError(e.message))
+  }
+
   return (
-    <div className="relative">
-      <Button variant="quiet" className="min-h-10 whitespace-nowrap rounded-full px-3 text-[15px]" aria-expanded={open}
-        onClick={() => { setOpen(o => !o); if (!qr) api.pair(c.id).then(setQr, e => setError(e.message)) }}><Icon name="phone" size={18} /> I-connect ang phone</Button>
+    <div className="relative flex items-center gap-2">
+      {c.phone_paired ? (
+        <Button variant="quiet" className="min-h-10 whitespace-nowrap rounded-full px-3 text-[14px] text-action" aria-expanded={open}
+          onClick={() => { setOpen(o => !o); if (!open) loadQr() }}>
+          <Icon name="phone" size={18} /> Phone konektado · Re-pair
+        </Button>
+      ) : (
+        <Button variant="quiet" className="min-h-10 whitespace-nowrap rounded-full px-3 text-[15px]" aria-expanded={open}
+          onClick={() => { setOpen(o => !o); if (!open) loadQr() }}>
+          <Icon name="phone" size={18} /> I-connect ang phone
+        </Button>
+      )}
       <AnimatePresence>
         {open && (
           <motion.div initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6 }}
             className="glass absolute right-0 top-12 z-30 w-64 space-y-2 rounded-[22px] p-4 text-center">
             {qr ? <img src={qr.qr_png_data_url} alt="QR code para i-connect ang phone ng customer" className="mx-auto w-44 rounded-[14px] bg-white p-2" /> : <p className="text-ink-2">Ginagawa ang QR…</p>}
             <p className="text-[13px] text-ink-2">Para lang sa upuang ito · isang beses · 10 minuto</p>
+            <div className="flex justify-center">
+              <button type="button" onClick={loadQr} className="text-[12px] text-action underline">Bagong QR code</button>
+            </div>
             <ErrorLine message={error} />
           </motion.div>
         )}
@@ -48,6 +65,7 @@ function PhoneLink({ c }: { c: Consultation }) {
     </div>
   )
 }
+
 
 const wideQuery = typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)') : null
 /** Below 1024 px (tablets) the barber screen uses the tested phone layouts instead of a clipped two-column view. */
@@ -85,7 +103,7 @@ export default function Consult({ id }: { id: string }) {
   async function complete(rating: { score: number; tags: string[] }, notes: string, preferred: boolean, keepPhotos: boolean) {
     const payload = JSON.stringify([rating, notes, preferred, keepPhotos])
     if (completion.current?.payload !== payload) completion.current = { payload, key: crypto.randomUUID() }
-    try { await api.complete(c!.id, notes, !!c!.customer && preferred, !!c!.customer && keepPhotos, rating, completion.current.key); navigate('/') }
+    try { await api.complete(c!.id, notes, !!c!.customer && preferred, !!c!.customer && keepPhotos, rating?.score > 0 ? rating : undefined, completion.current.key); navigate('/') }
     catch (e) { h.setError(e instanceof ApiError ? e.message : 'Hindi na-save.') }
   }
 

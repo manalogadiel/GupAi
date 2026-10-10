@@ -49,9 +49,10 @@ export interface ConsultState {
 }
 export interface Agreement {
   id: string; version: number
-  plan: { keep: string[]; change: string[]; avoid: string[]; option: Option | null; face_shape: FaceShape | null; observations: string[]; barber_notes: string }
+  plan: { keep: string[]; change: string[]; avoid: string[]; option: Option | null; face_shape: FaceShape | null; observations: string[]; barber_notes: string; sides_choice?: string | null; top_choice?: string | null; selected_style?: string | null }
   customer_confirmed_at: string | null; barber_confirmed_at: string | null
 }
+
 export type JobType = 'transcribe' | 'observe' | 'faceshape' | 'propose' | 'chat' | 'recommend' | 'suggest' | 'checkpoint'
 export interface Job {
   partial_text?: string | null

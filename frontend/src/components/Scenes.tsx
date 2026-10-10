@@ -682,11 +682,12 @@ export function DoneScene({ c, f, role, onComplete }: SceneProps & { onComplete:
               <label className="flex items-center gap-2"><input type="checkbox" checked={keepPhotos} onChange={e => setKeepPhotos(e.target.checked)} className="size-5 accent-[var(--color-action)]" /> Itago ang photos</label>
             </div>
           )}
-          <Button variant="primary" className="min-h-14 rounded-full text-lg" disabled={busy || shownScore === 0}
+          <Button variant="primary" className="min-h-14 rounded-full text-lg" disabled={busy}
             onClick={async () => { setBusy(true); await onComplete({ score: shownScore, tags: shownTags }, notes.trim(), preferred, keepPhotos); setBusy(false) }}>
-            I-save at tapusin
+            {shownScore > 0 ? 'I-save at tapusin' : 'I-save at tapusin (walang rating)'}
           </Button>
         </div>
+
       )}
       {role === 'customer' && <>
         <Button variant="primary" className="min-h-12 rounded-full" disabled={busy || score === 0} onClick={submitRating}>{busy ? 'Sine-send…' : 'I-send ang rating'}</Button>

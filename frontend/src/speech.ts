@@ -78,11 +78,15 @@ export async function speak(text: string, consultationId: string, turnIndex: num
       body: JSON.stringify({ turn_index: turnIndex }), signal: controller.signal,
     })
     if (response.status === 409 && current === generation && enabled) {
-      response = await fetch(`/api/consultations/${encodeURIComponent(consultationId)}/speech`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ turn_index: turnIndex }), signal: controller.signal,
-      })
+      await new Promise(r => setTimeout(r, 1200))
+      if (current === generation && enabled) {
+        response = await fetch(`/api/consultations/${encodeURIComponent(consultationId)}/speech`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ turn_index: turnIndex }), signal: controller.signal,
+        })
+      }
     }
+
     if (!response.ok) throw new Error('Local voice unavailable')
     const blob = await response.blob()
     if (current !== generation || !enabled) return

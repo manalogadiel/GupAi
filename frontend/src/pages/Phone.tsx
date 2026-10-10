@@ -1,6 +1,10 @@
 import { AnimatePresence, motion } from 'motion/react'
 import Character from '../components/Character'
 import { BarberPanel, Scene, STEPS } from '../components/Scenes'
+import { ErrorLine } from '../components/ui'
+
+
+
 import Wordmark from '../components/Wordmark'
 import { flow } from '../flow'
 import { useConsultation } from '../useConsultation'
@@ -28,7 +32,9 @@ export default function Phone() {
         </span>
       </header>
       <BarberPanel c={c} f={f} h={h} role="customer" compact recording={false} />
+      <ErrorLine message={h.error} />
       <AnimatePresence mode="wait" initial={false}>
+
         <motion.div key={c.stage} className="min-h-0 flex-1 overflow-hidden"
           initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.26, ease: [0.23, 1, 0.32, 1] }}>
           <Scene c={c} f={f} h={h} role="customer" compact onComplete={async () => {}} />

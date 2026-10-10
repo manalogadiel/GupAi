@@ -27,6 +27,14 @@ def catalog_ids():
     data = json.loads((Path(__file__).resolve().parents[2] / "knowledge/parts.json").read_text(encoding="utf-8-sig"))
     return {group: {o["id"] for o in options} for group, options in data.items()}
 
+
+@lru_cache(maxsize=1)
+def catalog_names():
+    """Mapping of cut id to human-readable name across sides and top in parts.json."""
+    data = json.loads((Path(__file__).resolve().parents[2] / "knowledge/parts.json").read_text(encoding="utf-8-sig"))
+    return {o["id"]: o["name"] for options in data.values() for o in options}
+
+
 REGIONS = ("top", "sides", "back", "fringe", "crown", "general")
 SHAPES = ("oval", "round", "square", "oblong", "heart", "diamond")
 STAGES = ("photos", "goal", "reveal", "sides", "top", "summary", "cutting", "done")
@@ -444,10 +452,17 @@ def _agreement_plan(state, barber_notes):
 
 
 def _choice_name(part):
-    choice = part["choice"]
+    choice = part.get("choice")
     if not choice:
         return None
-    return choice["custom"] or next((o["name"] for o in part["options"] if o["id"] == choice["id"]), None)
+    custom = choice.get("custom")
+    if custom:
+        return custom
+    choice_id = choice.get("id")
+    if not choice_id:
+        return None
+    return next((o["name"] for o in part.get("options", []) if o.get("id") == choice_id), None) or catalog_names().get(choice_id)
+
 
 
 def confirm_agreement(state, agreement, role, barber_notes, expected_revision, now=""):

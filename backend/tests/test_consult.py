@@ -7,7 +7,8 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from backend.app import db, main, consultations, media
+from backend.app import db, main, consultations, media, consult
+
 from backend.app.errors import APIError
 
 
@@ -450,3 +451,38 @@ def test_delete_customer_refuses_active_consultation_and_phone(barber):
     assert remote.delete("/api/customers/" + customer_id, headers={"Origin": "https://localhost:8443"}).status_code == 403
     with db.connect() as conn:
         assert conn.execute("SELECT COUNT(*) FROM customers WHERE id=?", (customer_id,)).fetchone()[0] == 1
+
+
+def test_choice_name_resolves_catalog_cut_when_not_in_suggested_options():
+    # Pick a style directly from catalog (e.g. low_fade) that is NOT in part options
+    part = {"options": [{"id": "taper", "name": "Taper Fade"}], "choice": {"id": "low_fade", "custom": None}}
+    assert consult._choice_name(part) == "Low fade"
+
+
+
+def test_create_consultation_from_visit_restores_sides_and_top_choices(barber):
+    c = create(barber, customer=True)
+    cid = c["id"]
+    customer_id = c["customer"]["id"]
+    post(barber, f"/api/consultations/{cid}/contributions",
+         {"kind": "choose_part", "part": "sides", "option_id": "low_fade", "expected_revision": c["revision"]})
+    c = barber.get(f"/api/consultations/{cid}").json()
+    post(barber, f"/api/consultations/{cid}/contributions",
+         {"kind": "choose_part", "part": "top", "option_id": "textured_crop", "expected_revision": c["revision"]})
+    c = barber.get(f"/api/consultations/{cid}").json()
+    # Walk to summary and confirm
+    for stage in ("goal", "reveal", "sides", "top", "summary"):
+        post(barber, f"/api/consultations/{cid}/contributions", {"kind": "stage", "stage": stage, "expected_revision": c["revision"]})
+        c = barber.get(f"/api/consultations/{cid}").json()
+    post(barber, f"/api/consultations/{cid}/agreements/confirm", {"role": "customer", "expected_revision": c["revision"], "barber_notes": ""})
+    c = barber.get(f"/api/consultations/{cid}").json()
+    post(barber, f"/api/consultations/{cid}/agreements/confirm", {"role": "barber", "expected_revision": c["revision"], "barber_notes": "notes"})
+    # Complete visit
+    vid = post(barber, f"/api/consultations/{cid}/complete",
+               {"actual_notes": "Done", "save_as_preferred": True, "keep_photos": False}).json()["visit_id"]
+
+    # Start new consultation with from_visit_id
+    next_c = post(barber, "/api/consultations", {"customer_id": customer_id, "from_visit_id": vid}).json()
+    assert next_c["state"]["sides"]["choice"]["id"] == "low_fade"
+    assert next_c["state"]["top"]["choice"]["id"] == "textured_crop"
+
